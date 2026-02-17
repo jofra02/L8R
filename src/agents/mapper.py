@@ -26,11 +26,15 @@ async def mapper_agent_node(state: GlobalState) -> Dict[str, Any]:
     # Context summary for the LLM
     inventory_summary = "No inventory available."
     if context and context.inventory:
-        # Avoid dumping huge inventory. Just mention count or key types.
-        inventory_summary = f"Customer has {len(context.inventory)} assets in inventory."
+        # If inventory is small, we pass it all.
+        if len(context.inventory) <= 50:
+             items_str = "\n".join([f"- {c.id}: {c.ref} ({c.vendor} {c.role})" for c in context.inventory])
+             inventory_summary = f"Customer has {len(context.inventory)} assets:\n{items_str}"
+        else:
+             inventory_summary = f"Customer has {len(context.inventory)} assets in inventory."
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert IT Support AI. Analyze the ticket and identify technical components (devices, IPs, URLs, services, users). Match against inventory if possible."),
+        ("system", "You are an expert IT Support / Incident Engineer. Analyze the ticket and identify technical components (devices, IPs, URLs, services, users). Match against inventory if possible. Infer the 'vendor' (e.g. Fortinet, Cisco, AWS, Microsoft) if explicitly mentioned or implied by the context."),
         ("user", "Context: {inventory}\n\nTicket: {text}\n\n{format_instructions}")
     ])
     

@@ -26,9 +26,30 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
     # Format facts for prompt
     facts_str = "\n".join([f"- {k}: {v}" for k, v in facts.items()]) or "No specific facts collected yet."
     
+    # Format existing hypotheses for context
+    existing_hypotheses = state.get("hypotheses", [])
+    hypotheses_str = "No existing hypotheses."
+    if existing_hypotheses:
+        hypotheses_str = "\n".join([
+            f"- [{h.id}] ({h.status}) {h.summary} (Rank: {h.rank})" 
+            for h in existing_hypotheses
+        ])
+    
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert IT Support AI. Based on the ticket and collected facts, generate potential hypotheses for the root cause (if incident) or implementation path (if change). Identify what evidence is missing."),
-        ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\n{format_instructions}")
+        ("system", """You are an expert IT Support / Incident Engineer. 
+        Based on the ticket, collected facts, and EXISTING HYPOTHESES, generate an updated ranked list of hypotheses.
+        
+        CRITICAL INSTRUCTIONS:
+        1. Review the 'Current Hypotheses'.
+        2. If a hypothesis is 'verifying', check the 'Facts'. 
+           - If facts CONFIRM it, change status to 'verified'.
+           - If facts DISPROVE it, change status to 'rejected'.
+           - If inconclusive, keep status as 'verifying' (or 'proposed' if you want to re-rank it).
+        3. Introduce NEW hypotheses with status 'proposed' if the facts suggest a new angle.
+        4. Rank ALL (active) hypotheses from most likely (1) to least likely.
+        5. IMPORTANT: Preserve the 'id' of existing hypotheses if you are updating them.
+        """),
+        ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\nCurrent Hypotheses:\n{hypotheses}\n\n{format_instructions}")
     ])
     
     chain = prompt | llm | parser
@@ -37,12 +58,18 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         result = await chain.ainvoke({
             "text": state["ticket"].text,
             "facts": facts_str,
+            "hypotheses": hypotheses_str,
             "format_instructions": parser.get_format_instructions()
         })
         
-        logger.info(f"Generated {len(result.hypotheses)} hypotheses.")
-        return {"hypotheses": result.hypotheses}
+        # Merge/De-dupe logic could go here, but with the explicit prompt we trust the LLM to return the full updated list.
+        # We filter out 'rejected' ones from the main reasoning loop eventually, but keeping them for audit is good.
+        final_hypotheses = result.hypotheses
+        
+        logger.info(f"Generated {len(final_hypotheses)} hypotheses.")
+        return {"hypotheses": final_hypotheses}
         
     except Exception as e:
         logger.error(f"Hypothesis generation failed: {e}")
-        return {"hypotheses": []}
+        # Fallback: return existing to avoid losing state on error
+        return {"hypotheses": existing_hypotheses}

@@ -1,0 +1,5 @@
+id: "test_tenant_001"
+name: "Test Corp"
+status: "active"
+plan: "trial"
+allowed_tools: ["ping", "dns*"]

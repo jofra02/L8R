@@ -50,9 +50,49 @@ def supervisor_router(state: GlobalState) -> Literal["context_agent", "classifie
     if not state.get("evidence_refs"):
         return "evidence_collector"
         
-    # 5. Planning
+    # 5. Active Diagnosis Loop (Hypothesis Verification)
+    hypotheses = state.get("hypotheses", [])
+    if hypotheses:
+        # Sort by rank
+        sorted_hypotheses = sorted(hypotheses, key=lambda x: x.rank)
+        
+        # A. If we have a VERIFIED hypothesis, we are done with investigation.
+        verified_hypotheses = [h for h in sorted_hypotheses if h.status == "verified"]
+        if verified_hypotheses:
+            logger.info(f"Supervisor: Hypothesis {verified_hypotheses[0].id} is verified. Moving to planning.")
+            return "planner_agent" # Explicitly go to planner
+            
+        # B. If we have PROPOSED hypotheses, verify the best one.
+        proposed_hypotheses = [h for h in sorted_hypotheses if h.status == "proposed"]
+        if proposed_hypotheses:
+            top_hypothesis = proposed_hypotheses[0]
+            logger.info(f"Supervisor: Routing to Investigator for hypothesis: {top_hypothesis.id}")
+            return "investigator_agent"
+            
+        # C. If all are rejected or verifying (shouldn't hang in verifying), we might be done or need new hypotheses.
+        # If Hypothesis Agent is doing its job, we shouldn't get stuck in 'verifying' without moving state.
+        # Fallthrough to Planning (which will likely conclude inconclusive) or Response.
+
+
+    # 6. Planning
     if not state.get("plan"):
         return "planner_agent"
-        
-    # 6. Final Response
+
+    # 7. Quality Control & Final Response
+    # Check if we have a solid conclusion before exiting
+    iterations = state.get("meta", {}).get("iterations", 0)
+    
+    # Define "Success": Verified Hypothesis AND Plan
+    has_verified = any(h.status == "verified" for h in hypotheses)
+    has_plan = bool(state.get("plan") and (state.get("plan").diagnosis_steps or state.get("plan").proposed_changes))
+    
+    if iterations < MAX_ITERATIONS:
+        if not has_verified:
+            logger.info("Supervisor: No verified hypothesis yet. Looping back to planner/investigator.")
+            # If we have proposals but none verified, force investigator
+            if any(h.status == "proposed" for h in hypotheses):
+                return "investigator_agent"
+            return "planner_agent"
+            
+    # If max iterations reached OR we have success, go to Response
     return "response_agent"

@@ -1,0 +1,1 @@
+{"http_method":"GET","results":{"model_name":"FortiGate","model_number":"60E","model":"FGT60E","hostname":"Reconquista","log_disk_status":"not_available"},"vdom":"root","path":"system","name":"status","status":"success","serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}

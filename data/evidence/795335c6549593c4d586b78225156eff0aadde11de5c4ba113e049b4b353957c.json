@@ -1,0 +1,1 @@
+Error: Error calling tool 'get_interface_transceivers': HTTP error 404: Not Found - {'path': 'system', 'name': 'interface', 'action': 'transceivers', 'serial': 'FGT60ETK19031088', 'version': 'v7.4.9', 'build': 2829, 'status': 'error', 'http_status': 404}

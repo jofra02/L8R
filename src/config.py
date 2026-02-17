@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
+from typing import Optional, Dict, Any
 
 class Settings(BaseSettings):
     """Global application settings."""
@@ -22,7 +22,40 @@ class Settings(BaseSettings):
     
     # MCP
     MCP_SERVER_TIMEOUT: int = 30
+    MCP_SERVERS: Dict[str, Dict[str, Any]] = {
+        # --- Examples ---
+        # "filesystem": {
+        #     "transport": "stdio",
+        #     "command": "npx", 
+        #     "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+        # },
+        # "remote-server": {
+        #     "transport": "sse",
+        #     "url": "http://localhost:8000/sse"
+        # }
+         "remote-server": {
+             "transport": "sse",
+             "url": "http://generico.jdreconquista.com.ar:19568/sse"
+         }
+    }
     
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # --- LLM Profiles (Governance) ---
+    
+    # Main Profile (Reasoning: Planner, Hypothesis, Supervisor)
+    LLM_MAIN_VENDOR: str = "openai" # openai, anthropic
+    LLM_MAIN_MODEL: str = "gpt-4o"
+    LLM_MAIN_TEMP: float = 0.0
+    LLM_MAIN_API_KEY: Optional[str] = None # Defaults to env var if None
+
+    # Fast Profile (Speed: Classifier, Mapper, Normalizer)
+    LLM_FAST_VENDOR: str = "openai"
+    LLM_FAST_MODEL: str = "gpt-4o-mini"
+    LLM_FAST_TEMP: float = 0.0
+    LLM_FAST_API_KEY: Optional[str] = None # Defaults to env var if None
+
+    # Global API Keys
+    OPENAI_API_KEY: Optional[str] = None
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()

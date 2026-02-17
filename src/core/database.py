@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from typing import AsyncGenerator
+from contextlib import asynccontextmanager
 from src.config import settings
 
 # Construct Async PG URL
@@ -25,6 +26,7 @@ class Base(DeclarativeBase):
     """Base class for all ORM models."""
     pass
 
+@asynccontextmanager
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Dependency for getting async session."""
     async with async_session_factory() as session:

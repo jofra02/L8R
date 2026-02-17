@@ -1,0 +1,1 @@
+Error: Error calling tool 'get_firewall_ippool_mapping': HTTP error 404: Not Found - {'http_method': 'GET', 'status': 'error', 'http_status': 404, 'vdom': 'root', 'path': 'firewall', 'name': 'ippool', 'action': 'mapping', 'serial': 'FGT60ETK19031088', 'version': 'v7.4.9', 'build': 2829}

@@ -1,0 +1,1 @@
+{"http_method":"GET","results":{"summary":{"matched_count":0,"session_count":100},"details":[]},"vdom":"root","path":"firewall","name":"proxy","action":"sessions","status":"success","serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}

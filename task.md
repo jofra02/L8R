@@ -49,3 +49,69 @@
     [x] Create Main Entrypoint (`main.py`)
     [x] Validation of "Read-Only" enforcement (via MCP Client)
     [x] End-to-end flow test with mock data
+
+[ ] Phase 7: Version Control & Distribution
+    [ ] Initialize Git Repository & .gitignore
+    [ ] Push to GitHub (Manual/CLI)
+
+[x] Phase 8: Data Seeding & Onboarding
+    [x] Design Context Seeding Strategy (YAML/JSON -> Postgres)
+    [x] Design Knowledge Base Seeding Strategy (Docs -> Qdrant)
+    [x] Implement Seeding Scripts (`seed_context.py`, `seed_kb.py`)
+    [x] Add CLI commands for seeding (`init-db`, `register-tenant`, `seed*`)
+
+[x] Phase 9: Model Governance (LLM Profiles)
+    [x] Design Profile Strategy (Main: Reasoning, Fast: Speed)
+    [x] Update `src/config.py` with LLM settings
+    [x] Update `src/config.py` with LLM settings
+    [x] Refactor `LLMFactory` in `src/core/llm.py`
+
+[x] Phase 10: Audit System (Bitacora)
+    [x] Implement `AuditService` (`src/core/audit.py`)
+    [x] Implement Graph Decorator (`src/agent_graph.py`)
+    [x] Integrate Run Creation in `src/main.py`
+    [x] Integrate Run Creation in `src/main.py`
+    [x] Verify Audit Logs in Database
+
+[x] Phase 13: External MCP Support
+    [x] Install `mcp` library
+    [x] Refactor `src/mcp/client.py` to use `mcp` SDK
+    [x] Add MCP Server Configuration to `src/config.py`
+    [x] specific `src/core/registry.py` to load external tools
+
+[x] Phase 14: MCP Refinement (SSE & Stdio)
+    [x] Update `src/config.py` with placeholders
+    [x] Refactor `src/mcp/client.py` to support SSE
+    [x] Update `docs/mcp_integration.md`
+
+[x] Phase 17: Vendor Agnostic Logic & Brute Force Fallback
+    [x] Add `vendor` field to `Component` model
+    [x] Update `Mapper` agent to infer vendor
+    [x] Refactor `EvidenceCollector` for Multi-Tool Selection
+    [x] Implement Brute Force Fallback
+    [x] Verify with FortiGate test case
+
+[x] Phase 15: Smart Evidence Collection
+    [x] Implement `search_tools` in `Registry`
+    [x] Update `EvidenceCollector` with LLM logic (Search -> Select -> Execute)
+    [x] Verify with FortiGate test case
+
+[x] Phase 16: Documentation Updates
+    [x] Create `docs/evidence_collector_technical.md`
+    [x] Update `README.md` with link to new doc
+
+[x] Phase 11: Documentation
+    [x] Update `README.md` (Architecture, Setup, Usage)
+    [x] Create/Update `onboarding_plan.md` (if needed)
+
+[x] Phase 12: MCP Integration Guide
+    [x] Create `docs/mcp_integration.md`
+    [x] Explain Client, Registry, and Configuration
+    [x] Provide "Hello World" connection example
+
+[ ] Phase 18: Active Diagnosis Loop
+    [ ] Update `Hypothesis` model (Rank, Status)
+    [ ] Refactor `Hypothesis` agent for Ranking & Verification Check
+    [ ] Create `Investigator` agent (Targeted Tools vs Hypothesis)
+    [ ] Update `Supervisor` for Investigation Loop
+    [ ] Verify with FortiGate test case (Mocking "Proof")

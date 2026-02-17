@@ -24,6 +24,7 @@ class Component(BaseModel):
     id: str  # Unique identifier (e.g., hostname, IP, uuid)
     ref: str  # Human-readable reference name
     role: ComponentRole
+    vendor: Optional[str] = None # e.g. "fortinet", "microsoft", "aws"
     priority: int = 1
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -59,6 +60,8 @@ class Hypothesis(BaseModel):
     supporting_facts: List[str] = Field(default_factory=list)
     disconfirming_facts: List[str] = Field(default_factory=list)
     confidence: float = 0.0
+    rank: int = Field(default=0, description="Priority rank (1 is highest)")
+    status: str = Field(default="proposed", description="proposed, verified, rejected")
     next_playbooks: List[str] = Field(default_factory=list)
     rationale: str = ""
 

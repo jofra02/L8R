@@ -16,15 +16,21 @@ async def planner_agent_node(state: GlobalState) -> Dict[str, Any]:
     
     logger.info("Planner Agent: Drafting plan.")
     
-    # Select leading hypothesis
-    target_hypothesis = hypotheses[0] if hypotheses else None
-    hypothesis_text = target_hypothesis.summary if target_hypothesis else "Analyze root cause"
+    # Select leading hypothesis (Prioritize Verified -> Proposed -> ignore Rejected)
+    sorted_hypotheses = sorted(hypotheses, key=lambda x: x.rank)
+    target_hypothesis = next((h for h in sorted_hypotheses if h.status == "verified"), None)
+    
+    if not target_hypothesis:
+        # Fallback to top proposed if none verified (and not rejected)
+        target_hypothesis = next((h for h in sorted_hypotheses if h.status == "proposed"), None)
+        
+    hypothesis_text = target_hypothesis.summary if target_hypothesis else "Analyze root cause (No verified hypothesis)"
     
     llm = LLMFactory.get_main_llm()
     parser = PydanticOutputParser(pydantic_object=Plan)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert Subject Matter Expert. Create a safe, step-by-step plan to verify the hypothesis and resolve the issue. Do NOT include steps that modify the system state without approval. Focus on diagnosis and verification first."),
+        ("system", "You are an expert IT Support / Incident Engineer. Create a safe, step-by-step plan to verify the hypothesis and resolve the issue. Do NOT include steps that modify the system state without approval. Focus on diagnosis and verification first."),
         ("user", "Ticket: {text}\n\nHypothesis: {hypothesis}\n\n{format_instructions}")
     ])
     

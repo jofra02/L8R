@@ -1,0 +1,1 @@
+{"http_method":"GET","results":{"summary":{"matched_count":0,"session_count":266,"matched_npu_count":0,"npu_session_count":4,"matched_nturbo_count":0,"nturbo_session_count":0,"setup_rate":3},"details":[]},"vdom":"root","path":"firewall","name":"session","status":"success","serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}

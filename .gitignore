@@ -47,3 +47,27 @@ dmypy.json
 
 # Qdrant local storage (if mapped)
 qdrant_storage/
+
+# Local Artifacts
+*.docx
+audit_logs.json
+audit_report.md
+verify_result.txt
+debug_*.py
+inspect_db.py
+
+# Local Artifacts
+*.docx
+audit_logs.json
+audit_report.md
+verify_result.txt
+debug_*.py
+inspect_db.py
+
+# Local Artifacts
+*.docx
+audit_logs.json
+audit_report.md
+verify_result.txt
+debug_*.py
+inspect_db.py

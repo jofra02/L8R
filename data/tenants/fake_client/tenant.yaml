@@ -1,0 +1,5 @@
+id: "fake_client"
+name: "Fake Client Corp"
+status: "active"
+plan: "enterprise"
+allowed_tools: ["ping", "dns*", "http*"]

@@ -1,0 +1,1 @@
+Error: Error calling tool 'get_traffic_history_interface': HTTP error 400: Bad Request - {'http_method': 'GET', 'status': 'error', 'http_status': 400, 'vdom': 'root', 'path': 'system', 'name': 'traffic-history', 'action': 'interface', 'serial': 'FGT60ETK19031088', 'version': 'v7.4.9', 'build': 2829}

@@ -30,6 +30,40 @@ class CapabilityRegistry:
         return list(cls._tools.values())
 
     @classmethod
+    def search_tools(cls, query: str, limit: int = 10) -> List[MCPToolInterface]:
+        """Search tools by name or description using token matching."""
+        query_tokens = set(query.lower().split())
+        scored_results = []
+        
+        for tool in cls._tools.values():
+            score = 0
+            name = tool.name.lower()
+            desc = (tool.description or "").lower()
+            
+            # Exact phrase match bonus
+            if query.lower() in name:
+                score += 10
+            elif query.lower() in desc:
+                score += 5
+            
+            # Token matching
+            for token in query_tokens:
+                if len(token) < 3: # Skip short tokens
+                    continue
+                if token in name:
+                    score += 3
+                if token in desc:
+                    score += 1
+            
+            if score > 0:
+                scored_results.append((score, tool))
+        
+        # Sort by score descending
+        scored_results.sort(key=lambda x: x[0], reverse=True)
+        
+        return [item[1] for item in scored_results[:limit]]
+
+    @classmethod
     def get_playbook(cls, name: str) -> Dict[str, Any]:
         # Implementation to search playbooks across packs
         # Simple lookup for now
@@ -44,3 +78,14 @@ class CapabilityRegistry:
         """Load default capability packs."""
         from src.capabilities.generic.pack import GenericCapabilityPack
         cls.register_pack(GenericCapabilityPack())
+
+    @classmethod
+    async def load_external_tools(cls):
+        """Discover and load tools from configured MCP servers."""
+        from src.mcp.client import MCPClient
+        client = MCPClient()
+        external_tools = await client.discover_tools()
+        
+        for tool in external_tools:
+            logger.info(f"Registry: Registering external tool {tool.name} from {tool.server_name}")
+            cls._tools[tool.name] = tool

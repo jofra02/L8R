@@ -1,0 +1,28 @@
+customer_id: "fake_client"
+version: "1.0.2"
+inventory:
+  - id: "fgt_casa"
+    ref: "Local FortiGate-60E"
+    role: "firewall"
+    priority: 1
+    metadata:
+      ip: "192.168.241.1"
+      model: "FortiGate-60E"
+      os: "fortios"
+      description: "FortiGate configured via local inventory"
+      tags: ["local", "development"]
+
+  - id: "fgt_druidics"
+    ref: "Druidics FortiGate-200E"
+    role: "firewall"
+    priority: 1
+    metadata:
+      ip: "172.25.0.1"
+      model: "FortiGate-200E"
+      os: "fortios"
+      description: "Fortigate Firewall of Druidics's office"
+      tags: ["Perimeter", "Firewall"]
+
+dependencies: []
+baselines: []
+access_scopes: ["network_read"]

@@ -2,7 +2,7 @@ import hashlib
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from src.core.models import EvidenceSnapshot
 import logging
 
@@ -15,7 +15,7 @@ class EvidenceStore:
         self.base_path = base_path
         os.makedirs(self.base_path, exist_ok=True)
         
-    async def save_evidence(self, tool_name: str, tool_args: Dict[str, Any], content: Any) -> EvidenceSnapshot:
+    async def save_evidence(self, tool_name: str, tool_args: Dict[str, Any], content: Any, summary: Optional[str] = None) -> EvidenceSnapshot:
         """Persist evidence and return a snapshot reference."""
         
         # 1. Serialize content
@@ -37,6 +37,8 @@ class EvidenceStore:
         # 4. Create Snapshot Object
         snapshot_id = f"ev_{content_hash[:8]}"
         
+        final_summary = summary or f"Output from {tool_name} ({len(content_str)} bytes)"
+        
         return EvidenceSnapshot(
             id=snapshot_id,
             tool_call_id="unknown",  # To be filled by caller
@@ -44,6 +46,6 @@ class EvidenceStore:
             tool_args=tool_args,
             timestamp=datetime.now(),
             content_hash=content_hash,
-            summary=f"Output from {tool_name} ({len(content_str)} bytes)",
+            summary=final_summary,
             storage_ref=file_path
         )
