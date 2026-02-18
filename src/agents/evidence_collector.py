@@ -203,6 +203,14 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
 
                 except Exception as e:
                     logger.error(f"Tool execution failed {tool_name}: {e}")
+                    # Capture failure as evidence so it appears in the report
+                    fail_snapshot = await store.save_evidence(
+                        tool_name=tool_name,
+                        tool_args=tool_args,
+                        content=f"EXECUTION FAILED: {str(e)}",
+                        summary=f"Failed to run {tool_name}: {str(e)[:100]}"
+                    )
+                    new_evidence.append(fail_snapshot)
             
         except Exception as e:
             logger.error(f"Failed to collect evidence for {comp.id}: {e}")

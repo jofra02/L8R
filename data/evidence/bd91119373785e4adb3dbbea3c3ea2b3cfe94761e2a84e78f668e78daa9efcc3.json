@@ -1,0 +1,6 @@
+EXECUTION BLOCKED.
+Missing Info:
+- policyid: The mkey (ID or name) of the FortiGate DoS policy to retrieve. The previous tool call failed because policyid was null; the DoS policy identifier is required and is not present in the case facts.
+- device verification (optional): Confirm that the device identifier 'fgt_druidics' maps to the FortiGate with serial FG200E4Q17909046 in the inventory (S2).
+Suggested Source: Use a read-only discovery/listing tool (S5) to run 'get firewall DoS-policy' or equivalent on the FortiGate to obtain the policy list and the exact policyid; alternatively, have the user supply the exact policyid from the device configuration (S1).
+RECOMMENDATION: Select a tool to discover this information.

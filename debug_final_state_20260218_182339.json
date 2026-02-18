@@ -1,0 +1,856 @@
+{
+  "ticket": {
+    "id": "8c5ad85a-8dbc-41e6-928f-2022e8aea7a4",
+    "mode": "incident",
+    "text": "Los usuario en la subred 192.168.241.0 no puede llegar a la pagina principal de AWS, les da error de conectividad a traves del FortiGate",
+    "severity": "medium",
+    "source": "cli_test",
+    "timestamps": {
+      "created_at": "2026-02-18T16:37:57.533310"
+    },
+    "raw_payload": null
+  },
+  "customer_id": "fake_client",
+  "client_context": {
+    "customer_id": "fake_client",
+    "version": "1.0.2",
+    "inventory": [
+      {
+        "id": "fgt_casa",
+        "ref": "Local FortiGate-60E",
+        "role": "firewall",
+        "vendor": null,
+        "priority": 1,
+        "metadata": {
+          "ip": "192.168.241.1",
+          "model": "FortiGate-60E",
+          "os": "fortios",
+          "description": "FortiGate configured via local inventory",
+          "tags": [
+            "local",
+            "development"
+          ]
+        }
+      },
+      {
+        "id": "fgt_druidics",
+        "ref": "Druidics FortiGate-200E",
+        "role": "firewall",
+        "vendor": null,
+        "priority": 1,
+        "metadata": {
+          "ip": "172.25.0.1",
+          "model": "FortiGate-200E",
+          "os": "fortios",
+          "description": "Fortigate Firewall of Druidics's office",
+          "tags": [
+            "Perimeter",
+            "Firewall"
+          ]
+        }
+      }
+    ],
+    "dependencies": [],
+    "baselines": [],
+    "known_changes": [],
+    "access_scopes": [
+      "network_read"
+    ]
+  },
+  "classification": {
+    "domains": [
+      "network",
+      "firewall",
+      "cloud"
+    ],
+    "confidence": 0.92,
+    "rationale": "The ticket describes connectivity issues from a specific subnet (192.168.241.0) to an external service (AWS) and explicitly mentions FortiGate, which is a firewall. This points primarily to network-level and firewall (network-security) problems; cloud is relevant because the destination is AWS. Unlikely to be auth, database, or hardware based on the information given."
+  },
+  "components": [
+    {
+      "id": "fgt_casa",
+      "ref": "FortiGate-60E (fgt_casa)",
+      "role": "firewall",
+      "vendor": "Fortinet",
+      "priority": 2,
+      "metadata": {
+        "model": "FortiGate-60E",
+        "location": "local",
+        "inventory_name": "fgt_casa",
+        "note": "Listed in customer assets; possible firewall in path for affected subnet"
+      }
+    },
+    {
+      "id": "fgt_druidics",
+      "ref": "FortiGate-200E (fgt_druidics)",
+      "role": "firewall",
+      "vendor": "Fortinet",
+      "priority": 2,
+      "metadata": {
+        "model": "FortiGate-200E",
+        "owner": "Druidics",
+        "inventory_name": "fgt_druidics",
+        "note": "Listed in customer assets; could be the FortiGate referenced in the ticket"
+      }
+    },
+    {
+      "id": "subnet_192.168.241.0/24",
+      "ref": "192.168.241.0/24",
+      "role": "unknown",
+      "vendor": null,
+      "priority": 1,
+      "metadata": {
+        "description": "User subnet reported as unable to reach AWS main page",
+        "affected_hosts": "users in this subnet",
+        "ticket_text": "Los usuario en la subred 192.168.241.0 no puede llegar a la pagina principal de AWS"
+      }
+    },
+    {
+      "id": "users_192.168.241.x",
+      "ref": "users@192.168.241.0/24",
+      "role": "unknown",
+      "vendor": null,
+      "priority": 1,
+      "metadata": {
+        "type": "end-users",
+        "impact": "unable to access AWS homepage",
+        "count": "unknown"
+      }
+    },
+    {
+      "id": "aws_main_page",
+      "ref": "https://aws.amazon.com",
+      "role": "service",
+      "vendor": "Amazon Web Services",
+      "priority": 1,
+      "metadata": {
+        "description": "AWS public homepage (https)",
+        "observed_error": "connectivity error reported by users when accessing through FortiGate"
+      }
+    },
+    {
+      "id": "internet_upstream",
+      "ref": "Upstream-ISP/Internet",
+      "role": "service",
+      "vendor": null,
+      "priority": 1,
+      "metadata": {
+        "description": "Upstream internet connectivity path beyond the FortiGate(s)",
+        "note": "Potentially involved if firewall is forwarding/NATting to internet"
+      }
+    }
+  ],
+  "facts": {
+    "status_ev_75651212": "analyzed",
+    "status_ev_2436dc3d": "analyzed",
+    "status_ev_843daf9b": "analyzed",
+    "status_ev_8ae2afa7": "analyzed",
+    "missing_ping_fgt_casa": "3.163.139.104",
+    "missing_ping_users_192.168.241.x": "A: 192.168.241.1, B:null",
+    "missing_fgt_monitor_sys_get_config_sync_status_aws_main_page": "It is not a ha cluster"
+  },
+  "evidence_refs": [
+    {
+      "id": "ev_a607d8de",
+      "tool_call_id": "auto",
+      "tool_name": "ping",
+      "tool_args": {
+        "target": "aws.amazon.com"
+      },
+      "timestamp": "2026-02-18T16:39:18.262097",
+      "content_hash": "a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7",
+      "summary": "Success: aws.amazon.com is reachable (TCP/80).",
+      "storage_ref": "data/evidence\\a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7.json"
+    },
+    {
+      "id": "ev_ae898452",
+      "tool_call_id": "auto",
+      "tool_name": "http_check",
+      "tool_args": {
+        "url": "https://aws.amazon.com",
+        "method": "GET"
+      },
+      "timestamp": "2026-02-18T16:40:00.560647",
+      "content_hash": "ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3",
+      "summary": "HTTP 200 ",
+      "storage_ref": "data/evidence\\ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3.json"
+    },
+    {
+      "id": "ev_6d428712",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_vwan_get_virtual_wan_health_check",
+      "tool_args": {
+        "device": "fgt_casa"
+      },
+      "timestamp": "2026-02-18T16:40:03.937279",
+      "content_hash": "6d4287121a5a967052af0d17ecbb3e0614ffb896adedf61b6c79e74aac55d0a1",
+      "summary": "Output from fgt_cmdb_vwan_get_virtual_wan_health_check (706 bytes)",
+      "storage_ref": "data/evidence\\6d4287121a5a967052af0d17ecbb3e0614ffb896adedf61b6c79e74aac55d0a1.json"
+    },
+    {
+      "id": "ev_9df40d44",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_ips_get_session_performance",
+      "tool_args": {
+        "device": "fgt_casa"
+      },
+      "timestamp": "2026-02-18T16:40:06.998153",
+      "content_hash": "9df40d44ab8cfa13ea0352a481484b1e9357f7508c848a0cf1c3db518c729219",
+      "summary": "Output from fgt_cmdb_ips_get_session_performance (1387 bytes)",
+      "storage_ref": "data/evidence\\9df40d44ab8cfa13ea0352a481484b1e9357f7508c848a0cf1c3db518c729219.json"
+    },
+    {
+      "id": "ev_96964b10",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_get_inventory_tree",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:40:51.969051",
+      "content_hash": "96964b10818eb6742b05cdfae8fb532a2864691ea85a81f60e3b37ea62aee221",
+      "summary": "Available Devices:\n- fgt_casa (Name: Local FortiGate-60E, IP: 192.168.241.1)\n- fgt_druidics (Name: Druidics FortiGate-200E, IP: 172.25.0.1)",
+      "storage_ref": "data/evidence\\96964b10818eb6742b05cdfae8fb532a2864691ea85a81f60e3b37ea62aee221.json"
+    },
+    {
+      "id": "ev_d06c9435",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_vwan_get_virtual_wan_health_check",
+      "tool_args": {
+        "device": "fgt_druidics"
+      },
+      "timestamp": "2026-02-18T16:40:55.436081",
+      "content_hash": "d06c94356a0854e40e0d7f85e83d322886742a1a291c2245f026e67e7f0b8bb8",
+      "summary": "Output from fgt_cmdb_vwan_get_virtual_wan_health_check (773 bytes)",
+      "storage_ref": "data/evidence\\d06c94356a0854e40e0d7f85e83d322886742a1a291c2245f026e67e7f0b8bb8.json"
+    },
+    {
+      "id": "ev_35865b61",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_monitor_sys_get_ha_hw_interface",
+      "tool_args": {
+        "device": "fgt_druidics"
+      },
+      "timestamp": "2026-02-18T16:40:58.425755",
+      "content_hash": "35865b612cea78ecd725320081dd5350bd2f684699bdb89bd619e54857d6df6a",
+      "summary": "{\"http_method\":\"GET\",\"results\":{},\"vdom\":\"root\",\"path\":\"system\",\"name\":\"ha-hw-interface\",\"action\":\"\",\"status\":\"success\",\"serial\":\"FG200E4Q17909046\",\"version\":\"v7.2.12\",\"build\":1761}",
+      "storage_ref": "data/evidence\\35865b612cea78ecd725320081dd5350bd2f684699bdb89bd619e54857d6df6a.json"
+    },
+    {
+      "id": "ev_a607d8de",
+      "tool_call_id": "auto",
+      "tool_name": "ping",
+      "tool_args": {
+        "target": "aws.amazon.com"
+      },
+      "timestamp": "2026-02-18T16:40:58.881066",
+      "content_hash": "a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7",
+      "summary": "Success: aws.amazon.com is reachable (TCP/80).",
+      "storage_ref": "data/evidence\\a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7.json"
+    },
+    {
+      "id": "ev_ae898452",
+      "tool_call_id": "auto",
+      "tool_name": "http_check",
+      "tool_args": {
+        "url": "https://aws.amazon.com",
+        "method": "GET"
+      },
+      "timestamp": "2026-02-18T16:40:59.480432",
+      "content_hash": "ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3",
+      "summary": "HTTP 200 ",
+      "storage_ref": "data/evidence\\ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3.json"
+    },
+    {
+      "id": "ev_a607d8de",
+      "tool_call_id": "auto",
+      "tool_name": "ping",
+      "tool_args": {
+        "target": "aws.amazon.com",
+        "count": 4
+      },
+      "timestamp": "2026-02-18T16:41:41.416161",
+      "content_hash": "a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7",
+      "summary": "Success: aws.amazon.com is reachable (TCP/80).",
+      "storage_ref": "data/evidence\\a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7.json"
+    },
+    {
+      "id": "ev_ae898452",
+      "tool_call_id": "auto",
+      "tool_name": "http_check",
+      "tool_args": {
+        "url": "https://aws.amazon.com/",
+        "method": "GET"
+      },
+      "timestamp": "2026-02-18T16:41:42.597080",
+      "content_hash": "ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3",
+      "summary": "HTTP 200 ",
+      "storage_ref": "data/evidence\\ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3.json"
+    },
+    {
+      "id": "ev_a21d03e2",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_vwan_get_virtual_wan_health_check",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:41:47.285690",
+      "content_hash": "a21d03e2788ac05a820761430118b69e67c7c64f7fccff404f67bc59fa19a930",
+      "summary": "Output from fgt_cmdb_vwan_get_virtual_wan_health_check (700 bytes)",
+      "storage_ref": "data/evidence\\a21d03e2788ac05a820761430118b69e67c7c64f7fccff404f67bc59fa19a930.json"
+    },
+    {
+      "id": "ev_1f3141f6",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_sys_get_arp_table",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:41:51.039706",
+      "content_hash": "1f3141f6dd2ccdcb4f7af911a35a02d9307b796c65d54253a4cf5f5cd479dce7",
+      "summary": "Output from fgt_cmdb_sys_get_arp_table (300 bytes)",
+      "storage_ref": "data/evidence\\1f3141f6dd2ccdcb4f7af911a35a02d9307b796c65d54253a4cf5f5cd479dce7.json"
+    },
+    {
+      "id": "ev_0344a0c3",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_switch_get_controller_managed_health",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:41:54.344782",
+      "content_hash": "0344a0c38581e4e2105d6e2177cdffaaf5521ef2b04968205a15a31f7d1f53e5",
+      "summary": "{\"http_method\":\"GET\",\"results\":{},\"vdom\":\"root\",\"path\":\"switch-controller\",\"name\":\"managed-switch\",\"action\":\"health\",\"status\":\"success\",\"serial\":\"FGT60ETK19031088\",\"version\":\"v7.4.9\",\"build\":2829}",
+      "storage_ref": "data/evidence\\0344a0c38581e4e2105d6e2177cdffaaf5521ef2b04968205a15a31f7d1f53e5.json"
+    },
+    {
+      "id": "ev_75651212",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_switch_get_controller_managed_health_status",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:41:57.563679",
+      "content_hash": "75651212272bfee55c11dd2a443a819a79352107e700ee3f0175c0ab43ac4289",
+      "summary": "Output from fgt_cmdb_switch_get_controller_managed_health_status (203 bytes)",
+      "storage_ref": "data/evidence\\75651212272bfee55c11dd2a443a819a79352107e700ee3f0175c0ab43ac4289.json"
+    },
+    {
+      "id": "ev_cb29cbd9",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_switch_get_controller_managed_port_health",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:42:00.503262",
+      "content_hash": "cb29cbd924b8920e6962d5635edbc10e9b732825ed3a4b3a1e8d1302f1ac80d9",
+      "summary": "Output from fgt_cmdb_switch_get_controller_managed_port_health (201 bytes)",
+      "storage_ref": "data/evidence\\cb29cbd924b8920e6962d5635edbc10e9b732825ed3a4b3a1e8d1302f1ac80d9.json"
+    },
+    {
+      "id": "ev_83d5f3f9",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_monitor_sys_get_ha_hw_interface",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:42:03.834356",
+      "content_hash": "83d5f3f95410480f39a528974f97d96cf9b6c160950b8782eea646e737d0ccd1",
+      "summary": "{\"http_method\":\"GET\",\"results\":{},\"vdom\":\"root\",\"path\":\"system\",\"name\":\"ha-hw-interface\",\"status\":\"success\",\"serial\":\"FGT60ETK19031088\",\"version\":\"v7.4.9\",\"build\":2829}",
+      "storage_ref": "data/evidence\\83d5f3f95410480f39a528974f97d96cf9b6c160950b8782eea646e737d0ccd1.json"
+    },
+    {
+      "id": "ev_96964b10",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_get_inventory_tree",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:42:38.323409",
+      "content_hash": "96964b10818eb6742b05cdfae8fb532a2864691ea85a81f60e3b37ea62aee221",
+      "summary": "Available Devices:\n- fgt_casa (Name: Local FortiGate-60E, IP: 192.168.241.1)\n- fgt_druidics (Name: Druidics FortiGate-200E, IP: 172.25.0.1)",
+      "storage_ref": "data/evidence\\96964b10818eb6742b05cdfae8fb532a2864691ea85a81f60e3b37ea62aee221.json"
+    },
+    {
+      "id": "ev_a1ea3396",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_vwan_get_virtual_wan_health_check",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:42:42.207014",
+      "content_hash": "a1ea339636fdac0c414d91eb658f409bf7250095ed0e615331b9356d1d6f638b",
+      "summary": "Output from fgt_cmdb_vwan_get_virtual_wan_health_check (707 bytes)",
+      "storage_ref": "data/evidence\\a1ea339636fdac0c414d91eb658f409bf7250095ed0e615331b9356d1d6f638b.json"
+    },
+    {
+      "id": "ev_ae898452",
+      "tool_call_id": "auto",
+      "tool_name": "http_check",
+      "tool_args": {
+        "url": "https://aws.amazon.com",
+        "method": "HEAD"
+      },
+      "timestamp": "2026-02-18T16:42:42.966687",
+      "content_hash": "ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3",
+      "summary": "HTTP 200 ",
+      "storage_ref": "data/evidence\\ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3.json"
+    },
+    {
+      "id": "ev_a607d8de",
+      "tool_call_id": "auto",
+      "tool_name": "ping",
+      "tool_args": {
+        "target": "aws.amazon.com"
+      },
+      "timestamp": "2026-02-18T16:42:44.197351",
+      "content_hash": "a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7",
+      "summary": "Success: aws.amazon.com is reachable (TCP/80).",
+      "storage_ref": "data/evidence\\a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7.json"
+    },
+    {
+      "id": "ev_a607d8de",
+      "tool_call_id": "auto",
+      "tool_name": "ping",
+      "tool_args": {
+        "target": "aws.amazon.com",
+        "count": 4
+      },
+      "timestamp": "2026-02-18T16:44:47.035767",
+      "content_hash": "a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7",
+      "summary": "Success: aws.amazon.com is reachable (TCP/80).",
+      "storage_ref": "data/evidence\\a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7.json"
+    },
+    {
+      "id": "ev_75651212",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_switch_get_controller_managed_health_status",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:44:51.875016",
+      "content_hash": "75651212272bfee55c11dd2a443a819a79352107e700ee3f0175c0ab43ac4289",
+      "summary": "Output from fgt_cmdb_switch_get_controller_managed_health_status (203 bytes)",
+      "storage_ref": "data/evidence\\75651212272bfee55c11dd2a443a819a79352107e700ee3f0175c0ab43ac4289.json"
+    },
+    {
+      "id": "ev_2436dc3d",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_monitor_lic_get_license_status",
+      "tool_args": {
+        "serial": "FGT60ETK19031088",
+        "component": "aws_main_page"
+      },
+      "timestamp": "2026-02-18T16:45:21.113868",
+      "content_hash": "2436dc3dcd71a57c664466a93ac0194acf931eaa6b0c11431346dadc28d0e543",
+      "summary": "Resolution for Inventory device identifier (name/ID or management IP) for the device with serial 'FGT60ETK19031088', and confirmation that this device is a FortiWiFi (has WiFi hardware) running firmware that exposes the 'wifi network status' endpoint (i.e., is in client mode / supports wifi API).",
+      "storage_ref": "data/evidence\\2436dc3dcd71a57c664466a93ac0194acf931eaa6b0c11431346dadc28d0e543.json"
+    },
+    {
+      "id": "ev_2436dc3d",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_monitor_lic_get_license_status",
+      "tool_args": {
+        "serial": "FGT60ETK19031088"
+      },
+      "timestamp": "2026-02-18T16:45:46.234704",
+      "content_hash": "2436dc3dcd71a57c664466a93ac0194acf931eaa6b0c11431346dadc28d0e543",
+      "summary": "Resolution for Management IP or inventory device identifier for the FortiGate with serial 'FGT60ETK19031088', and confirmation that this device is a FortiWiFi model with the WiFi module enabled and currently in client mode (i.e., the device exposes the /wifi/network API endpoint).",
+      "storage_ref": "data/evidence\\2436dc3dcd71a57c664466a93ac0194acf931eaa6b0c11431346dadc28d0e543.json"
+    },
+    {
+      "id": "ev_843daf9b",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_monitor_sys_get_central_management_status",
+      "tool_args": {
+        "component": "aws_main_page",
+        "device_identifier": "FGT60ETK19031088"
+      },
+      "timestamp": "2026-02-18T16:46:49.393575",
+      "content_hash": "843daf9bba40f2ef7d33b88ad47b0a2d581e16ba3b2282d8528c01fa53533f97",
+      "summary": "Resolution for 1) Exact device identity as expected by the log tool: management IP or CMDB device_id for 'FGT60ETK19031088' (I cannot assume the tool accepts the serial as-is). 2) Exact FortiAnalyzer server identifier/address the tool expects instead of the generic 'fortianalyzer' (hostname or IP as recorded in CMDB). 3) Confirmation of scope/VDOM (is 'root' correct?) and an example source IP from the affected subnet (a single client IP in 192.168.241.0/24) to use as srcip for log filtering.",
+      "storage_ref": "data/evidence\\843daf9bba40f2ef7d33b88ad47b0a2d581e16ba3b2282d8528c01fa53533f97.json"
+    },
+    {
+      "id": "ev_8ae2afa7",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_monitor_sys_get_sandbox_status",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:47:26.460099",
+      "content_hash": "8ae2afa7e6a14acd95236dcf1c67df0b6ae54b022dcbb5c85c13eea677c36469",
+      "summary": "Output from fgt_monitor_sys_get_sandbox_status (312 bytes)",
+      "storage_ref": "data/evidence\\8ae2afa7e6a14acd95236dcf1c67df0b6ae54b022dcbb5c85c13eea677c36469.json"
+    },
+    {
+      "id": "ev_96964b10",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_get_inventory_tree",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:48:10.107331",
+      "content_hash": "96964b10818eb6742b05cdfae8fb532a2864691ea85a81f60e3b37ea62aee221",
+      "summary": "Available Devices:\n- fgt_casa (Name: Local FortiGate-60E, IP: 192.168.241.1)\n- fgt_druidics (Name: Druidics FortiGate-200E, IP: 172.25.0.1)",
+      "storage_ref": "data/evidence\\96964b10818eb6742b05cdfae8fb532a2864691ea85a81f60e3b37ea62aee221.json"
+    },
+    {
+      "id": "ev_ae898452",
+      "tool_call_id": "auto",
+      "tool_name": "http_check",
+      "tool_args": {
+        "url": "https://aws.amazon.com",
+        "method": "GET"
+      },
+      "timestamp": "2026-02-18T16:48:10.873407",
+      "content_hash": "ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3",
+      "summary": "HTTP 200 ",
+      "storage_ref": "data/evidence\\ae89845224209307455fae699d15b41a371e49a73d1a227c50bef941f242d3d3.json"
+    },
+    {
+      "id": "ev_a607d8de",
+      "tool_call_id": "auto",
+      "tool_name": "ping",
+      "tool_args": {
+        "target": "aws.amazon.com",
+        "count": 3
+      },
+      "timestamp": "2026-02-18T16:48:11.253093",
+      "content_hash": "a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7",
+      "summary": "Success: aws.amazon.com is reachable (TCP/80).",
+      "storage_ref": "data/evidence\\a607d8dee2a38b55516447a3da75b79a0f4120d1d0f7be77a8e94632088722b7.json"
+    },
+    {
+      "id": "ev_b6e62d39",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_monitor_fw_get_firewall_policy",
+      "tool_args": {
+        "ip_version": "ipv4"
+      },
+      "timestamp": "2026-02-18T16:48:13.763054",
+      "content_hash": "b6e62d39a9379ddf7e9883d4350d5fbb758f044c66e480eb43d1900230c60bbe",
+      "summary": "Output from fgt_monitor_fw_get_firewall_policy (28345 bytes)",
+      "storage_ref": "data/evidence\\b6e62d39a9379ddf7e9883d4350d5fbb758f044c66e480eb43d1900230c60bbe.json"
+    },
+    {
+      "id": "ev_ea844dd7",
+      "tool_call_id": "auto",
+      "tool_name": "fgt_cmdb_vwan_get_virtual_wan_health_check",
+      "tool_args": {},
+      "timestamp": "2026-02-18T16:48:16.008062",
+      "content_hash": "ea844dd7f6a8b7fb4385e30b08353be032151e02b5f16dddf21e160df7aea900",
+      "summary": "Output from fgt_cmdb_vwan_get_virtual_wan_health_check (700 bytes)",
+      "storage_ref": "data/evidence\\ea844dd7f6a8b7fb4385e30b08353be032151e02b5f16dddf21e160df7aea900.json"
+    },
+    {
+      "id": "ev_09c65720",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_monitor_web_get_webfilter_override",
+      "tool_args": {
+        "device": "fgt_casa"
+      },
+      "timestamp": "2026-02-18T16:53:05.679085",
+      "content_hash": "09c65720abf5ed46da8d5b235c38c7ee0f8ba03492720c7854d4966c89e25e15",
+      "summary": "Verification for hypothesis: Pol\u00edtica/regla del FortiGate bloqueando o inspeccionando tr\u00e1fico HTTPS hacia aws.amazon.com (web filter/SSL inspection/app control) solo para la subred 192.168.241.0/24.",
+      "storage_ref": "data/evidence\\09c65720abf5ed46da8d5b235c38c7ee0f8ba03492720c7854d4966c89e25e15.json"
+    },
+    {
+      "id": "ev_60ab5827",
+      "tool_call_id": "unknown",
+      "tool_name": "system_advisor",
+      "tool_args": {
+        "blocked_tool": "fgt_monitor_net_post_network_debug_flow_start",
+        "missing": [
+          "Device identifier: the inventory device name or management IP for the FortiGate to target. The failed tool response includes a device serial 'FGT60ETK19031088' but the tool call needs the inventory identifier or mgmt IP that matches your CMDB \u2014 please provide or confirm the exact device id/name/mgmt-IP to use.",
+          "Destination IP(s) for the AWS main page (aws.amazon.com). The debug-flow tool requires numeric IP address(es) (daddr_from/daddr_to). Do not provide a hostname; provide the resolved IPv4 address or range to capture (or indicate to capture any dest).",
+          "Capture filter details: confirm whether to restrict to HTTPS only (TCP port 443) or capture all protocols, and whether to limit to the source subnet 192.168.241.0/24. If restricting to the subnet, confirm the exact source range to use (e.g., saddr_from=192.168.241.0 and saddr_to=192.168.241.255).",
+          "Capture settings: desired number of packets (num_packets) and whether to capture IPv6 (ipv6 flag)."
+        ]
+      },
+      "timestamp": "2026-02-18T18:15:56.602976",
+      "content_hash": "60ab5827a6f40500fd470ac2bf4cca3bbbfc910b1d736ab5578e3a4028c6343b",
+      "summary": "BLOCKED: Needed 4 inputs (e.g. Device identifier: the inventory device name or management IP for the FortiGate to target. The failed tool response includes a device serial 'FGT60ETK19031088' but the tool call needs the inventory identifier or mgmt IP that matches your CMDB \u2014 please provide or confirm the exact device id/name/mgmt-IP to use.) to run fgt_monitor_net_post_network_debug_flow_start.",
+      "storage_ref": "data/evidence\\60ab5827a6f40500fd470ac2bf4cca3bbbfc910b1d736ab5578e3a4028c6343b.json"
+    },
+    {
+      "id": "ev_addc76a2",
+      "tool_call_id": "unknown",
+      "tool_name": "system_advisor",
+      "tool_args": {
+        "blocked_tool": "fgt_monitor_fw_get_firewall_dnat",
+        "missing": [
+          "Identificador can\u00f3nico del dispositivo que debe usarse en el par\u00e1metro \"device\" (nombre en inventario, IP de gesti\u00f3n o serial). El intento fallido us\u00f3 \"fgt_druidics\" y la respuesta de error contiene el serial 'FG200E4Q17909046' \u2014 hay que confirmar cu\u00e1l de esos identificadores acepta el endpoint.",
+          "Confirmaci\u00f3n de que la cuenta/API usada por la herramienta tiene acceso y permisos para leer objetos 'firewall dnat' en ese dispositivo. El HTTP 424 'Failed Dependency' puede indicar falta de permiso o que el endpoint devolvi\u00f3 error; necesitamos salida de una llamada de descubrimiento de solo-lectura (por ejemplo listar DNAT) o confirmaci\u00f3n del administrador.",
+          "Confirmaci\u00f3n del VDOM/scope correcto si aplica. El error muestra vdom 'root', pero confirmar si el dispositivo usa otro VDOM en el que existan objetos DNAT relevantes."
+        ]
+      },
+      "timestamp": "2026-02-18T18:17:08.231603",
+      "content_hash": "addc76a243db85a8839fb3c71ddeafda6840c9c4def91dc00b42fb48759ba5da",
+      "summary": "BLOCKED: Needed 3 inputs (e.g. Identificador can\u00f3nico del dispositivo que debe usarse en el par\u00e1metro \"device\" (nombre en inventario, IP de gesti\u00f3n o serial). El intento fallido us\u00f3 \"fgt_druidics\" y la respuesta de error contiene el serial 'FG200E4Q17909046' \u2014 hay que confirmar cu\u00e1l de esos identificadores acepta el endpoint.) to run fgt_monitor_fw_get_firewall_dnat.",
+      "storage_ref": "data/evidence\\addc76a243db85a8839fb3c71ddeafda6840c9c4def91dc00b42fb48759ba5da.json"
+    },
+    {
+      "id": "ev_71075611",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_monitor_fw_get_firewall_central_snat_map",
+      "tool_args": {
+        "device": "fgt_druidics",
+        "policyid": null,
+        "ip_version": null
+      },
+      "timestamp": "2026-02-18T18:17:57.831651",
+      "content_hash": "71075611e6d18fde306bcdced46b4c71280d69e68f4d868dd2884f68efb10b4f",
+      "summary": "Verification for hypothesis: Ruta/NAT incorrecto para la subred 192.168.241.0/24 (sin SNAT o usando IP p\u00fablica err\u00f3nea), provocando que el tr\u00e1fico hacia Internet/AWS no tenga retorno.",
+      "storage_ref": "data/evidence\\71075611e6d18fde306bcdced46b4c71280d69e68f4d868dd2884f68efb10b4f.json"
+    },
+    {
+      "id": "ev_b09824ff",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_monitor_router_get_lookup",
+      "tool_args": {
+        "device": "fgt_casa",
+        "destination": "3.163.139.104"
+      },
+      "timestamp": "2026-02-18T18:18:45.164879",
+      "content_hash": "b09824ff509c898ec75d5bf4d51cc06899c907253cbf2580057f2db41a609a57",
+      "summary": "Verification for hypothesis: Ruta/NAT incorrecto para la subred 192.168.241.0/24 (sin SNAT o usando IP p\u00fablica err\u00f3nea), provocando que el tr\u00e1fico hacia Internet/AWS no tenga retorno.",
+      "storage_ref": "data/evidence\\b09824ff509c898ec75d5bf4d51cc06899c907253cbf2580057f2db41a609a57.json"
+    },
+    {
+      "id": "ev_3ff7ae32",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_monitor_net_get_network_arp",
+      "tool_args": {
+        "device": "fgt_druidics"
+      },
+      "timestamp": "2026-02-18T18:19:38.398358",
+      "content_hash": "3ff7ae32df22b381323e6fbced2d82e30d12585f10ceca56c2a0dfe6db128724",
+      "summary": "Verification for hypothesis: Fallo de enrutamiento interno/gateway para 192.168.241.0/24 (SVI/VLAN/ARP) que impide que los clientes lleguen correctamente al FortiGate o que el retorno no se entregue a esa subred.",
+      "storage_ref": "data/evidence\\3ff7ae32df22b381323e6fbced2d82e30d12585f10ceca56c2a0dfe6db128724.json"
+    },
+    {
+      "id": "ev_ed4707ff",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_cmdb_vwan_get_virtual_wan_members",
+      "tool_args": {
+        "device": "fgt_druidics",
+        "zone": null,
+        "skip_vpn_child": null
+      },
+      "timestamp": "2026-02-18T18:20:27.651160",
+      "content_hash": "ed4707ff96f0a12d9c163cbd2a5ea69b569e7964e150f7b817a3ceda8947730e",
+      "summary": "Verification for hypothesis: Fallo de enrutamiento interno/gateway para 192.168.241.0/24 (SVI/VLAN/ARP) que impide que los clientes lleguen correctamente al FortiGate o que el retorno no se entregue a esa subred.",
+      "storage_ref": "data/evidence\\ed4707ff96f0a12d9c163cbd2a5ea69b569e7964e150f7b817a3ceda8947730e.json"
+    },
+    {
+      "id": "ev_5a6e9007",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_cmdb_sys_get_sso_fortigate_cloud_admin",
+      "tool_args": {},
+      "timestamp": "2026-02-18T18:21:17.455744",
+      "content_hash": "5a6e90078f864a8ceb66533a58bb3bc08d63eefcc29d79e5f93bf5f7a9df15d4",
+      "summary": "Verification for hypothesis: Fallo de enrutamiento interno/gateway para 192.168.241.0/24 (SVI/VLAN/ARP) que impide que los clientes lleguen correctamente al FortiGate o que el retorno no se entregue a esa subred.",
+      "storage_ref": "data/evidence\\5a6e90078f864a8ceb66533a58bb3bc08d63eefcc29d79e5f93bf5f7a9df15d4.json"
+    },
+    {
+      "id": "ev_959b7050",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_cmdb_vwan_get_virtual_wan_interface",
+      "tool_args": {
+        "device": "fgt_druidics",
+        "interface": null,
+        "since": null,
+        "seconds": null
+      },
+      "timestamp": "2026-02-18T18:22:12.600419",
+      "content_hash": "959b705042c6671139449fb0ed49d30c5800240b924e85b6b53bae1963db5229",
+      "summary": "Verification for hypothesis: Fallo de enrutamiento interno/gateway para 192.168.241.0/24 (SVI/VLAN/ARP) que impide que los clientes lleguen correctamente al FortiGate o que el retorno no se entregue a esa subred.",
+      "storage_ref": "data/evidence\\959b705042c6671139449fb0ed49d30c5800240b924e85b6b53bae1963db5229.json"
+    },
+    {
+      "id": "ev_8dfb2df2",
+      "tool_call_id": "unknown",
+      "tool_name": "fgt_cmdb_router_access_list_get_multicast_flow",
+      "tool_args": {
+        "device": "fgt_druidics"
+      },
+      "timestamp": "2026-02-18T18:23:02.367521",
+      "content_hash": "8dfb2df206baf575877e959eb5d5534bdff5cb7a76aedffc8083052842239d6d",
+      "summary": "Verification for hypothesis: Fallo de enrutamiento interno/gateway para 192.168.241.0/24 (SVI/VLAN/ARP) que impide que los clientes lleguen correctamente al FortiGate o que el retorno no se entregue a esa subred.",
+      "storage_ref": "data/evidence\\8dfb2df206baf575877e959eb5d5534bdff5cb7a76aedffc8083052842239d6d.json"
+    }
+  ],
+  "missing_info": [
+    "A concrete target to ping (the exact IP address or hostname of the AWS endpoint the users are trying to reach). Also confirm the test source/context: should the ping be run from the firewall 'fgt_casa' (provide the inventory identifier or management IP / source interface) or from a host in subnet 192.168.241.0 (provide a host IP)? (fgt_casa)",
+    "IP o hostname v\u00e1lido para hacer ping. Necesito al menos uno de los siguientes (no puedo inferirlo):\n  - La IP o el hostname exacto de la \"p\u00e1gina principal de AWS\" que se quiere comprobar (por ejemplo el FQDN que los usuarios intentan alcanzar),\n  - La IP del gateway de la subred 192.168.241.0 o la IP de la interfaz interna del FortiGate asociada a esa subred (si el ping debe ejecutarse hacia el firewall/gateway),\n  - La IP de un host dentro de la subred 192.168.241.0 para comprobar conectividad interna.\nAdem\u00e1s indique desde qu\u00e9 dispositivo/ubicaci\u00f3n debe ejecutarse el ping (p. ej. desde el FortiGate, desde un host cliente, o desde una herramienta de diagn\u00f3stico). (users_192.168.241.x)",
+    "Which exact target should be pinged and from where? Need (A) the intended ping target: either the subnet gateway IP for 192.168.241.0 OR the external AWS host/IP (the 'main AWS page') to test. The previously used value 192.168.241.1 is unreachable and cannot be assumed correct. And (B) the origin of the ping: the device/host to run the ping from (e.g., FortiGate device identifier or its management IP, or a host on 192.168.241.0). (users_192.168.241.x)",
+    "Target device to query for config-sync status: provide the device inventory identifier or management IP (or confirm the device with serial 'FGT60ETK19031088' is the target). Also confirm whether this FortiGate is part of an SLBC/HA cluster and the FortiOS version/build if available. (aws_main_page)"
+  ],
+  "pending_requirements": [],
+  "hypotheses": [
+    {
+      "id": "hyp_008",
+      "summary": "Fallo de enrutamiento interno/gateway para 192.168.241.0/24 (SVI/VLAN/ARP) que impide que los clientes lleguen correctamente al FortiGate o que el retorno no se entregue a esa subred.",
+      "required_facts": [
+        "Ping/ARP entre un host 192.168.241.x y su gateway 192.168.241.1",
+        "FortiGate: tabla ARP del interfaz/VLAN de 192.168.241.0/24 (get system arp) y estado del interfaz (get system interface physical)",
+        "Traceroute desde 192.168.241.x hacia 3.163.139.104 (o aws.amazon.com) para ver d\u00f3nde se corta",
+        "FortiGate: rutas hacia 192.168.241.0/24 y pol\u00edticas LAN->WAN aplicables"
+      ],
+      "supporting_facts": [
+        "missing_ping_users_192.168.241.x: A: 192.168.241.1, B:null (indica que desde usuarios no se evidenci\u00f3 conectividad/retorno al siguiente salto o falta el segundo punto de verificaci\u00f3n)"
+      ],
+      "disconfirming_facts": [],
+      "confidence": 0.28,
+      "rank": 1,
+      "status": "proposed",
+      "next_playbooks": [
+        "L2/L3 Gateway reachability (SVI/VLAN/ARP) desde subred afectada",
+        "FortiGate interface/VLAN health + ARP/MAC table checks",
+        "Traceroute/ping path analysis desde host afectado"
+      ],
+      "rationale": "El s\u00edntoma est\u00e1 acotado a una subred; un problema de gateway/VLAN/ARP o retorno a 192.168.241.0/24 es una causa frecuente y compatible con la falta de evidencias de ping desde usuarios."
+    },
+    {
+      "id": "hyp_003",
+      "summary": "Ruta/NAT incorrecto para la subred 192.168.241.0/24 (sin SNAT o usando IP p\u00fablica err\u00f3nea), provocando que el tr\u00e1fico hacia Internet/AWS no tenga retorno.",
+      "required_facts": [
+        "FortiGate: policy LAN(192.168.241.0/24)->WAN con NAT habilitado y pool correcto",
+        "FortiGate: session/flow debug para un intento a aws.amazon.com (diag debug flow)",
+        "Sniffer en WAN para ver si sale tr\u00e1fico con la IP de origen traducida correcta (diag sniffer packet)"
+      ],
+      "supporting_facts": [
+        "Impacto solo a la subred 192.168.241.0/24 sugiere diferencia de policy/NAT frente a otras subredes",
+        "missing_ping_fgt_casa: 3.163.139.104 (si el FortiGate tampoco llega, puede ser upstream; si s\u00ed llega y usuarios no, refuerza NAT/policy por subred)"
+      ],
+      "disconfirming_facts": [],
+      "confidence": 0.23,
+      "rank": 2,
+      "status": "proposed",
+      "next_playbooks": [
+        "FortiGate policy/NAT verification for specific source subnet",
+        "FortiGate flow debug + session table validation",
+        "Packet capture on LAN and WAN interfaces"
+      ],
+      "rationale": "Un fallo de SNAT/pool o una policy sin NAT aplicada solo a 192.168.241.0/24 puede romper el retorno hacia Internet/AWS manteniendo otras redes operativas."
+    },
+    {
+      "id": "hyp_007",
+      "summary": "Policy-based routing / SD-WAN rule espec\u00edfica para 192.168.241.0/24 enviando el tr\u00e1fico a un WAN/link ca\u00eddo o con restricciones (sin salida adecuada a AWS).",
+      "required_facts": [
+        "FortiGate: revisi\u00f3n de PBR (router policy) y SD-WAN rules para source 192.168.241.0/24",
+        "FortiGate: estado/health-check de miembros SD-WAN y SLA hacia destinos Internet",
+        "Traceroute desde FortiGate usando source 192.168.241.1 (o IP del interfaz) hacia AWS por cada WAN"
+      ],
+      "supporting_facts": [
+        "Fallo acotado a una subred puede deberse a PBR/SD-WAN por origen"
+      ],
+      "disconfirming_facts": [
+        "missing_fgt_monitor_sys_get_config_sync_status_aws_main_page: It is not a ha cluster (no relevante para PBR/SD-WAN; no aporta confirmaci\u00f3n)"
+      ],
+      "confidence": 0.18,
+      "rank": 3,
+      "status": "proposed",
+      "next_playbooks": [
+        "SD-WAN/PBR rule audit for affected subnet",
+        "Link health-check/SLA verification",
+        "Per-WAN path testing from FortiGate"
+      ],
+      "rationale": "Si 192.168.241.0/24 est\u00e1 forzada a un enlace distinto (o VIP/VRF), puede fallar solo ese segmento."
+    },
+    {
+      "id": "hyp_001",
+      "summary": "Pol\u00edtica/regla del FortiGate bloqueando o inspeccionando tr\u00e1fico HTTPS hacia aws.amazon.com (web filter/SSL inspection/app control) solo para la subred 192.168.241.0/24.",
+      "required_facts": [
+        "FortiGate logs: forward traffic/webfilter/ssl events filtrando por source 192.168.241.0/24 y destino aws.amazon.com",
+        "Comparaci\u00f3n de policy ID aplicada a 192.168.241.0/24 vs otras subredes (policy lookup)",
+        "Prueba con/ sin SSL inspection en la policy"
+      ],
+      "supporting_facts": [
+        "El error es de conectividad al acceder a una web (posible bloqueo por UTM/policy)"
+      ],
+      "disconfirming_facts": [],
+      "confidence": 0.12,
+      "rank": 4,
+      "status": "proposed",
+      "next_playbooks": [
+        "FortiGate policy lookup + UTM profile comparison by source subnet",
+        "Log review (webfilter/ssl/appcontrol) for blocked sessions",
+        "Controlled bypass test (temporary allow/disable inspection)"
+      ],
+      "rationale": "Una policy distinta por subred o un perfil UTM diferente puede afectar espec\u00edficamente el acceso HTTPS a AWS."
+    },
+    {
+      "id": "hyp_002",
+      "summary": "Problema de DNS para la subred 192.168.241.0/24 (resoluci\u00f3n incorrecta, DNS interceptado por FortiGate, o DNS sin salida), causando fallo de acceso a aws.amazon.com.",
+      "required_facts": [
+        "Desde un host 192.168.241.x: nslookup/dig a aws.amazon.com usando su DNS configurado",
+        "Verificar DHCP options/DNS servers asignados a 192.168.241.0/24",
+        "FortiGate DNS filter / DNS proxy / redirect (si aplica)"
+      ],
+      "supporting_facts": [
+        "Fallo reportado al llegar a 'la p\u00e1gina principal de AWS' puede ser por resoluci\u00f3n (aunque se menciona error de conectividad)"
+      ],
+      "disconfirming_facts": [],
+      "confidence": 0.08,
+      "rank": 5,
+      "status": "proposed",
+      "next_playbooks": [
+        "Client-side DNS resolution test from affected subnet",
+        "DHCP scope/options validation for affected VLAN",
+        "FortiGate DNS filter/proxy configuration review"
+      ],
+      "rationale": "Menos probable que routing/NAT si realmente hay error de conectividad a IP, pero sigue siendo una causa frecuente de 'no abre web'."
+    },
+    {
+      "id": "hyp_005",
+      "summary": "Bloqueo por reputaci\u00f3n/IP p\u00fablica (AWS/CDN) hacia la IP de salida usada por 192.168.241.0/24, o geoblocking/upstream filtering espec\u00edfico del egress.",
+      "required_facts": [
+        "Identificar IP p\u00fablica de egreso usada por 192.168.241.0/24 (SNAT pool/SD-WAN member)",
+        "Pruebas desde otra red/egreso distinto hacia aws.amazon.com",
+        "Logs del ISP/upstream o evidencia de TCP SYN sin SYN-ACK en WAN"
+      ],
+      "supporting_facts": [
+        "Si 192.168.241.0/24 usa un egreso diferente, podr\u00eda estar bloqueado mientras otros no"
+      ],
+      "disconfirming_facts": [],
+      "confidence": 0.06,
+      "rank": 6,
+      "status": "proposed",
+      "next_playbooks": [
+        "Egress IP identification and comparison across subnets",
+        "WAN packet capture for SYN/SYN-ACK behavior",
+        "Test via alternate WAN/egress"
+      ],
+      "rationale": "Posible si existe SNAT por pool o salida diferenciada; sin evidencia a\u00fan."
+    },
+    {
+      "id": "hyp_004",
+      "summary": "Problema de MTU/fragmentaci\u00f3n/PMTUD o inspecci\u00f3n SSL que rompe el handshake TLS con AWS desde esa subred (p. ej., MSS clamp diferente, t\u00fanel/overlay).",
+      "required_facts": [
+        "Pruebas de ping con DF y tama\u00f1os (path MTU) desde 192.168.241.x al exterior",
+        "Captura de handshake TLS (ClientHello/ServerHello) y ver d\u00f3nde falla",
+        "Revisi\u00f3n de MSS clamping/MTU en interfaz/VPN/SD-WAN"
+      ],
+      "supporting_facts": [
+        "S\u00edntomas web/HTTPS pueden aparecer como 'conectividad' cuando falla TLS/PMTUD"
+      ],
+      "disconfirming_facts": [],
+      "confidence": 0.03,
+      "rank": 7,
+      "status": "proposed",
+      "next_playbooks": [
+        "PMTUD/MTU testing from affected subnet",
+        "TLS handshake capture and analysis",
+        "MSS/MTU configuration audit"
+      ],
+      "rationale": "Menos probable sin indicios de t\u00faneles/overlays o fallas solo en HTTPS, pero se mantiene como posibilidad."
+    },
+    {
+      "id": "hyp_006",
+      "summary": "Configuraci\u00f3n de proxy expl\u00edcito/PAC/WPAD aplicada solo a la subred 192.168.241.0/24 (por GPO/DHCP option) que apunta a un proxy inaccesible o que bloquea AWS.",
+      "required_facts": [
+        "Verificar configuraci\u00f3n de proxy en navegadores/equipo (PAC/WPAD) de usuarios afectados",
+        "Revisar DHCP option 252 / WPAD DNS entry en esa subred",
+        "Probar acceso directo sin proxy desde un host 192.168.241.x"
+      ],
+      "supporting_facts": [
+        "Fallo percibido como 'no abre la web' puede deberse a proxy; segmentaci\u00f3n por subred es com\u00fan v\u00eda DHCP/GPO"
+      ],
+      "disconfirming_facts": [],
+      "confidence": 0.02,
+      "rank": 8,
+      "status": "proposed",
+      "next_playbooks": [
+        "Client proxy/WPAD/PAC validation for affected subnet",
+        "DHCP scope options review",
+        "Bypass proxy test"
+      ],
+      "rationale": "Posible pero menos probable que fallos de L3/NAT/PBR dada la menci\u00f3n expl\u00edcita de FortiGate y conectividad."
+    }
+  ],
+  "plan": null,
+  "final_answer": "",
+  "handoff": null,
+  "meta": {
+    "iterations": 10,
+    "run_id": "66a41ae6-8517-47fb-a35a-80711d4934f5",
+    "trace_id": "b8693ede-fbf6-4048-ac00-75ed53bb7756"
+  }
+}

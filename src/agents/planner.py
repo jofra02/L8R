@@ -43,7 +43,7 @@ async def planner_agent_node(state: GlobalState) -> Dict[str, Any]:
     # --- 3. Formulate Prompt ---
     # We inject the CBR context to guide the LLM
     prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an expert Senior IT Support Engineer planning a resolution strategies.
+        ("system", """You are an expert Senior IT Support Engineer planning resolution strategies.
 Your goal is to create a safe, step-by-step Execution Plan to verify the active hypothesis and resolve the issue.
 
 GUIDELINES:

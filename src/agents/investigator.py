@@ -4,7 +4,7 @@ from src.core.llm import LLMFactory
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
 from src.config import settings
-from src.core.adaptive_executor import AdaptiveExecutor
+from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage
 import logging
@@ -38,9 +38,13 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     hypotheses = state.get("hypotheses", [])
     
     # 1. Select Target Hypothesis
-    # Filter for 'proposed' and sort by rank
-    candidates = [h for h in hypotheses if h.status == "proposed"]
-    candidates.sort(key=lambda x: x.rank)
+    # We want to finish 'verifying' ones (unblock them) or start 'proposed' ones.
+    candidates = [h for h in hypotheses if h.status in ["proposed", "verifying"]]
+    
+    # Sort: 
+    # 1. 'verifying' first (Stick to the active thread)
+    # 2. Then by Rank
+    candidates.sort(key=lambda x: (0 if x.status == "verifying" else 1, x.rank))
     
     if not candidates:
         logger.info("Investigator: No proposed hypotheses to verify.")
@@ -110,7 +114,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         logger.warning(f"Investigator failed to fetch insights: {e}")
     
     tool_select_prompt = f"""
-    Appliable Tools:
+    Applicable Tools:
     {json.dumps([{'name': t.name, 'description': t.description, 'args': t.args_schema.model_json_schema()} for t in tools], indent=2)}
     
     {insights_text}
@@ -129,7 +133,10 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     3. CRITICAL: Use Component IDs for 'device', 'target', 'host' arguments.
     4. ANTI-HALLUCINATION: If a MANDATORY parameter is missing from the context, DO NOT INVENT IT. 
        - If you cannot fill a mandatory param, do NOT select that tool. Choose a simpler tool (like `get_status` or `ping`) that requires fewer args.
-    5. SAFETY: Do NOT select tools that modify configuration (set, edit, delete) or perform intrusive debugging. READ-ONLY only.
+    5. BLOCKED TOOLS: Check 'Previous Evidence' for "BLOCKED" or "Missing Info" regarding specific tools.
+       - If a tool was recently BLOCKED due to missing info, DO NOT retry it unless you see the missing info in 'Facts' or 'Evidence'.
+       - Instead, select a **Discovery Tool** (e.g., `get_interfaces`, `show_system`, `get_routes`) to FIND that missing information.
+    6. SAFETY: Do NOT select tools that modify configuration (set, edit, delete) or perform intrusive debugging. READ-ONLY only.
     
     Return JSON:
     {{
@@ -222,7 +229,129 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                 "evidence_refs": updated_evidence
             } # Update state
             
+        except MissingDependencyError as e:
+            deps_str = "\n- ".join(e.dependencies)
+            logger.warning(f"Investigator: Blocked by Missing Dependencies:\n- {deps_str}")
+            
+            # 1. SAVE THE FAILURE EVIDENCE FIRST
+            # So the report shows "Tool X Failed"
+            fail_snapshot = await store.save_evidence(
+                tool_name=tool_name,
+                tool_args=tool_args,
+                content=f"EXECUTION FAILED (Missing Dependencies):\n{deps_str}\nOriginal Error: {str(e)}",
+                summary=f"Failed to run {tool_name}: Missing dependencies."
+            )
+            # We don't return immediately, we try recovery. 
+            # But we must add this to the list we effectively return/accumulation logic.
+            # We'll accumulate 'new_evidence_for_this_turn' locally if we want, 
+            # but simpler: just append to a list we build.
+            
+            # Let's fix the variable scope. We need to append to `current_evidence`.
+            current_evidence = state.get("evidence_refs", [])
+            # We will append fail_snapshot to current_evidence shortly.
+            
+            # --- INTERNAL RECOVERY LOOP ---
+            # Attempt to resolve the blocker immediately by running a Discovery Tool.
+            logger.info(f"Investigator: Attempting in-flight resolution for blockers.")
+            
+            try:
+                # 1. Select Resolution Tool
+                resolution_context = f"""
+                Problem: Tool '{tool_name}' failed.
+                Missing Info:
+                {deps_str}
+                Source Hint: {e.suggested_source}
+                
+                Task: Select a DIFFERENT tool to FETCH this missing information immediately.
+                """
+                
+                resolution_tools = await _select_resolution_tool(llm, None, resolution_context) # Component is implicit in context
+                
+                if resolution_tools:
+                    res_tool_def = resolution_tools[0]
+                    res_tool_name = res_tool_def["name"]
+                    res_tool_args = res_tool_def["args"]
+                    
+                    logger.info(f"Investigator: Recovery - Executing resolution tool {res_tool_name}")
+                    
+                    # 2. Execute Resolution Tool
+                    res_tool = CapabilityRegistry.get_tool(res_tool_name)
+                    if res_tool:
+                        res_output = await executor.execute(res_tool, res_tool_args, context)
+                        
+                        # 3. Save Resolution Evidence
+                        res_snapshot = await store.save_evidence(
+                            tool_name=res_tool_name,
+                            tool_args=res_tool_args,
+                            content=res_output,
+                            summary=f"Resolution for blocker in {tool_name}"
+                        )
+                        
+                        current_evidence = state.get("evidence_refs", [])
+                        updated_evidence = current_evidence + [fail_snapshot, res_snapshot]
+                        
+                        # Return success with new evidence!
+                        # The next iteration will pick up the original investigation, now unblocked.
+                        return {
+                            "evidence_refs": updated_evidence
+                        }
+            except Exception as res_e:
+                 logger.error(f"Investigator: Recovery failed: {res_e}")
+
+            # Fallback: Just save the Blocker Evidence if recovery failed/skipped
+            snapshot = await store.save_evidence(
+                tool_name="system_advisor",
+                tool_args={"blocked_tool": tool_name, "missing": e.dependencies},
+                content=f"EXECUTION BLOCKED.\nMissing Info:\n- {deps_str}\nSuggested Source: {e.suggested_source}\nRECOMMENDATION: Select a tool to discover this information.",
+                summary=f"BLOCKED: Needed {len(e.dependencies)} inputs (e.g. {e.dependencies[0]}) to run {tool_name}."
+            )
+            
+            current_evidence = state.get("evidence_refs", [])
+            updated_evidence = current_evidence + [fail_snapshot, snapshot]
+            return {
+                "evidence_refs": updated_evidence
+            }
+
         except Exception as e:
             logger.error(f"Investigator: Execution failed: {e}")
-            
+            # Capture failure as evidence
+            fail_snapshot = await store.save_evidence(
+                tool_name=tool_name,
+                tool_args=tool_args,
+                content=f"EXECUTION FAILED: {str(e)}",
+                summary=f"Failed to run {tool_name}: {str(e)[:100]}"
+            )
+            current_evidence = state.get("evidence_refs", [])
+            updated_evidence = current_evidence + [fail_snapshot]
+            return {
+                "evidence_refs": updated_evidence
+            }
     return {}
+
+async def _select_resolution_tool(llm, component, context_str) -> List[Dict[str, Any]]:
+    """
+    Helper to select a tool to resolve missing info.
+    (Duplicated/Shared logic with EvidenceCollector)
+    """
+    prompt = f"""
+    Context: {context_str}
+    
+    Task: Select ONE read-only tool to retrieve the missing information.
+    Return JSON: [ {{ "name": "tool", "args": {{ ... }} }} ]
+    """
+    try:
+         # Search specifically for "info" or "status" or "list"
+         found = CapabilityRegistry.search_tools("status info list get", limit=10)
+         tools_json = json.dumps([{'name': t.name, 'description': t.description} for t in found])
+         
+         full_prompt = prompt + f"\nChoose from:\n{tools_json}"
+         
+         response = await llm.ainvoke([
+             SystemMessage(content="You are a Recovery Specialist."), 
+             HumanMessage(content=full_prompt)
+         ])
+         selection = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
+         if isinstance(selection, dict): return [selection]
+         return selection
+    except:
+         return []

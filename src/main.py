@@ -250,7 +250,7 @@ async def resume_execution(needs_path: str, state_path: str):
     # Ticket IS a Pydantic model in the code.
     # We need to re-hydrate Pydantic models.
     
-    from src.core.models import Ticket, Component, EvidenceSnapshot, Hypothesis
+    from src.core.models import Ticket, Component, EvidenceSnapshot, Hypothesis, Classification, Plan
     
     if isinstance(state.get("ticket"), dict):
         state["ticket"] = Ticket(**state["ticket"])
@@ -260,8 +260,22 @@ async def resume_execution(needs_path: str, state_path: str):
         
     if state.get("hypotheses"):
          state["hypotheses"] = [Hypothesis(**h) if isinstance(h, dict) else h for h in state["hypotheses"]]
+
+    if state.get("evidence_refs"):
+         state["evidence_refs"] = [EvidenceSnapshot(**e) if isinstance(e, dict) else e for e in state["evidence_refs"]]
          
-    # 6. Execute
+    if isinstance(state.get("classification"), dict):
+        state["classification"] = Classification(**state["classification"])
+        
+    if isinstance(state.get("plan"), dict):
+        state["plan"] = Plan(**state["plan"])
+
+    # 6. Reset Iterations to give the agent time to think with new info
+    if "meta" in state:
+        state["meta"]["iterations"] = 0
+        logger.info("Iterations reset to 0 for resume.")
+
+    # 7. Execute
     output = await app.ainvoke(state)
     
     print("\n" + "="*50)

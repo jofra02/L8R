@@ -21,6 +21,25 @@ async def response_agent_node(state: GlobalState) -> Dict[str, Any]:
     
     logger.info("Response Agent: Generating Final Engineering Report.")
     
+    # --- DEBUG: Dump State for Troubleshooting ---
+    try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dump_file = f"debug_final_state_{timestamp}.json"
+        
+        class DebugEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, (datetime, uuid.UUID)):
+                    return str(obj)
+                if hasattr(obj, "model_dump"):
+                    return obj.model_dump(mode='json')
+                return super().default(obj)
+                
+        with open(dump_file, "w") as f:
+            json.dump(state, f, cls=DebugEncoder, indent=2)
+        logger.info(f"Response Agent: State dumped to {dump_file}")
+    except Exception as e:
+        logger.error(f"Response Agent: Failed to dump debug state: {e}")
+
     # 0. Check for Human-in-the-Loop Blocking Requirements
     pending_reqs = state.get("pending_requirements", [])
     if pending_reqs:

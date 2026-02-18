@@ -14,10 +14,11 @@ logger = logging.getLogger(__name__)
 
 class MissingDependencyError(Exception):
     """Raised when AdaptiveExecutor identifies specific missing information."""
-    def __init__(self, description: str, suggested_source: str):
-        self.description = description
+    def __init__(self, dependencies: List[str], suggested_source: str):
+        self.dependencies = dependencies # List of descriptions
         self.suggested_source = suggested_source
-        super().__init__(f"Missing: {description} (Ask: {suggested_source})")
+        msg = "; ".join(dependencies)
+        super().__init__(f"Missing: {msg} (Ask: {suggested_source})")
 
 class AdaptiveExecutor:
     """
@@ -160,7 +161,7 @@ class AdaptiveExecutor:
         
         OPTION B (Missing Info - Grounding Failed):
         {{
-            "missing_info": "Concise description of what is missing (e.g. 'Target IP for subnet_192.168.1.0')",
+            "missing_info": ["Description of missing param 1", "Description of missing param 2"],
             "suggested_source": "Who/What tool has this? (e.g. 'User', 'Discovery Tool')"
         }}
 
@@ -230,13 +231,21 @@ class AdaptiveExecutor:
                     return None
 
             # Check for Missing Info signal
-            
-            # Check for Missing Info signal
             if "missing_info" in result_json:
-                description = result_json.get("missing_info")
+                missing = result_json.get("missing_info")
                 source = result_json.get("suggested_source", "Unknown")
-                logger.info(f"AdaptiveExec: Cannot fix. Missing info: {description} from {source}")
-                raise MissingDependencyError(description, source)
+                
+                # Normalize to list
+                deps = []
+                if isinstance(missing, list):
+                    deps = [str(x) for x in missing]
+                elif isinstance(missing, str):
+                    deps = [missing]
+                else:
+                    deps = ["Unknown missing dependency"]
+
+                logger.info(f"AdaptiveExec: Cannot fix. Missing info: {deps} from {source}")
+                raise MissingDependencyError(deps, source)
             
             # Normal fix path
             new_args = result_json.get("args")
