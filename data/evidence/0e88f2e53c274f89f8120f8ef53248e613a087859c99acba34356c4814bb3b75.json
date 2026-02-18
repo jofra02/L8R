@@ -1,0 +1,1 @@
+Error: Error calling tool 'get_firewall_policy_lookup': HTTP error 424: Failed Dependency - {'path': 'firewall', 'name': 'policy-lookup', 'action': '', 'serial': 'FGT60ETK19031088', 'version': 'v7.4.9', 'build': 2829, 'status': 'error', 'http_status': 424}

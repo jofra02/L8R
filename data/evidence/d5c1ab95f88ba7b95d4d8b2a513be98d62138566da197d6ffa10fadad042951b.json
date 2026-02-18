@@ -1,0 +1,1 @@
+Error: Error calling tool 'get_firewall_DoS_policy_policyid': HTTP error 404: Not Found - {'http_method': 'GET', 'revision': '81e7ee02e9e1914697fdbc4b259259b9', 'cli_error': [], 'status': 'error', 'http_status': 404, 'vdom': 'root', 'path': 'firewall', 'name': 'DoS-policy', 'action': '', 'mkey': '{policyid}', 'serial': 'FGT60ETK19031088', 'version': 'v7.4.9', 'build': 2829}
