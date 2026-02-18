@@ -7,7 +7,9 @@ def mock_ticket(text: str = "Test ticket", id: str = "TICKET-001") -> Ticket:
         id=id,
         text=text,
         source="email",
-        created_at=datetime.now()
+        created_at=datetime.now(),
+        mode="incident",
+        severity="medium"
     )
 
 def mock_classification(domains: List[str] = ["network"]) -> Classification:
@@ -28,12 +30,19 @@ def mock_component(id: str, role: str) -> Component:
 
 def mock_evidence(tool_name: str, content: str) -> EvidenceSnapshot:
     return EvidenceSnapshot(
+        id=f"ev-{tool_name}",
         run_id="run-1",
-        ticket_id="TICKET-001",
+        tool_call_id="call-1",
         tool_name=tool_name,
         tool_args={},
-        content=content,
-        summary=f"Summary of {tool_name}",
+        timestamp=datetime.now(),
+        content_hash="hash123",
+        content=content, # Note: Content is NOT a field in EvidenceSnapshot model, it's stored in DB. But for this agent test we might need to adjust if the agent reads it from somewhere else. 
+        # Wait, the Response agent reads from 'summary'. The 'content' arg in this mock seems unused by the model but used by the factory.
+        # Let's check the model definition again. EvidenceSnapshot has 'summary' and 'storage_ref'.
+        # The 'content' isn't in the model.
+        # But wait, the previous error said 'content_hash' missing.
+        summary=f"Summary of {tool_name}: {content}",
         storage_ref=f"/tmp/{tool_name}.log"
     )
 

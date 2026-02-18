@@ -3,12 +3,33 @@ from src.core.models import GlobalState, Hypothesis
 from src.core.llm import LLMFactory
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
+from src.config import settings
+from src.core.adaptive_executor import AdaptiveExecutor
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage
 import logging
 import json
 
 logger = logging.getLogger(__name__)
+
+def _is_safe_tool(tool_name: str, tool_args: Dict[str, Any]) -> bool:
+    """Checks if tool usage is safe against blocked keywords."""
+    blocked = settings.SAFETY_BLOCKED_KEYWORDS
+    
+    # Check Name
+    for kw in blocked:
+        if kw in tool_name.lower():
+            logger.warning(f"Safety Block: Tool '{tool_name}' blocked by keyword '{kw}'")
+            return False
+            
+    # Check Args (e.g. "command": "execute ...")
+    for key, val in tool_args.items():
+        if isinstance(val, str):
+            for kw in blocked:
+                if kw in val.lower():
+                    logger.warning(f"Safety Block: Tool '{tool_name}' arg '{key}'='{val}' blocked by keyword '{kw}'")
+                    return False
+    return True
 
 async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     """
@@ -43,7 +64,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     Focus on "proving" the hypothesis.
     
     Return a JSON object with:
-    - "search_query": Space-separated keywords to find tools (e.g. "fortigate policy lookup", NOT a full sentence).
+    - "search_query": Space-separated keywords to find tools (e.g. "firewall policy lookup", "interface status", NOT a full sentence).
     - "reasoning": Why this tool?
     """
     
@@ -73,11 +94,27 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     facts = state.get("facts", {})
     evidence_list = state.get("evidence_refs", [])
     evidence_context = "\n".join([f"- {e.tool_name}: {e.summary}" for e in evidence_list[-5:]]) # Last 5 items
+
+    # Fetch insights
+    from src.core.qdrant import vector_store
+    insights_text = ""
+    try:
+        combined_insights = []
+        for t in tools:
+            insights = await vector_store.get_tool_insights(t.name, limit=1)
+            for ins in insights:
+                combined_insights.append(f"For {t.name}: {ins.get('insight')}")
+        if combined_insights:
+            insights_text = "LEARNED BEST PRACTICES:\n" + "\n".join(combined_insights)
+    except Exception as e:
+        logger.warning(f"Investigator failed to fetch insights: {e}")
     
     tool_select_prompt = f"""
     Appliable Tools:
     {json.dumps([{'name': t.name, 'description': t.description, 'args': t.args_schema.model_json_schema()} for t in tools], indent=2)}
     
+    {insights_text}
+
     Hypothesis: {target_hypothesis.summary}
     Components: {json.dumps([c.model_dump() for c in state.get('components', [])], default=str)}
     Facts: {json.dumps(facts, default=str)}
@@ -88,10 +125,11 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     
     GUIDELINES:
     1. Analyze the Schema: Distinguish between Mandatory (Required) and Optional arguments. 
-    2. Context Check: Look for parameter values (like 'srcintf', 'policyid', 'proto') in the provided 'Facts', 'Components', and 'Evidence'.
+    2. Context Check: Look for parameter values (like 'interface_name', 'policy_id', 'protocol') in the provided 'Facts', 'Components', and 'Evidence'.
     3. CRITICAL: Use Component IDs for 'device', 'target', 'host' arguments.
     4. ANTI-HALLUCINATION: If a MANDATORY parameter is missing from the context, DO NOT INVENT IT. 
        - If you cannot fill a mandatory param, do NOT select that tool. Choose a simpler tool (like `get_status` or `ping`) that requires fewer args.
+    5. SAFETY: Do NOT select tools that modify configuration (set, edit, delete) or perform intrusive debugging. READ-ONLY only.
     
     Return JSON:
     {{
@@ -147,10 +185,21 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                         # For target/host/ip, it's safe to use any component
                         logger.info(f"Investigator: Auto-correcting argument {key}='{val}' -> '{match.id}'")
                         tool_args[key] = match.id
-                    
+        
+        # SAFETY CHECK
+        if not _is_safe_tool(tool_name, tool_args):
+             logger.warning(f"Investigator: Skipping unsafe tool execution: {tool_name}")
+             return {}
+
         try:
             logger.info(f"Investigator: Executing {tool_name} with {tool_args}")
-            output = await tool.run(**tool_args)
+            
+            # ADAPTIVE EXECUTION
+            executor = AdaptiveExecutor()
+            facts_str = json.dumps(state.get("facts", {}), default=str)
+            context = f"Ticket: {state['ticket'].text}\nFacts: {facts_str}\nHypothesis: {target_hypothesis.summary}\nGoal: Verify hypothesis."
+            
+            output = await executor.execute(tool, tool_args, context)
             
             # Save Evidence
             snapshot = await store.save_evidence(

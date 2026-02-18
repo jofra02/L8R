@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 class Settings(BaseSettings):
     """Global application settings."""
@@ -43,15 +43,21 @@ class Settings(BaseSettings):
     
     # Main Profile (Reasoning: Planner, Hypothesis, Supervisor)
     LLM_MAIN_VENDOR: str = "openai" # openai, anthropic
-    LLM_MAIN_MODEL: str = "gpt-4o"
+    LLM_MAIN_MODEL: str = "gpt-5.2"
     LLM_MAIN_TEMP: float = 0.0
     LLM_MAIN_API_KEY: Optional[str] = None # Defaults to env var if None
 
     # Fast Profile (Speed: Classifier, Mapper, Normalizer)
     LLM_FAST_VENDOR: str = "openai"
-    LLM_FAST_MODEL: str = "gpt-4o-mini"
+    LLM_FAST_MODEL: str = "gpt-5-mini"
     LLM_FAST_TEMP: float = 0.0
     LLM_FAST_API_KEY: Optional[str] = None # Defaults to env var if None
+    
+    # Safety & Governance
+    SAFETY_BLOCKED_KEYWORDS: List[str] = [
+        "debug flow", "sniffer", "packet capture", "pcap", "tcpdump", "wireshark",
+        "execute", "configure", "set ", "edit ", "delete", "rm ", "shutdown", "reboot"
+    ]
 
     # Global API Keys
     OPENAI_API_KEY: Optional[str] = None

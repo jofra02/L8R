@@ -60,9 +60,25 @@ async def main():
             from src.utils.seed_kb import seed_kb
             await seed_kb(dir_path, cid)
             
+        elif cmd == "resume":
+            # Usage: resume --file needs.json --state paused_state.json
+            import json
+            
+            # Simple arg parsing
+            try:
+                file_idx = sys.argv.index("--file") + 1
+                needs_path = sys.argv[file_idx]
+                state_idx = sys.argv.index("--state") + 1
+                state_path = sys.argv[state_idx]
+            except ValueError:
+                print("Usage: resume --file <needs.json> --state <paused_state.json>")
+                return
+
+            await resume_execution(needs_path, state_path)
+
         else:
             logger.info("Unknown command.")
-            logger.info("Available: test, init-db, register-tenant, seed-context, seed-kb")
+            logger.info("Available: test, init-db, register-tenant, seed-context, seed-kb, resume")
     else:
         logger.info("Usage: python src/main.py [command]")
         # In future: uvicorn.run(app)
@@ -77,8 +93,13 @@ async def init_db():
     # 2. Qdrant Initialization
     try:
         from src.core.qdrant import vector_store
-        await vector_store.ensure_collection("knowledge_base", vector_size=1536)
-        logger.info("Qdrant 'knowledge_base' collection ensured.")
+        from src.core.qdrant import vector_store
+        await vector_store.ensure_collection("knowledge_base")
+        await vector_store.ensure_collection("evidence")
+        await vector_store.ensure_collection("tool_knowledge")
+        await vector_store.ensure_collection("resolved_tickets")
+        await vector_store.ensure_collection("adaptive_fixes")
+        logger.info("Qdrant collections ensured.")
     except Exception as e:
         logger.error(f"Failed to initialize Qdrant: {e}")
 
@@ -158,6 +179,94 @@ async def run_test_ticket():
         print("\nPLAN Generated:")
         for step in output["plan"].diagnosis_steps:
             print(f"- {step.tool}: {step.description}")
+
+    if output.get("plan"):
+        print("\nPLAN Generated:")
+        for step in output["plan"].diagnosis_steps:
+            print(f"- {step.tool}: {step.description}")
+
+async def resume_execution(needs_path: str, state_path: str):
+    """Resumes execution from a paused state with user inputs."""
+    logger.info(f"Resuming execution with inputs from {needs_path}...")
+    
+    import json
+    
+    # 1. Load State
+    try:
+        with open(state_path, "r") as f:
+            state = json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load state: {e}")
+        return
+
+    # 2. Load User Inputs
+    try:
+        with open(needs_path, "r") as f:
+            user_input_data = json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load needs file: {e}")
+        return
+        
+    # 3. Process Inputs
+    # Expect user_input_data['required_inputs'] with "key" and "value"
+    updates = {}
+    
+    # Support new format
+    if "required_inputs" in user_input_data:
+         for item in user_input_data["required_inputs"]:
+             if item.get("value") is not None: # User provided value
+                 updates[item["key"]] = item["value"]
+
+    # Support legacy format (just in case)
+    elif "missing_info" in user_input_data:
+        for item in user_input_data["missing_info"]:
+            if "value" in item and item["value"]:
+                updates[item["key"]] = item["value"]
+    
+    # Inject into facts
+    if "facts" not in state:
+        state["facts"] = {}
+    
+    logger.info(f"Injecting User Facts: {updates}")
+    state["facts"].update(updates)
+    
+    # 4. Clear Pending Requirements (Unblock)
+    state["pending_requirements"] = []
+    
+    # 5. Run Graph
+    # We must RE-RUN the graph. 
+    # Since we are not using a Persistent Checkpointer that knows exactly where we were,
+    # we are essentially starting a new run but with a "hot" state.
+    # The Supervisor should see `pending_requirements` is empty, and route to `evidence_collector` 
+    # (or wherever appropriate based on evidence/hypotheses).
+    
+    # Important: Re-constitute Pydantic models from dicts if needed?
+    # LangGraph/LangChain usually handles dict state if TypedDict is used.
+    # But some agents expect objects (like Ticket).
+    # We might need to deserialization logic similar to 'Ticket(**state["ticket"])'
+    # For this prototype, let's assume dict access works (most agents use .get or dict access).
+    # IF agents use .attribute access, this will fail.
+    # Checking code... agents use `state.get("ticket").text` or `state["ticket"].text`.
+    # Ticket IS a Pydantic model in the code.
+    # We need to re-hydrate Pydantic models.
+    
+    from src.core.models import Ticket, Component, EvidenceSnapshot, Hypothesis
+    
+    if isinstance(state.get("ticket"), dict):
+        state["ticket"] = Ticket(**state["ticket"])
+        
+    if state.get("components"):
+        state["components"] = [Component(**c) if isinstance(c, dict) else c for c in state["components"]]
+        
+    if state.get("hypotheses"):
+         state["hypotheses"] = [Hypothesis(**h) if isinstance(h, dict) else h for h in state["hypotheses"]]
+         
+    # 6. Execute
+    output = await app.ainvoke(state)
+    
+    print("\n" + "="*50)
+    print(f"FINAL ANSWER (RESUMED):\n{output.get('final_answer')}")
+    print("="*50)
 
 if __name__ == "__main__":
     asyncio.run(main())

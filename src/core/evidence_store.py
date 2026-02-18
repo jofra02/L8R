@@ -18,9 +18,11 @@ class EvidenceStore:
     async def save_evidence(self, tool_name: str, tool_args: Dict[str, Any], content: Any, summary: Optional[str] = None) -> EvidenceSnapshot:
         """Persist evidence and return a snapshot reference."""
         
-        # 1. Serialize content
+        # 1. Serialize content & Sanitize
         if isinstance(content, (dict, list)):
             content_str = json.dumps(content, sort_keys=True, default=str)
+        elif content is None:
+            content_str = "No Output"
         else:
             content_str = str(content)
             
@@ -37,9 +39,25 @@ class EvidenceStore:
         # 4. Create Snapshot Object
         snapshot_id = f"ev_{content_hash[:8]}"
         
-        final_summary = summary or f"Output from {tool_name} ({len(content_str)} bytes)"
-        
-        return EvidenceSnapshot(
+        # 5. Smart Summary Extraction
+        final_summary = summary
+        if not final_summary:
+            # If content is short, use it as summary
+            if len(content_str) < 200:
+                final_summary = content_str
+            else:
+                 # Try to extract "Success/Fail" from dict
+                if isinstance(content, dict):
+                    if "error" in content:
+                        final_summary = f"Error: {content['error']}"
+                    elif "output" in content:
+                        final_summary = str(content["output"])[:200]
+                    else:
+                        final_summary = f"Output from {tool_name} ({len(content_str)} bytes)"
+                else:
+                    final_summary = f"Output from {tool_name} ({len(content_str)} bytes)"
+
+        snapshot = EvidenceSnapshot(
             id=snapshot_id,
             tool_call_id="unknown",  # To be filled by caller
             tool_name=tool_name,
@@ -49,3 +67,14 @@ class EvidenceStore:
             summary=final_summary,
             storage_ref=file_path
         )
+        
+        # 6. Async Indexing (Fire & Forget logic or Await?)
+        # For data integrity, we await it here.
+        try:
+            from src.core.qdrant import vector_store
+            await vector_store.save_evidence(snapshot)
+        except Exception as e:
+            # Don't fail the whole tool execution if indexing fails, but log it.
+            logger.error(f"EvidenceStore: Failed to index evidence {snapshot_id}: {e}")
+            
+        return snapshot

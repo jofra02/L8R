@@ -1,0 +1,1 @@
+Error: Error calling tool 'get_firewall_sdn_connector_filters': HTTP error 404: Not Found - {'http_method': 'GET', 'status': 'error', 'http_status': 404, 'vdom': 'root', 'path': 'firewall', 'name': 'sdn-connector-filters', 'serial': 'FGT60ETK19031088', 'version': 'v7.4.9', 'build': 2829}

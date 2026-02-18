@@ -38,7 +38,40 @@ class ClientContext(BaseModel):
     known_changes: List[Dict[str, Any]] = Field(default_factory=list)
     access_scopes: List[str] = Field(default_factory=list)
 
+    access_scopes: List[str] = Field(default_factory=list)
+
 # --- Reasoning & Artifacts ---
+
+class ToolKnowledge(BaseModel):
+    """Learned insight about successful tool usage."""
+    tool_name: str
+    vendor: str = "unknown"
+    scenario: str = "general" # e.g. "checking interface status"
+    error_pattern: Optional[str] = None # e.g. "AttributeError: ..."
+    insight: str # The learned rule
+    good_example: Dict[str, Any] # working args
+    success_count: int = 1
+    last_updated: datetime = Field(default_factory=datetime.now)
+
+class ResolvedTicket(BaseModel):
+    """A historically resolved case for index/retrieval (RAG)."""
+    ticket_id: str
+    problem_summary: str # Vectorized field
+    resolution_summary: str
+    root_cause: str
+    tools_used: List[Dict[str, Any]] # "Chain of Thought"
+    steps_taken: List[str] # High level steps
+    
+    # Metadata for filtering
+    vendor: Optional[str] = None
+    component_role: Optional[str] = None
+    customer_id: str
+    
+    # Weighting & Quality
+    resolution_status: Literal["resolved", "workaround", "unresolved"] = "resolved"
+    score: int = Field(default=10, description="Quality score 0-10")
+    
+    resolved_at: datetime = Field(default_factory=datetime.now)
 
 class EvidenceSnapshot(BaseModel):
     """Immutable record of evidence collected via tools."""
@@ -92,6 +125,14 @@ class HandoffPackage(BaseModel):
     case_file_artifacts: List[str] = Field(default_factory=list)
     recommended_escalation: Optional[Dict[str, str]] = None
 
+class PendingRequirement(BaseModel):
+    """Information that the agent needs from the user to proceed."""
+    key: str # unique key e.g. "ip_asset_fgt_01"
+    description: str # "IP Address for asset:fgt_01"
+    source_hint: str # "CMDB, Device"
+    tool_name: str # "ping"
+    component_id: str # "asset:fgt_01"
+
 # --- Global State (LangGraph) ---
 
 class GlobalState(TypedDict):
@@ -109,7 +150,9 @@ class GlobalState(TypedDict):
     # References to raw evidence artifacts
     evidence_refs: List[EvidenceSnapshot]
     
-    missing_info: List[str]
+    missing_info: List[str] # Legacy string list, keep for backward compat if needed
+    pending_requirements: List[PendingRequirement] # Structured blocking requirements
+    
     hypotheses: List[Hypothesis]
     plan: Plan
     

@@ -1,6 +1,8 @@
 from typing import Any, Dict
-from src.core.models import GlobalState, Plan, PlanStep
+from src.core.models import GlobalState, Plan, Hypothesis
 from src.core.llm import LLMFactory
+from src.retrieval.case_retriever import CaseRetriever
+from src.core.qdrant import vector_store
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 import logging
@@ -9,44 +11,79 @@ logger = logging.getLogger(__name__)
 
 async def planner_agent_node(state: GlobalState) -> Dict[str, Any]:
     """
-    LangGraph node: Generates a plan.
+    LangGraph node: Generates a plan based on the ticket, hypothesis, and past cases (CBR).
     """
     ticket = state["ticket"]
     hypotheses = state.get("hypotheses", [])
     
-    logger.info("Planner Agent: Drafting plan.")
+    # Select the most relevant hypothesis (e.g., the top-ranked one)
+    # If no hypothesis exists, fallback to a general investigation.
+    active_hypothesis = hypotheses[0] if hypotheses else Hypothesis(
+        id="default", 
+        summary="General System Investigation", 
+        rationale="Initial triage."
+    )
     
-    # Select leading hypothesis (Prioritize Verified -> Proposed -> ignore Rejected)
-    sorted_hypotheses = sorted(hypotheses, key=lambda x: x.rank)
-    target_hypothesis = next((h for h in sorted_hypotheses if h.status == "verified"), None)
+    logger.info(f"Planner Agent: Drafting plan for Hypothesis: {active_hypothesis.summary}")
     
-    if not target_hypothesis:
-        # Fallback to top proposed if none verified (and not rejected)
-        target_hypothesis = next((h for h in sorted_hypotheses if h.status == "proposed"), None)
-        
-    hypothesis_text = target_hypothesis.summary if target_hypothesis else "Analyze root cause (No verified hypothesis)"
-    
-    llm = LLMFactory.get_main_llm()
+    # --- 1. Case-Based Reasoning (RAG) ---
+    cbr_context = ""
+    try:
+        retriever = CaseRetriever(vector_store)
+        similar_cases = await retriever.retrieve_similar_cases(ticket, limit=3)
+        cbr_context = retriever.format_cases_for_context(similar_cases)
+    except Exception as e:
+        logger.warning(f"Planner: CBR retrieval failed (proceeding without past cases): {e}")
+        cbr_context = "No similar past cases available."
+
+    # --- 2. Setup LLM & Parser ---
+    llm = LLMFactory.get_llm(temperature=0.0) # Precise planning
     parser = PydanticOutputParser(pydantic_object=Plan)
     
+    # --- 3. Formulate Prompt ---
+    # We inject the CBR context to guide the LLM
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert IT Support / Incident Engineer. Create a safe, step-by-step plan to verify the hypothesis and resolve the issue. Do NOT include steps that modify the system state without approval. Focus on diagnosis and verification first."),
-        ("user", "Ticket: {text}\n\nHypothesis: {hypothesis}\n\n{format_instructions}")
+        ("system", """You are an expert Senior IT Support Engineer planning a resolution strategies.
+Your goal is to create a safe, step-by-step Execution Plan to verify the active hypothesis and resolve the issue.
+
+GUIDELINES:
+1. **Safety First**: Do NOT modify system state (reboots, config changes) without first verifying the diagnosis.
+2. **Diagnosis Steps**: actions to confirm the hypothesis.
+3. **Proposed Changes**: actions to fix the root cause (once verified).
+4. **Validation**: steps to confirm the fix works.
+5. **Rollback**: steps to revert if the fix fails.
+6. **Learn from History**: Review the 'Relevant Past Cases' below. If a similar issue was resolved before, prioritize those tools and steps.
+
+Output must be valid JSON adhering to the schema.
+"""),
+        ("user", """### Context
+**Ticket**: {ticket_text}
+
+**Active Hypothesis**: {hypothesis_summary}
+{hypothesis_rationale}
+
+{cbr_context}
+
+{format_instructions}
+""")
     ])
     
     chain = prompt | llm | parser
     
+    # --- 4. Execute Planning ---
     try:
         plan = await chain.ainvoke({
-            "text": ticket.text,
-            "hypothesis": hypothesis_text,
+            "ticket_text": ticket.text,
+            "hypothesis_summary": active_hypothesis.summary,
+            "hypothesis_rationale": f"Rationale: {active_hypothesis.rationale}" if active_hypothesis.rationale else "",
+            "cbr_context": cbr_context,
             "format_instructions": parser.get_format_instructions()
         })
         
-        logger.info(f"Plan generated with {len(plan.diagnosis_steps)} diagnosis steps.")
+        logger.info(f"Planner: Generated plan with {len(plan.diagnosis_steps)} diagnosis steps.")
         return {"plan": plan}
         
     except Exception as e:
-        logger.error(f"Planning failed: {e}")
-        # Return empty plan
+        logger.error(f"Planner: Generation failed: {e}")
+        # Return empty plan implies "Human Intervention Required" usually
         return {"plan": Plan()}

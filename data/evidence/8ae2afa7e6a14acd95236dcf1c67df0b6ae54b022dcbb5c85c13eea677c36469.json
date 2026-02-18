@@ -1,0 +1,1 @@
+{"http_method":"GET","results":{"configured":false,"type":"appliance","cloud_region":"","malware_package_version":"0.0","signatures_loaded":false,"signatures_count":0},"vdom":"root","path":"system","name":"sandbox","action":"status","status":"success","serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}

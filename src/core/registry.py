@@ -1,6 +1,7 @@
-from typing import Dict, List, Any
-from src.core.interfaces import CapabilityPackInterface, MCPToolInterface
+from typing import Dict, List, Any, Optional
+from src.core.interfaces import MCPToolInterface, CapabilityPackInterface
 from src.mcp.client import MCPClient
+from src.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,16 +27,35 @@ class CapabilityRegistry:
         return cls._tools.get(name)
         
     @classmethod
-    def list_tools(cls) -> List[MCPToolInterface]:
-        return list(cls._tools.values())
+    def _is_safe(cls, tool_name: str) -> bool:
+        """Internal check against blocked keywords in config."""
+        for kw in settings.SAFETY_BLOCKED_KEYWORDS:
+             if kw in tool_name.lower():
+                 return False
+        return True
 
     @classmethod
-    def search_tools(cls, query: str, limit: int = 10) -> List[MCPToolInterface]:
-        """Search tools by name or description using token matching."""
-        query_tokens = set(query.lower().split())
+    def list_tools(cls) -> List[MCPToolInterface]:
+        """List all available tools (filtered by safety)."""
+        return [t for t in cls._tools.values() if cls._is_safe(t.name)]
+
+    @classmethod
+    def search_tools(cls, query: str, limit: int = 3) -> List[MCPToolInterface]:
+        """
+        Semantic/Keyword search for tools (Filtered by safety).
+        Currently implements a simple keyword match.
+        """
+        # TODO: Implement vector search via Qdrant if needed.
+        # For now, simple keyword matching against name/description
+        
+        candidates = []
         scored_results = []
+        tokens = query.lower().split()
         
         for tool in cls._tools.values():
+            if not cls._is_safe(tool.name):
+                continue
+
             score = 0
             name = tool.name.lower()
             desc = (tool.description or "").lower()
@@ -47,7 +67,7 @@ class CapabilityRegistry:
                 score += 5
             
             # Token matching
-            for token in query_tokens:
+            for token in tokens:
                 if len(token) < 3: # Skip short tokens
                     continue
                 if token in name:

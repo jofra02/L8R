@@ -58,3 +58,42 @@ class CapabilityPackInterface(ABC):
     def get_hypothesis_templates(self) -> List[Dict[str, Any]]:
         """Return reasoning templates."""
         pass
+
+class VectorStoreInterface(ABC):
+    """Abstract base class for Vector Database operations."""
+    
+    @abstractmethod
+    async def ensure_collection(self, collection_name: str, vector_size: int = 1536):
+        pass
+        
+    @abstractmethod
+    async def add_texts(self, collection_name: str, texts: List[str], metadatas: List[Dict[str, Any]], ids: List[str]):
+        pass
+        
+    @abstractmethod
+    async def search(self, collection_name: str, vector: List[float], customer_id: str, limit: int = 5) -> List[Any]:
+        pass
+        
+    @abstractmethod
+    async def save_resolved_ticket(self, ticket: Any):
+        pass
+        
+    @abstractmethod
+    async def find_similar_cases(self, problem_description: str, limit: int = 3, customer_id: str = None) -> List[Any]:
+        pass
+
+    @abstractmethod
+    async def save_tool_insight(self, knowledge: Any):
+        pass
+
+    @abstractmethod
+    async def get_tool_insights(self, tool_name: str, query: str = "", limit: int = 3) -> List[Any]:
+        pass
+        
+    @abstractmethod
+    async def save_adaptive_fix(self, tool_name: str, error_msg: str, insight: str, fix_data: Dict[str, Any]):
+        pass
+        
+    @abstractmethod
+    async def get_adaptive_fixes(self, tool_name: str, error_msg: str, limit: int = 2) -> List[Any]:
+        pass

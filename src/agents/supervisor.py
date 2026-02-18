@@ -86,6 +86,12 @@ def supervisor_router(state: GlobalState) -> Literal["context_agent", "classifie
     has_verified = any(h.status == "verified" for h in hypotheses)
     has_plan = bool(state.get("plan") and (state.get("plan").diagnosis_steps or state.get("plan").proposed_changes))
     
+    # Check for blocking requirements (Human-in-the-Loop)
+    pending_reqs = state.get("pending_requirements", [])
+    if pending_reqs:
+        logger.info(f"Supervisor: Blocking Requirements detected ({len(pending_reqs)}). Routing to Response for User Input.")
+        return "response_agent"
+
     if iterations < MAX_ITERATIONS:
         if not has_verified:
             logger.info("Supervisor: No verified hypothesis yet. Looping back to planner/investigator.")

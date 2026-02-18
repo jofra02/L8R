@@ -1,0 +1,1 @@
+{"http_method":"GET","revision":"b851df54b6b3d16e01b2024c935141ec","results":{"dns-retry-interval":0,"extended-ttl":0},"vdom":"root","path":"webfilter","name":"ips-urlfilter-cache-setting","action":"","status":"success","http_status":200,"serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}

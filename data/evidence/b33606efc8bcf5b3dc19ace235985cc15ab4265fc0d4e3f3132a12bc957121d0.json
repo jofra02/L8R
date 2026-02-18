@@ -1,0 +1,1 @@
+Error: Error calling tool 'get_ips_urlfilter_dns_address': HTTP error 404: Not Found - {'http_method': 'GET', 'revision': '91a7fd57d88cceff3420381461fba8f0', 'cli_error': [], 'status': 'error', 'http_status': 404, 'vdom': 'root', 'path': 'system', 'name': 'ips-urlfilter-dns', 'action': '', 'mkey': 'aws.amazon.com', 'serial': 'FGT60ETK19031088', 'version': 'v7.4.9', 'build': 2829}
