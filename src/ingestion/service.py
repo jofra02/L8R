@@ -94,20 +94,15 @@ class IngestionService:
             )
             
             # Save final state back to the run
-            # Note: We create a simple dictionary matching GlobalState since SQLAlchemy JSON handles dicts.
-            # Avoid storing raw Pydantic models directly if they contain complex types.
-            serializable_state = {}
-            for k, v in final_state.items():
-                 # Handle Pydantic models or messages loosely
-                 if hasattr(v, "model_dump"):
-                     serializable_state[k] = v.model_dump()
-                 elif isinstance(v, list) and len(v) > 0 and hasattr(v[0], "model_dump"):
-                     serializable_state[k] = [item.model_dump() for item in v]
-                 elif k == "messages":
-                     serializable_state[k] = [m.model_dump() for m in v]
-                 else:
-                     serializable_state[k] = v
-
+            # Use the robust sanitize method from AuditService to ensure SQLAlchemy/FastAPI can serialize everything
+            try:
+                serializable_state = self.audit._sanitize(final_state)
+            except Exception as e:
+                logger.error(f"Failed to sanitize final state: {e}")
+                serializable_state = {"error": "Failed to serialize state", "final_answer": str(final_state.get('final_answer', ''))}
+            
+            logger.info(f"DEBUG: serializable_state keys before save: {list(serializable_state.keys())}")
+            
             await self.audit.update_run_context(run_id, customer_id, serializable_state)
             
             # complete_run does not exist yet wait, let me check AuditService
