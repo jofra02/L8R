@@ -88,8 +88,8 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     # 3. Find Tools
     tools = CapabilityRegistry.search_tools(search_query, limit=5)
     if not tools:
-        logger.warning(f"Investigator: No tools found for query '{search_query}'. Fallback to ping.")
-        tools = CapabilityRegistry.search_tools("ping", limit=1)
+        logger.warning(f"Investigator: No tools found for query '{search_query}'. Fallback to status.")
+        tools = CapabilityRegistry.search_tools("status", limit=1)
         
     # 4. Select & Configure Tool
     # Ask LLM to pick the best tool and define args (linking to components)
@@ -132,7 +132,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     2. Context Check: Look for parameter values (like 'interface_name', 'policy_id', 'protocol') in the provided 'Facts', 'Components', and 'Evidence'.
     3. CRITICAL: Use Component IDs for 'device', 'target', 'host' arguments.
     4. ANTI-HALLUCINATION: If a MANDATORY parameter is missing from the context, DO NOT INVENT IT. 
-       - If you cannot fill a mandatory param, do NOT select that tool. Choose a simpler tool (like `get_status` or `ping`) that requires fewer args.
+       - If you cannot fill a mandatory param, do NOT select that tool. Choose a simpler tool (like `get_status` or `show_system`) that requires fewer args.
     5. BLOCKED TOOLS: Check 'Previous Evidence' for "BLOCKED" or "Missing Info" regarding specific tools.
        - If a tool was recently BLOCKED due to missing info, DO NOT retry it unless you see the missing info in 'Facts' or 'Evidence'.
        - Instead, select a **Discovery Tool** (e.g., `get_interfaces`, `show_system`, `get_routes`) to FIND that missing information.

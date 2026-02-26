@@ -120,13 +120,18 @@ class VectorStore:
             ]
         )
         
-        results = await self.client.query_points(
-            collection_name="tool_knowledge",
-            query=await self._get_embedding(query or f"how to use {tool_name}"),
-            query_filter=filter_cond,
-            limit=limit
-        )
-        return [pt.payload for pt in results.points]
+        try:
+            results = await self.client.query_points(
+                collection_name="tool_knowledge",
+                query=await self._get_embedding(query or f"how to use {tool_name}"),
+                query_filter=filter_cond,
+                limit=limit
+            )
+            return [pt.payload for pt in results.points]
+        except Exception as e:
+            if "Not found" in str(e) or "doesn't exist" in str(e):
+                return []
+            raise
 
     @rag_telemetry(operation_name="save_evidence")
     async def save_evidence(self, snapshot: Any):
@@ -167,12 +172,17 @@ class VectorStore:
         # Let's assume we filter by 'vendor' or 'component_role' if provided in query context?
         # For now, pure semantic search.
         
-        results = await self.client.query_points(
-            collection_name="resolved_tickets",
-            query=await self._get_embedding(problem_description),
-            limit=limit
-        )
-        return [pt.payload for pt in results.points]
+        try:
+            results = await self.client.query_points(
+                collection_name="resolved_tickets",
+                query=await self._get_embedding(problem_description),
+                limit=limit
+            )
+            return [pt.payload for pt in results.points]
+        except Exception as e:
+            if "Not found" in str(e) or "doesn't exist" in str(e):
+                return []
+            raise
 
     @rag_telemetry(operation_name="save_adaptive_fix")
     async def save_adaptive_fix(self, tool_name: str, error_msg: str, insight: str, fix_data: Dict[str, Any]):
@@ -202,13 +212,18 @@ class VectorStore:
             ]
         )
         
-        results = await self.client.query_points(
-            collection_name="adaptive_fixes",
-            query=await self._get_embedding(error_msg),
-            query_filter=filter_cond,
-            limit=limit
-        )
-        return [pt.payload for pt in results.points]
+        try:
+            results = await self.client.query_points(
+                collection_name="adaptive_fixes",
+                query=await self._get_embedding(error_msg),
+                query_filter=filter_cond,
+                limit=limit
+            )
+            return [pt.payload for pt in results.points]
+        except Exception as e:
+            if "Not found" in str(e) or "doesn't exist" in str(e):
+                return []
+            raise
 
     async def upsert(self, collection_name: str, points: List[models.PointStruct], customer_id: str):
         """Upsert points with WAIT=TRUE and customer enforcement."""
@@ -253,12 +268,17 @@ class VectorStore:
         )
         
         # Use query_points (Modern API)
-        response = await self.client.query_points(
-            collection_name=collection_name,
-            query=vector,
-            query_filter=tenant_filter,
-            limit=limit
-        )
-        return response.points
+        try:
+            response = await self.client.query_points(
+                collection_name=collection_name,
+                query=vector,
+                query_filter=tenant_filter,
+                limit=limit
+            )
+            return response.points
+        except Exception as e:
+            if "Not found" in str(e) or "doesn't exist" in str(e):
+                return []
+            raise
 
 vector_store = VectorStore()

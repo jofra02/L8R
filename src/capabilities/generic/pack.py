@@ -1,7 +1,6 @@
 from typing import List, Dict, Any, Type
 from pydantic import BaseModel, Field
 from src.core.interfaces import CapabilityPackInterface, MCPToolInterface
-from .tools import PingTool, DNSTool, HTTPTool
 import yaml
 import os
 
@@ -13,7 +12,7 @@ class GenericCapabilityPack(CapabilityPackInterface):
     version = "1.0.0"
     
     def __init__(self):
-        self._tools = [PingTool(), DNSTool(), HTTPTool()]
+        self._tools = []
         self._load_resources()
 
     def _load_resources(self):
@@ -25,7 +24,7 @@ class GenericCapabilityPack(CapabilityPackInterface):
         self._playbooks.append({
             "id": "check_connectivity",
             "name": "Basic Connectivity Check",
-            "steps": ["ping", "dns_resolve", "http_head"]
+            "steps": []
         })
         
         self._hypotheses.append({

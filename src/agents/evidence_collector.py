@@ -131,16 +131,17 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                     logger.info(f"Collected evidence with {tool_name}")
                     
                 except MissingDependencyError as missing_e:
-                    logger.warning(f"AdaptiveExec Signal: Missing Info for {tool_name} -> {missing_e.description}")
+                    deps_str = "; ".join(missing_e.dependencies)
+                    logger.warning(f"AdaptiveExec Signal: Missing Info for {tool_name} -> {deps_str}")
                     
                     # --- INTERNAL RECOVERY LOOP ---
                     # The user wants the agent to "think" and "fix" immediately.
                     # We can try to finding a RESOLUTION tool.
-                    logger.info(f"Attempting in-flight resolution for {missing_e.description}")
+                    logger.info(f"Attempting in-flight resolution for {deps_str}")
                     
                     resolution_context = f"""
                     Problem: Tool '{tool_name}' failed on component '{comp.id}'.
-                    Missing: {missing_e.description}
+                    Missing: {deps_str}
                     Source Hint: {missing_e.suggested_source}
                     
                     Task: Select a DIFFERENT tool to FETCH this missing information from the component itself (or inventory).
@@ -173,7 +174,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                                     tool_name=res_tool_name,
                                     tool_args=res_tool_args,
                                     content=res_output,
-                                    summary=f"Resolution for {missing_e.description}"
+                                    summary=f"Resolution for {deps_str}"
                                 )
                                 new_evidence.append(res_snapshot)
                                 
@@ -187,7 +188,6 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                         logger.error(f"Recovery failed: {res_e}")
 
                     # If recovery didn't work or we just saved evidence, add to missing list as backup
-                    deps_str = "; ".join(missing_e.dependencies)
                     req = PendingRequirement(
                         key=f"missing_{tool_name}_{comp.id}",
                         description=deps_str,
@@ -294,9 +294,7 @@ async def _select_tools_for_component(llm, component: Component, ticket_text: st
     unique_tools = {t.name: t for t in candidate_tools}
     logger.info(f"Found {len(unique_tools)} unique tools for {component.id}")
     
-    # Always ensure basic ping is available as an option
-    if "ping" in CapabilityRegistry._tools:
-        unique_tools["ping"] = CapabilityRegistry._tools["ping"]
+    # Basic tools rely entirely on external MCP registry now
 
     if not unique_tools:
         return []
@@ -400,8 +398,7 @@ def _get_brute_force_tools(component: Component) -> List[Dict[str, Any]]:
              if any(k in name for k in ["health", "status", "info", "system"]):
                  candidates.append({"name": t.name, "args": {"device": component.id}}) # Assume 'device' arg for fgt
         
-        elif "ping" in name:
-             candidates.append({"name": t.name, "args": {"target": component.id}})
+        # External tools only handled natively
 
     # Limit brute force to top 5 to prevent overload
     return candidates[:5]

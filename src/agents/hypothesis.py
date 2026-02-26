@@ -40,6 +40,15 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
 
         Based on the provided ticket, collected facts, and EXISTING HYPOTHESES, your task is to comprehend the entire scenario, map out all involved components structurally, and generate an updated, strictly-ranked list of logical hypotheses.
 
+        --- DUAL-ROLE ADAPTATION (CRITICAL) ---
+        First, determine the INTENT of the ticket:
+        1. VALIDATION/INQUIRY (e.g., "validate if X can reach Y", "how is this configured"): Act as an INVESTIGATOR/ANALYST. 
+           - DO NOT assume there is a problem/error. 
+           - Formulate neutral hypotheses to verify the required state (e.g., "The route to Y exists via interface Z", "Policy ID 12 allows the traffic").
+           - Your goal is to gather facts to definitively describe how the environment is configured. Once facts are collected, your final hypotheses should conclude whether the requirement is met and explain WHY, based on the concrete data.
+        2. INCIDENT/PROBLEM (e.g., "app is down", "high latency"): Act as a TROUBLESHOOTER.
+           - Formulate hypotheses focused on finding the root cause of the broken state (e.g., "A firewall rule is blocking traffic", "BGP peering is down").
+
         --- ADVANCED TROUBLESHOOTING MINDSET ---
         Adopt the methodical reasoning of a Senior Engineer specific to the implied domain:
         - If NETWORKING (e.g., connectivity, routing, BGP, SD-WAN, firewalling): Methodically reason about the OSI model path. Consider physical interfaces, routing tables, security policies, NAT, IPSec/Overlay tunnels, ARP, or asymmetric routing based on the specific vendor's architecture (e.g., how Vendor X implements a policy-based route vs Vendor Y).
