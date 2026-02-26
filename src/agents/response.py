@@ -114,7 +114,7 @@ The agent has paused execution because it lacks critical information to proceed.
             "handoff": HandoffPackage(case_file_artifacts=[needs_file])
         }
 
-    llm = LLMFactory.get_main_llm() # Use smart model for final synthesis
+    llm = LLMFactory.get_model_for_agent("response") # Use smart model for final synthesis
     
     # Context Construction
     evidence_summary = "\n".join([f"- [{e.tool_name}]: {e.summary}" for e in evidence])

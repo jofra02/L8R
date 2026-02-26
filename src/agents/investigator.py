@@ -53,7 +53,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     target_hypothesis = candidates[0]
     logger.info(f"Investigator: Verifying Hypothesis (Rank {target_hypothesis.rank}): {target_hypothesis.summary}")
     
-    llm = LLMFactory.get_main_llm()
+    llm = LLMFactory.get_model_for_agent("investigator")
     store = EvidenceStore()
     
     # 2. Formulate Verification Plan

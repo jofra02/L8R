@@ -63,6 +63,8 @@ Return JSON:
 
 ## Key Logic & Interactions
 
+-   **LLM Model:** Uses `LLM_MODEL_INVESTIGATOR` (e.g., `gpt-5.2`), maximizing critical reasoning capabilities for blocking steps.
+
 ### 1. Smart Argument Sanitization (Role-Based)
 The agent applies strict logic to prevent "Device NOT FOUND" errors:
 - **`device` Argument:** Only assigned if the component is an **EXECUTOR** (Firewall, Router, Switch, Server).

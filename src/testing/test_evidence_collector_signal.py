@@ -23,7 +23,7 @@ async def test_evidence_collector_missing_info():
     mock_llm = AsyncMock()
     # Return one tool: "ping"
     mock_llm.ainvoke.return_value = MagicMock(content='[{"name": "ping", "args": {"target": "subnet_123"}}]')
-    LLMFactory.get_fast_llm = MagicMock(return_value=mock_llm)
+    LLMFactory.get_model_for_agent = MagicMock(return_value=mock_llm)
     
     # 3. Mock Registry to return a tool
     mock_tool = MagicMock()

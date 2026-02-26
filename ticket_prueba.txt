@@ -1,1 +1,1 @@
-Que rutas estoy aprendiendo por BGP?
+Valida si ruta policy entre fgt_casa y fgt_druidics tiene configurado todo lo necesario para que se puedan comunicar entre ellos, particularmente que la red 192.168.241.0/24 pueda llegar a 100.64.120.0/27

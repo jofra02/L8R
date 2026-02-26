@@ -114,8 +114,12 @@ QDRANT_URL=http://127.0.0.1:6333
 
 # LLM Governance
 OPENAI_API_KEY=sk-...
-LLM_MAIN_MODEL=gpt-4o
-LLM_FAST_MODEL=gpt-4o-mini
+LLM_MODEL_CLASSIFIER=gpt-5-nano
+LLM_MODEL_INVESTIGATOR=gpt-5.2
+LLM_MODEL_PLANNER=gpt-5.2
+LLM_MODEL_RESPONSE=gpt-4o-mini
+LLM_REASONING_EFFORT=low
+# (See .env.example for full list)
 ```
 
 ### 3. Database Initialization

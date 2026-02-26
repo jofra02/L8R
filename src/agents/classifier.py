@@ -15,7 +15,7 @@ async def classifier_agent_node(state: GlobalState) -> Dict[str, Any]:
     ticket = state["ticket"]
     logger.info(f"Classifier Agent: Analyzing ticket {ticket.id}")
     
-    llm = LLMFactory.get_fast_llm()
+    llm = LLMFactory.get_model_for_agent("classifier")
     parser = PydanticOutputParser(pydantic_object=Classification)
     
     prompt = ChatPromptTemplate.from_messages([

@@ -20,7 +20,7 @@ async def mapper_agent_node(state: GlobalState) -> Dict[str, Any]:
     context = state.get("client_context")
     logger.info(f"Mapper Agent: Scoping ticket {ticket.id}")
     
-    llm = LLMFactory.get_fast_llm()
+    llm = LLMFactory.get_model_for_agent("mapper")
     parser = PydanticOutputParser(pydantic_object=ComponentList)
     
     # Context summary for the LLM

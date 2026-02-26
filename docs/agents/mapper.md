@@ -33,6 +33,7 @@ Ticket: {text}
 ```
 
 ## Key Logic & Interactions
+-   **LLM Model:** Uses `LLM_MODEL_MAPPER` (e.g., `gpt-5-nano`), since entity extraction is a fast, cheap NLP task.
 -   **Inventory Summary:** To avoid overflowing the context window, the agent does not pass the full inventory list if it's large. Instead, it passes a summary (e.g., "Customer has 50 assets").
 -   **Vendor Inference:** The prompt explicitly asks to infer vendors (e.g., "FortiGate" -> "Fortinet"), which is crucial for the Evidence Collector to select the right tools later.
 -   **Output Parsing:** Uses `PydanticOutputParser` to generate strictly typed `Component` objects.

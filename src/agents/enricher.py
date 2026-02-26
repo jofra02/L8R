@@ -26,7 +26,7 @@ async def enricher_agent_node(state: GlobalState) -> Dict[str, Any]:
         return {}
 
     logger.info(f"Enricher: Synthesizing {len(new_evidence)} new evidence items into facts.")
-    llm = LLMFactory.get_fast_llm()
+    llm = LLMFactory.get_model_for_agent("enricher")
     
     enriched_facts = facts.copy()
     

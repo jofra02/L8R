@@ -61,6 +61,8 @@ Return ONLY a JSON LIST of objects:
 
 ## Key Logic & Interactions
 
+-   **LLM Model:** Uses `LLM_MODEL_EVIDENCE_COLLECTOR` (e.g., `gpt-4.1-mini`), which is specifically optimized for tool calling speed.
+
 ### 1. Smart Selection & Device Targeting
 For each component:
 1.  Asks LLM for keywords.

@@ -35,7 +35,7 @@ class AdaptiveExecutor:
         else:
             self.max_retries = max_retries
             
-        self.llm = LLMFactory.get_fast_llm() # Use fast model for diagnosis
+        self.llm = LLMFactory.get_model_for_agent("hypothesis") # Use fast model for diagnosis
 
     async def execute(self, tool: MCPToolInterface, args: Dict[str, Any], context: str = "") -> str:
         """

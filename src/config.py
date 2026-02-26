@@ -42,17 +42,21 @@ class Settings(BaseSettings):
     
     # --- LLM Profiles (Governance) ---
     
-    # Main Profile (Reasoning: Planner, Hypothesis, Supervisor)
-    LLM_MAIN_VENDOR: str = "openai" # openai, anthropic
-    LLM_MAIN_MODEL: str = "gpt-5.2"
-    LLM_MAIN_TEMP: float = 0.0
-    LLM_MAIN_API_KEY: Optional[str] = None # Defaults to env var if None
-
-    # Fast Profile (Speed: Classifier, Mapper, Normalizer)
-    LLM_FAST_VENDOR: str = "openai"
-    LLM_FAST_MODEL: str = "gpt-5-mini"
-    LLM_FAST_TEMP: float = 0.0
-    LLM_FAST_API_KEY: Optional[str] = None # Defaults to env var if None
+    # Per-Agent Models (Cost/Speed Optimization)
+    LLM_MODEL_CLASSIFIER: str = "gpt-5-nano"
+    LLM_MODEL_CONTEXT: str = "gpt-5-nano"
+    LLM_MODEL_MAPPER: str = "gpt-5-nano"
+    LLM_MODEL_SUPERVISOR: str = "gpt-5-mini" 
+    LLM_MODEL_EVIDENCE_COLLECTOR: str = "gpt-4.1-mini"
+    LLM_MODEL_ENRICHER: str = "gpt-5-nano"
+    LLM_MODEL_HYPOTHESIS: str = "gpt-5-mini"
+    LLM_MODEL_INVESTIGATOR: str = "gpt-5.2"
+    LLM_MODEL_PLANNER: str = "gpt-5.2"
+    LLM_MODEL_RESPONSE: str = "gpt-4o-mini"
+    
+    # Global Tuning
+    LLM_REASONING_EFFORT: str = "low" # Can be injected into reasoning models to speed up tasks
+    LLM_TEMPERATURE_DEFAULT: float = 0.0
     
     # Safety & Governance
     SAFETY_BLOCKED_KEYWORDS: List[str] = [

@@ -272,7 +272,8 @@ decision_rules:
 - Normaliza + persiste artefactos con provenance.
 
 ### 6.6 Hypothesis Agent
-- Genera/refina hipótesis.
+- Desempeña rol de SME (Subject Matter Expert) con razonamiento lógico avanzado por dominios.
+- Genera/refina hipótesis estructuradas.
 - Produce “qué falta” para confirmar/refutar.
 
 ### 6.7 Planner Agent

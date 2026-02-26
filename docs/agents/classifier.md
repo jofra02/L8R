@@ -33,6 +33,6 @@ Ticket Text: {text}
 ```
 
 ## Key Logic & Interactions
--   Uses a "Fast LLM" (cheaper/faster model) as this is a relatively simple NLU task.
+-   **LLM Model:** Uses the model defined by `LLM_MODEL_CLASSIFIER` (e.g., `gpt-5-nano`) as this is a relatively simple and fast NLU task.
 -   Uses `PydanticOutputParser` to ensure structured JSON output.
 -   Includes a fallback mechanism: if the LLM fails or produces invalid JSON, it returns a default "unknown" classification to prevent the graph from crashing.

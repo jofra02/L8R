@@ -33,5 +33,7 @@ Hypothesis: {hypothesis_text}
 ```
 
 ## Key Logic & Interactions
+-   **LLM Model:** Uses `LLM_MODEL_PLANNER` (e.g., `gpt-5.2` with temperature 0.0) for precise and deterministic planning.
+-   **Case-Based Reasoning (CBR):** Consults the Qdrant vector database via `CaseRetriever` to find similar historically resolved tickets before formulating the plan.
 -   **Safety First:** The system prompt explicitly instructs to avoid unapproved state modifications.
 -   **Structure:** The output is broken down into logical phases (Diagnosis, Proposed Changes, Validation, Rollback) using Pydantic models, making it easy to present to a human for approval (HITL).

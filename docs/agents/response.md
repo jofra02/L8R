@@ -34,5 +34,5 @@ The Response Agent is the final node in the graph. It compiles all the work done
 
 ## Logic
 1.  **Context Aggregation:** Gathers all evidence, hypothesis reasoning, and proposed plans from the global state.
-2.  **LLM Synthesis:** Uses the "Smart" LLM (GPT-4 class) to generate the report, ensuring it is evidence-backed (no hallucination).
+2.  **LLM Synthesis:** Uses the formatter LLM configured in `LLM_MODEL_RESPONSE` (e.g., `gpt-4o-mini`) to generate the report, ensuring it is evidence-backed (no hallucination).
 3.  **Handoff Creation:** Packages artifacts for human review.

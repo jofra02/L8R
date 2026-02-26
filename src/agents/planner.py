@@ -37,7 +37,7 @@ async def planner_agent_node(state: GlobalState) -> Dict[str, Any]:
         cbr_context = "No similar past cases available."
 
     # --- 2. Setup LLM & Parser ---
-    llm = LLMFactory.get_main_llm(temperature=0.0) # Precise planning
+    llm = LLMFactory.get_model_for_agent("planner", temperature=0.0) # Precise planning
     parser = PydanticOutputParser(pydantic_object=Plan)
     
     # --- 3. Formulate Prompt ---

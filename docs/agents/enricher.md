@@ -16,6 +16,8 @@ The Enricher Agent analyzes the raw evidence collected by other agents (Evidence
 - `state["facts"]`: Updated dictionary of facts.
 
 ## Logic
+-   **LLM Model:** Uses `LLM_MODEL_ENRICHER` (e.g., `gpt-5-nano`) to cleanly structure and summarize evidence without wasting reasoning capabilities on formatting.
+
 **Current Implementation (MVP):**
 -   The current logic is a placeholder/simple implementation.
 -   It iterates through `evidence_refs`.
