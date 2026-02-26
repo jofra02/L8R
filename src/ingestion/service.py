@@ -137,6 +137,29 @@ class IngestionService:
             return None
         return {"job_id": run.id, "status": run.status, "ticket_id": run.ticket_id}
         
+    async def get_tenant_jobs(self, customer_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Fetch recent jobs for a specific tenant."""
+        stmt = (
+            select(AgentRunORM)
+            .join(TicketORM, AgentRunORM.ticket_id == TicketORM.id)
+            .where(TicketORM.customer_id == customer_id)
+            .order_by(AgentRunORM.started_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        runs = result.scalars().all()
+        
+        jobs = []
+        for run in runs:
+            jobs.append({
+                "job_id": run.id,
+                "ticket_id": run.ticket_id,
+                "status": run.status,
+                "started_at": run.started_at.isoformat() if run.started_at else None,
+                "ended_at": run.ended_at.isoformat() if run.ended_at else None,
+            })
+        return jobs
+
     async def get_all_tenants(self) -> List[Dict[str, str]]:
         """Fetch all registered tenants."""
         stmt = select(PlatformTenant)

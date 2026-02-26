@@ -158,3 +158,47 @@ if st.session_state.status == "completed":
         st.markdown("---")
         st.subheader("Final Engineering Report")
         st.markdown(st.session_state.report)
+
+# --- Job History Section ---
+st.markdown("---")
+with st.expander("📚 Past Job History & Reports"):
+    if CUSTOMER_ID:
+        if st.button("Refresh History"):
+            with st.spinner("Fetching past jobs..."):
+                try:
+                    jobs_resp = requests.get(f"{API_BASE_URL}/tenants/{CUSTOMER_ID}/jobs?limit=10")
+                    if jobs_resp.status_code == 200:
+                        st.session_state.past_jobs = jobs_resp.json()
+                    else:
+                        st.error(f"Failed to fetch jobs (HTTP {jobs_resp.status_code})")
+                except requests.exceptions.RequestException as e:
+                    st.error(f"Error fetching jobs: {e}")
+
+        if "past_jobs" in st.session_state and st.session_state.past_jobs:
+            # Format the options cleanly
+            job_options = {}
+            for j in st.session_state.past_jobs:
+                start_time = j.get('started_at', 'Unknown Time')[:16].replace('T', ' ') if j.get('started_at') else 'Unknown Time'
+                label = f"{start_time} | Ticket: {j['ticket_id']} [{j['status'].upper()}]"
+                job_options[label] = j['ticket_id']
+                
+            selected_job_label = st.selectbox("Select a past job:", options=list(job_options.keys()))
+            
+            if st.button("View Report"):
+                selected_ticket_id = job_options[selected_job_label]
+                with st.spinner("Loading..."):
+                    try:
+                        rep_resp = requests.get(f"{API_BASE_URL}/tickets/{selected_ticket_id}/report")
+                        if rep_resp.status_code == 200:
+                            st.session_state.past_report = rep_resp.json().get("report", "No report content found.")
+                        else:
+                            st.error(f"Failed to fetch report (HTTP {rep_resp.status_code}) - the job might not have finished.")
+                            st.session_state.past_report = None
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+                        
+        if "past_report" in st.session_state and st.session_state.past_report:
+            st.markdown("### Historical Report")
+            st.markdown(st.session_state.past_report)
+    else:
+        st.info("Select a tenant from the sidebar first.")

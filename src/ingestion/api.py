@@ -4,8 +4,27 @@ from typing import Dict, Any, Optional
 from src.core.database import get_session
 from src.ingestion.service import IngestionService
 from src.config import settings
+from contextlib import asynccontextmanager
+import logging
 
-app = FastAPI(title=settings.APP_NAME, version="0.1.0")
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Load tools
+    from src.core.registry import CapabilityRegistry
+    logger.info("Initializing Capability Registry and MCP tools...")
+    CapabilityRegistry.load_builtin_packs()
+    try:
+        await CapabilityRegistry.load_external_tools()
+        logger.info(f"Loaded {len(CapabilityRegistry.list_tools())} tools successfully.")
+    except Exception as e:
+        logger.error(f"Failed to load external MCP tools during startup: {e}")
+    yield
+    # Shutdown logic
+    pass
+
+app = FastAPI(title=settings.APP_NAME, version="0.1.0", lifespan=lifespan)
 
 # --- Dependencies ---
 
@@ -67,6 +86,11 @@ async def get_job_status(job_id: str, service: IngestionService = Depends(get_in
 async def get_tenants(service: IngestionService = Depends(get_ingestion_service)):
     """Fetch all registered tenants/customers."""
     return await service.get_all_tenants()
+
+@app.get("/api/v1/tenants/{customer_id}/jobs")
+async def get_tenant_jobs(customer_id: str, limit: int = 20, service: IngestionService = Depends(get_ingestion_service)):
+    """Fetch recent jobs for a specific tenant."""
+    return await service.get_tenant_jobs(customer_id, limit)
 
 @app.get("/api/v1/tickets/{ticket_id}/report")
 async def get_ticket_report(ticket_id: str, service: IngestionService = Depends(get_ingestion_service)):
