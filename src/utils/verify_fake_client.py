@@ -4,14 +4,14 @@ import os
 # Ensure src is in path just in case
 sys.path.append(os.getcwd())
 
-from src.core.database import get_session
+from src.core.database import async_session_factory
 from src.core.orm import ClientContextORM
 from sqlalchemy import select
 
 async def verify():
     output = []
     try:
-        async with get_session() as session:
+        async with async_session_factory() as session:
             stmt = select(ClientContextORM).where(ClientContextORM.customer_id == "fake_client")
             context = (await session.execute(stmt)).scalars().first()
             

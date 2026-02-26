@@ -63,6 +63,11 @@ async def get_job_status(job_id: str, service: IngestionService = Depends(get_in
         raise HTTPException(status_code=404, detail="Job not found")
     return status
 
+@app.get("/api/v1/tenants")
+async def get_tenants(service: IngestionService = Depends(get_ingestion_service)):
+    """Fetch all registered tenants/customers."""
+    return await service.get_all_tenants()
+
 @app.get("/api/v1/tickets/{ticket_id}/report")
 async def get_ticket_report(ticket_id: str, service: IngestionService = Depends(get_ingestion_service)):
     """Fetch the generated markdown report once completed."""

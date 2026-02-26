@@ -67,7 +67,7 @@ class TicketORM(Base, TenantMixin):
     text: Mapped[str] = mapped_column(Text)
     raw_payload: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
     agent_runs: Mapped[List["AgentRunORM"]] = relationship(back_populates="ticket")

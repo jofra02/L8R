@@ -2,7 +2,7 @@ import yaml
 import asyncio
 import sys
 from typing import Dict, Any
-from src.core.database import get_session
+from src.core.database import async_session_factory
 from src.core.orm import PlatformTenant, CapabilityScope, ClientContextORM
 from src.core.models import ClientContext
 from sqlalchemy import select
@@ -27,7 +27,7 @@ async def seed_tenant(file_path: str):
         traceback.print_exc()
         return
 
-    async with get_session() as session:
+    async with async_session_factory() as session:
         # Check if exists
         result = await session.execute(select(PlatformTenant).where(PlatformTenant.customer_id == customer_id))
         tenant = result.scalar_one_or_none()
@@ -74,7 +74,7 @@ async def seed_context(file_path: str):
         print(f"Validation Failed: {e}")
         return
 
-    async with get_session() as session:
+    async with async_session_factory() as session:
         # Check if tenant exists/active (Guardrail)
         tenant_res = await session.execute(select(PlatformTenant).where(PlatformTenant.customer_id == customer_id))
         tenant = tenant_res.scalar_one_or_none()

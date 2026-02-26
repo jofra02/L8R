@@ -1,10 +1,10 @@
 import asyncio
-from src.core.database import get_session
+from src.core.database import async_session_factory
 from sqlalchemy import text
 
 async def test_connection():
     try:
-        async with get_session() as session:
+        async with async_session_factory() as session:
             result = await session.execute(text("SELECT 1"))
             print(f"Connection Successful: {result.scalar()}")
             

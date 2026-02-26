@@ -1,12 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.core.models import Ticket, GlobalState
-from src.core.orm import TicketORM, AgentRunORM
+from src.core.orm import TicketORM, AgentRunORM, PlatformTenant
 from src.ingestion.normalizers.generic import GenericNormalizer
 from src.core.audit import AuditService
 from src.agent_graph import app
 from langchain_core.messages import HumanMessage
-from typing import Dict, Any, Type, Tuple, Optional
+from typing import Dict, Any, Type, Tuple, Optional, List
 import logging
 import uuid
 import datetime
@@ -137,6 +137,14 @@ class IngestionService:
             return None
         return {"job_id": run.id, "status": run.status, "ticket_id": run.ticket_id}
         
+    async def get_all_tenants(self) -> List[Dict[str, str]]:
+        """Fetch all registered tenants."""
+        stmt = select(PlatformTenant)
+        result = await self.session.execute(stmt)
+        tenants = result.scalars().all()
+        # Handle the field correctly (PlatformTenant has customer_id as PK)
+        return [{"id": t.customer_id, "name": t.name} for t in tenants]
+
     async def get_ticket_report(self, ticket_id: str) -> Optional[Dict[str, Any]]:
         """Fetch the final report for a ticket's latest run."""
         stmt = select(AgentRunORM).where(AgentRunORM.ticket_id == ticket_id).order_by(AgentRunORM.started_at.desc()).limit(1)

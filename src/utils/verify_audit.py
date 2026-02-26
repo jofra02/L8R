@@ -1,4 +1,4 @@
-from src.core.database import get_session
+from src.core.database import async_session_factory
 from src.core.orm import AgentRunORM, AgentEventORM
 from sqlalchemy import select, desc
 import asyncio
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 async def verify_audit():
     print("--- Verifying Audit System ---")
     
-    async with get_session() as session:
+    async with async_session_factory() as session:
         # 1. Check for latest AgentRun
         stmt = select(AgentRunORM).order_by(desc(AgentRunORM.started_at)).limit(1)
         result = await session.execute(stmt)

@@ -23,10 +23,19 @@ class GenericNormalizer:
         if sev_str in ["low", "medium", "high", "critical"]:
             severity = sev_str
             
+        # Extract text (support various common payload formats)
+        subject = raw_data.get('subject', '')
+        body = raw_data.get('body', '')
+        fallback_text = raw_data.get('text', '')
+        
+        final_text = f"{subject}\n\n{body}".strip()
+        if not final_text:
+             final_text = fallback_text.strip()
+            
         return Ticket(
             id=raw_id,
             mode=mode,
-            text=f"{raw_data.get('subject', '')}\n\n{raw_data.get('body', '')}".strip(),
+            text=final_text,
             severity=severity,
             source=source_id,
             timestamps={"received_at": datetime.now().isoformat()},

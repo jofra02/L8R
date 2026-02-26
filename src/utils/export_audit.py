@@ -1,4 +1,4 @@
-from src.core.database import get_session
+from src.core.database import async_session_factory
 from src.core.orm import AgentRunORM, AgentEventORM
 from sqlalchemy import select, desc
 import asyncio
@@ -15,7 +15,7 @@ def json_serial(obj):
 async def export_audit():
     print("--- Exporting Audit Logs to JSON ---")
     
-    async with get_session() as session:
+    async with async_session_factory() as session:
         # Fetch all runs
         stmt = select(AgentRunORM).order_by(desc(AgentRunORM.started_at))
         result = await session.execute(stmt)

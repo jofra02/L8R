@@ -3,11 +3,40 @@ import requests
 import time
 import uuid
 
-API_BASE_URL = "http://localhost:8000/api/v1"
-CUSTOMER_ID = "fake_client"
-
 st.set_page_config(page_title="Support AI Agent UI", page_icon="🤖", layout="centered")
 
+# --- Configuration Sidebar ---
+with st.sidebar:
+    st.header("⚙️ Configuration")
+    api_host = st.text_input("API Host", value="localhost")
+    api_port = st.text_input("API Port", value="8000")
+    
+    API_BASE_URL = f"http://{api_host}:{api_port}/api/v1"
+    
+    st.markdown("---")
+    st.subheader("👥 Tenant Selection")
+    
+    # Fetch tenants dynamically
+    CUSTOMER_ID = str()
+    try:
+        resp = requests.get(f"{API_BASE_URL}/tenants", timeout=2)
+        if resp.status_code == 200:
+            tenants = resp.json()
+            if tenants:
+                tenant_options = {f"{t['name']} ({t['id']})": t['id'] for t in tenants}
+                selected_label = st.selectbox("Select Client", options=list(tenant_options.keys()))
+                CUSTOMER_ID = tenant_options[selected_label]
+            else:
+                st.warning("No tenants found in Database.")
+        else:
+            st.error(f"Failed to load tenants (HTTP {resp.status_code}).")
+    except requests.exceptions.RequestException:
+        st.error("Cannot connect to API to fetch tenants.")
+    
+    st.markdown("---")
+    st.caption(f"**Endpoint Configured:**\n `{API_BASE_URL}`")
+
+# --- Main App ---
 st.title("🤖 Support AI Agent Tester")
 st.markdown("Submit a technical support request to trigger the full LangGraph investigation lifecycle asynchronously.")
 
