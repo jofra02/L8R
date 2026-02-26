@@ -190,15 +190,18 @@ with st.expander("📚 Past Job History & Reports"):
                     try:
                         rep_resp = requests.get(f"{API_BASE_URL}/tickets/{selected_ticket_id}/report")
                         if rep_resp.status_code == 200:
-                            st.session_state.past_report = rep_resp.json().get("report", "No report content found.")
+                            report_text = rep_resp.json().get("report")
+                            st.session_state.past_report = report_text if report_text else "⚠️ No report content found (The job may have crashed, or it's still running)."
+                            st.session_state.past_report_ticket = selected_ticket_id
                         else:
                             st.error(f"Failed to fetch report (HTTP {rep_resp.status_code}) - the job might not have finished.")
                             st.session_state.past_report = None
+                            st.session_state.past_report_ticket = None
                     except Exception as e:
                         st.error(f"Error: {e}")
                         
         if "past_report" in st.session_state and st.session_state.past_report:
-            st.markdown("### Historical Report")
+            st.markdown(f"### Historical Report: {st.session_state.get('past_report_ticket', 'Unknown')}")
             st.markdown(st.session_state.past_report)
     else:
         st.info("Select a tenant from the sidebar first.")
