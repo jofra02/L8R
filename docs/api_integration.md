@@ -83,12 +83,26 @@ Once the job status reads `completed`, the Frontend can retrieve the detailed En
 }
 ```
 
-## Running the API Server
+## Running the Full Stack (API + UI)
 
-You can run the FastAPI application locally using `uvicorn`:
+The project includes a reference **Streamlit UI** (`streamlit_app.py`) that implements the polling logic described above. It provides a visual interface to select tenants, submit technical issues, track the agent's progress via a progress bar, and render the final Engineering Report.
+
+### 1. Start the API Server
+
+The API uses a Lifespan context manager to load the MCP tools and connect to your servers *before* accepting requests. Start it using `uvicorn`:
 
 ```bash
 uv run uvicorn src.ingestion.api:app --reload
 ```
 
 By default, the server will expose Swagger UI documentation at `http://localhost:8000/docs`.
+
+### 2. Start the Streamlit UI
+
+In a separate terminal, launch the frontend:
+
+```bash
+uv run streamlit run streamlit_app.py
+```
+
+The UI will be available at `http://localhost:8501`. It will connect to the API on port 8000 by default.

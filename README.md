@@ -165,12 +165,18 @@ This will:
 4.  Print the **Final Answer** and **Resolution Plan**.
 5.  Log all steps to the Audit System.
 
-### Starting the API
+### Starting the Web Stack (API + UI)
 
-To accept real webhooks:
+To use the interactive Streamlit dashboard:
 
+1. **Start the FastAPI Backend** (Loads MCP tools heavily on startup):
 ```bash
 uv run uvicorn src.ingestion.api:app --reload
+```
+
+2. **Start the Streamlit Frontend** (In a new terminal):
+```bash
+uv run streamlit run streamlit_app.py
 ```
 
 ---
