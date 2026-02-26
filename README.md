@@ -5,8 +5,10 @@ A modular, multi-agent framework designed to automate L1/L2 technical support. I
 ### 📚 Documentation
 
 *   [**Architecture Overview**](README.md#architecture)
+*   [**API & Frontend Integration Guide**](docs/api_integration.md): How to use the Async Webhook and Polling pattern.
 *   [**MCP Integration Guide**](docs/mcp_integration.md): How to add tools.
 *   [**Evidence Collector Logic**](docs/evidence_collector_technical.md): Deep dive into the "Smart Selection" agent.
+*   [**Adaptive Execution & Learning**](docs/architecture/002_adaptive_execution_learning.md): How the agent learns from tool errors using RAG.
 *   [**Onboarding Plan**](onboarding_plan.md)
 
 ## 🏗️ Architecture Overview
@@ -62,10 +64,13 @@ graph TD
 
 ### ✨ Key Features
 
+*   **Case-Based Reasoning (SOTA RAG)**: Agents consult a Qdrant Vector database of past resolved tickets to prioritize successful remediation plans over generic troubleshooting.
+*   **Adaptive Tool Execution**: If an MCP tool fails due to missing parameters, the system queries the Vector DB for documented fixes and auto-recovers mid-flight.
 *   **Smart Device Targeting**: Intelligently distinguishes between the device *executing* a command (firewall) and the *target* (subnet/IP) to prevent "Device NOT FOUND" errors.
 *   **Active Diagnosis Loop**: Autonomous cycle of `Hypothesis` -> `Plan` -> `Investigate` -> `Verify` until a high-confidence root cause is found.
 *   **Supervisor Quality Control**: evaluating the quality of the diagnosis before closing the ticket. If the confidence is low, it loops back for more evidence.
 *   **Structured Engineering Reports**: Output is not just a chat summary but a professional technical document ready for IT Operations.
+*   **Asynchronous Frontend-Ready API**: Uses the REST Async Job pattern (HTTP 202) for integrating securely with long-running Webhooks or UIs.
 
 
 ---
@@ -143,10 +148,10 @@ uv run python src/main.py seed-context --file data/tenants/fake_client/context.y
 
 ### Running an End-to-End Test
 
-Simulate an incoming ticket (CLI Mode):
+Simulate an incoming ticket (CLI Mode) using the new testing mock wrapper:
 
 ```bash
-uv run python src/main.py test
+uv run python run_mock.py --file ticket_prueba.txt --fast
 ```
 
 This will:

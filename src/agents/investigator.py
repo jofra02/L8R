@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from src.core.models import GlobalState, Hypothesis
+from src.core.models import GlobalState, Hypothesis, PendingRequirement
 from src.core.llm import LLMFactory
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
@@ -74,7 +74,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     
     try:
         response = await llm.ainvoke([
-            SystemMessage(content="You are an expert Network Troubleshooter."),
+            SystemMessage(content="You are an expert IT Troubleshooter."),
             HumanMessage(content=plan_prompt)
         ])
         plan = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
@@ -306,10 +306,25 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                 summary=f"BLOCKED: Needed {len(e.dependencies)} inputs (e.g. {e.dependencies[0]}) to run {tool_name}."
             )
             
+            # --- RAISE HITL SIGNAL ---
+            # So the Human-In-The-Loop can prompt the user for missing info
+            req = PendingRequirement(
+                key=f"missing_{tool_name}_auto",
+                description=f"{deps_str}",
+                source_hint=e.suggested_source,
+                tool_name=tool_name,
+                component_id="unknown" # We don't enforce component ID matching tightly here
+            )
+            
             current_evidence = state.get("evidence_refs", [])
             updated_evidence = current_evidence + [fail_snapshot, snapshot]
+            
+            pending_requirements = state.get("pending_requirements", [])
+            pending_requirements.append(req)
+            
             return {
-                "evidence_refs": updated_evidence
+                "evidence_refs": updated_evidence,
+                "pending_requirements": pending_requirements
             }
 
         except Exception as e:

@@ -9,6 +9,7 @@ from src.core.llm import LLMFactory
 from src.core.qdrant import vector_store
 from src.core.models import ToolKnowledge
 from langchain_core.messages import SystemMessage, HumanMessage
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,12 @@ class AdaptiveExecutor:
     3. Continuous Learning (Save insights)
     """
 
-    def __init__(self, max_retries: int = 2):
-        self.max_retries = max_retries
+    def __init__(self, max_retries: int = None):
+        if max_retries is None:
+            self.max_retries = 1 if settings.TEST_MODE_FAST else 2
+        else:
+            self.max_retries = max_retries
+            
         self.llm = LLMFactory.get_fast_llm() # Use fast model for diagnosis
 
     async def execute(self, tool: MCPToolInterface, args: Dict[str, Any], context: str = "") -> str:

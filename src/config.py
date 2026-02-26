@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "SupportAI-Agent"
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
+    TEST_MODE_FAST: bool = False
     
     # Database (Postgres)
     DB_HOST: str = "localhost"

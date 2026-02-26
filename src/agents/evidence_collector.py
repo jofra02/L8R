@@ -187,9 +187,10 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                         logger.error(f"Recovery failed: {res_e}")
 
                     # If recovery didn't work or we just saved evidence, add to missing list as backup
+                    deps_str = "; ".join(missing_e.dependencies)
                     req = PendingRequirement(
                         key=f"missing_{tool_name}_{comp.id}",
-                        description=missing_e.description,
+                        description=deps_str,
                         source_hint=missing_e.suggested_source,
                         tool_name=tool_name,
                         component_id=comp.id
@@ -197,7 +198,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                     pending_requirements.append(req)
                     
                     # Also keep legacy simple string list for now
-                    missing_info_list.append(f"{missing_e.description} ({comp.id})")
+                    missing_info_list.append(f"{deps_str} ({comp.id})")
                     
                     continue 
 
@@ -313,7 +314,7 @@ async def _select_tools_for_component(llm, component: Component, ticket_text: st
         for t_name in unique_tools.keys():
             insights = await vector_store.get_tool_insights(t_name, limit=1)
             for ins in insights:
-                combined_insights.append(f"For {t.name}: {ins.get('insight')}")
+                combined_insights.append(f"For {t_name}: {ins.get('insight')}")
         
         if combined_insights:
             insights_text = "LEARNED BEST PRACTICES:\n" + "\n".join(combined_insights)

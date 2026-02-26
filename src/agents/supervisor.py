@@ -4,7 +4,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-MAX_ITERATIONS = 10
+from src.config import settings
+
+MAX_ITERATIONS = 8 if settings.TEST_MODE_FAST else 15
 
 async def supervisor_agent_node(state: GlobalState) -> Dict[str, Any]:
     """
@@ -95,8 +97,8 @@ def supervisor_router(state: GlobalState) -> Literal["context_agent", "classifie
     if iterations < MAX_ITERATIONS:
         if not has_verified:
             logger.info("Supervisor: No verified hypothesis yet. Looping back to planner/investigator.")
-            # If we have proposals but none verified, force investigator
-            if any(h.status == "proposed" for h in hypotheses):
+            # If we have proposals OR verifying, force investigator
+            if any(h.status in ["proposed", "verifying"] for h in hypotheses):
                 return "investigator_agent"
             return "planner_agent"
             

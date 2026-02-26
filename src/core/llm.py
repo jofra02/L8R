@@ -6,13 +6,15 @@ import os
 
 logger = logging.getLogger(__name__)
 
+from typing import Optional
+
 class LLMFactory:
     """
     Factory for getting LLM instances based on configured profiles.
     """
     
     @staticmethod
-    def get_main_llm() -> BaseChatModel:
+    def get_main_llm(temperature: Optional[float] = None) -> BaseChatModel:
         """
         Get the primary reasoning LLM (configured as LLM_MAIN_*).
         Used for: Supervisor, Planner, Hypothesis, Response.
@@ -22,12 +24,12 @@ class LLMFactory:
         
         return ChatOpenAI(
             model=settings.LLM_MAIN_MODEL,
-            temperature=settings.LLM_MAIN_TEMP,
+            temperature=temperature if temperature is not None else settings.LLM_MAIN_TEMP,
             api_key=api_key
         )
 
     @staticmethod
-    def get_fast_llm() -> BaseChatModel:
+    def get_fast_llm(temperature: Optional[float] = None) -> BaseChatModel:
         """
         Get the fast/efficient LLM (configured as LLM_FAST_*).
         Used for: Classifier, Mapper, Normalizer, Context.
@@ -36,6 +38,6 @@ class LLMFactory:
         
         return ChatOpenAI(
             model=settings.LLM_FAST_MODEL,
-            temperature=settings.LLM_FAST_TEMP,
+            temperature=temperature if temperature is not None else settings.LLM_FAST_TEMP,
             api_key=api_key
         )

@@ -1,9 +1,15 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.models import Ticket
-from src.core.orm import TicketORM
+from sqlalchemy import select
+from src.core.models import Ticket, GlobalState
+from src.core.orm import TicketORM, AgentRunORM
 from src.ingestion.normalizers.generic import GenericNormalizer
-from typing import Dict, Any, Type
+from src.core.audit import AuditService
+from src.agent_graph import app
+from langchain_core.messages import HumanMessage
+from typing import Dict, Any, Type, Tuple, Optional
 import logging
+import uuid
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +19,10 @@ class IngestionService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.normalizer = GenericNormalizer()  # In future, use factory based on source
+        self.audit = AuditService()
 
-    async def ingest_webhook(self, source: str, payload: Dict[str, Any], customer_id: str) -> str:
-        """Process a webhook payload."""
+    async def ingest_webhook(self, source: str, payload: Dict[str, Any], customer_id: str) -> Tuple[str, str, str]:
+        """Process a webhook payload and setup the initial execution run."""
         logger.info(f"Ingesting webhook from {source} for customer {customer_id}")
         
         # 1. Normalize
@@ -35,7 +42,109 @@ class IngestionService:
         self.session.add(ticket_orm)
         await self.session.commit()
         
-        # 3. Trigger Agent (Future: Push to Redis/Queue)
-        logger.info(f"Ticket {ticket.id} persisted. Triggering agent workflow...")
+        # 3. Create Audit Run (Job ID)
+        trace_id = str(uuid.uuid4())
+        run_id = await self.audit.create_run(ticket.id, trace_id)
         
-        return ticket.id
+        logger.info(f"Ticket {ticket.id} persisted. Run ID {run_id} created.")
+        
+        return ticket.id, run_id, ticket.text
+
+    async def run_pipeline_background(self, ticket_id: str, run_id: str, customer_id: str, text: str):
+        """Background task to execute the LangGraph workflow."""
+        logger.info(f"Background execution started for Run {run_id} (Ticket {ticket_id})")
+        
+        # We need a ticket object for the state. We'll reconstruct a basic one from params
+        mock_ticket = Ticket(
+            id=ticket_id,
+            mode="incident",
+            text=text,
+            severity="medium",
+            source="webhook",
+            timestamps={"created_at": datetime.datetime.now().isoformat()}
+        )
+        
+        initial_state = {
+            "ticket": mock_ticket,
+            "customer_id": customer_id,
+            "messages": [HumanMessage(content=text)],
+            "client_context": None,
+            "classification": None,
+            "components": [],
+            "evidence_refs": [],
+            "missing_info": [],
+            "facts": {},
+            "hypotheses": [],
+            "plan": None,
+            "final_report": "",
+            "final_answer": "",
+            "handoff": None,
+            "pending_requirements": [],
+            "meta": {
+                "iterations": 0,
+                "run_id": run_id,
+                "trace_id": "async_trace"
+            }
+        }
+        
+        try:
+            final_state = await app.ainvoke(
+                initial_state,
+                config={"configurable": {"thread_id": f"thread_{ticket_id}"}}
+            )
+            
+            # Save final state back to the run
+            # Note: We create a simple dictionary matching GlobalState since SQLAlchemy JSON handles dicts.
+            # Avoid storing raw Pydantic models directly if they contain complex types.
+            serializable_state = {}
+            for k, v in final_state.items():
+                 # Handle Pydantic models or messages loosely
+                 if hasattr(v, "model_dump"):
+                     serializable_state[k] = v.model_dump()
+                 elif isinstance(v, list) and len(v) > 0 and hasattr(v[0], "model_dump"):
+                     serializable_state[k] = [item.model_dump() for item in v]
+                 elif k == "messages":
+                     serializable_state[k] = [m.model_dump() for m in v]
+                 else:
+                     serializable_state[k] = v
+
+            await self.audit.update_run_context(run_id, customer_id, serializable_state)
+            
+            # complete_run does not exist yet wait, let me check AuditService
+            # Need to patch audit service for complete_run or just update status via query
+            await self._mark_run_completed(run_id, "completed")
+            logger.info(f"Background execution completed for Run {run_id}")
+            
+        except Exception as e:
+            logger.error(f"Background execution failed for Run {run_id}: {e}")
+            await self._mark_run_completed(run_id, "failed")
+
+    async def _mark_run_completed(self, run_id: str, status: str):
+         """Helper to mark run completed since AuditService may lack it."""
+         from sqlalchemy import update
+         from src.core.database import async_session_factory
+         async with async_session_factory() as session:
+             stmt = update(AgentRunORM).where(AgentRunORM.id == run_id).values(status=status, ended_at=datetime.datetime.now())
+             await session.execute(stmt)
+             await session.commit()
+
+    async def get_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch the status of an agent run."""
+        stmt = select(AgentRunORM).where(AgentRunORM.id == job_id)
+        result = await self.session.execute(stmt)
+        run = result.scalar_one_or_none()
+        if not run:
+            return None
+        return {"job_id": run.id, "status": run.status, "ticket_id": run.ticket_id}
+        
+    async def get_ticket_report(self, ticket_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch the final report for a ticket's latest run."""
+        stmt = select(AgentRunORM).where(AgentRunORM.ticket_id == ticket_id).order_by(AgentRunORM.started_at.desc()).limit(1)
+        result = await self.session.execute(stmt)
+        run = result.scalar_one_or_none()
+        
+        if not run:
+            return None
+            
+        final_answer = run.state_json.get("final_answer", "") if run.state_json else ""
+        return {"ticket_id": ticket_id, "job_id": run.id, "status": run.status, "report": final_answer}

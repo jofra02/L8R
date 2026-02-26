@@ -5,6 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 import logging
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +36,7 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
             for h in existing_hypotheses
         ])
     
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an expert IT Support / Incident Engineer. 
+    system_prompt_text = """You are an expert IT Support / Incident Engineer. 
         Based on the ticket, collected facts, and EXISTING HYPOTHESES, generate an updated ranked list of hypotheses.
         
         CRITICAL INSTRUCTIONS:
@@ -48,7 +48,13 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         3. Introduce NEW hypotheses with status 'proposed' if the facts suggest a new angle.
         4. Rank ALL (active) hypotheses from most likely (1) to least likely.
         5. IMPORTANT: Preserve the 'id' of existing hypotheses if you are updating them.
-        """),
+        """
+        
+    if settings.TEST_MODE_FAST:
+        system_prompt_text += "\n        6. FAST MODE ENABLED: YOU MUST RETURN EXACTLY 1 (THE MOST LIKELY) HYPOTHESIS. DO NOT RETURN MORE THAN 1."
+        
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt_text),
         ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\nCurrent Hypotheses:\n{hypotheses}\n\n{format_instructions}")
     ])
     

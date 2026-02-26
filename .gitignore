@@ -63,11 +63,8 @@ audit_report.md
 verify_result.txt
 debug_*.py
 inspect_db.py
-
-# Local Artifacts
-*.docx
-audit_logs.json
-audit_report.md
-verify_result.txt
-debug_*.py
-inspect_db.py
+data/evidence/
+run_mock_debug.log
+debug_final_state_*.json
+ticket_prueba_backup.txt
+temp_paper.txt

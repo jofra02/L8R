@@ -39,7 +39,7 @@ class EvidenceStore:
         # 4. Create Snapshot Object
         snapshot_id = f"ev_{content_hash[:8]}"
         
-        # 5. Smart Summary Extraction
+        # 5. Smart Summary Extraction (Improved for MCP JSON tools)
         final_summary = summary
         if not final_summary:
             # If content is short, use it as summary
@@ -51,9 +51,32 @@ class EvidenceStore:
                     if "error" in content:
                         final_summary = f"Error: {content['error']}"
                     elif "output" in content:
-                        final_summary = str(content["output"])[:200]
+                        # Some tools wrap everything in 'output'
+                        out = content["output"]
+                        if isinstance(out, dict) and "results" in out:
+                             results = out["results"]
+                             if isinstance(results, list):
+                                 if not results:
+                                     final_summary = "Success (Empty results list)"
+                                 else:
+                                     # Show first item briefly
+                                     final_summary = f"Success ({len(results)} items). First item: {str(results[0])[:150]}..."
+                             else:
+                                 final_summary = str(results)[:200]
+                        else:
+                             final_summary = str(out)[:200]
+                    # Fortinet / Default MCP JSON struct usually has 'results' at root or under 'response'
+                    elif "results" in content:
+                        res = content["results"]
+                        if isinstance(res, list):
+                            if not res:
+                                final_summary = "Success (Empty results)"
+                            else:
+                                final_summary = f"Found {len(res)} items. Example: {str(res[0])[:150]}..."
+                        else:
+                            final_summary = str(res)[:200]
                     else:
-                        final_summary = f"Output from {tool_name} ({len(content_str)} bytes)"
+                        final_summary = f"Output from {tool_name} ({len(content_str)} bytes). Keys: {list(content.keys())}"
                 else:
                     final_summary = f"Output from {tool_name} ({len(content_str)} bytes)"
 
