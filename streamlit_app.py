@@ -105,10 +105,9 @@ if st.session_state.job_id and st.session_state.status == "running":
     status_placeholder = st.empty()
     progress_bar = st.progress(0)
     
-    max_retries = 120 # 10 minutes max polling assuming 5s intervals
     polling_count = 0
     
-    while st.session_state.status == "running" and polling_count < max_retries:
+    while st.session_state.status == "running":
         try:
             resp = requests.get(f"{API_BASE_URL}/jobs/{st.session_state.job_id}")
             if resp.status_code == 200:
@@ -128,7 +127,10 @@ if st.session_state.job_id and st.session_state.status == "running":
                 else:
                     # Still running
                     progress_bar.progress((polling_count % 10) * 10) # Simple visual animation
-                    status_placeholder.info(f"⏳ Agents are working... (Polling {polling_count * 5}s)")
+                    msg = f"⏳ Agents are working... (Elapsed: {polling_count * 5}s)"
+                    if polling_count >= 180: # 15 minutes
+                        msg += "\n\n⚠️ **Note:** The investigation has been running for over 15 minutes. It may be handling a very complex ticket containing multiple components. You can let it continue, or safely abort the UI polling by clicking 'Stop' in the top right corner."
+                    status_placeholder.info(msg)
             else:
                 progress_bar.empty()
                 status_placeholder.warning(f"Polling failed (HTTP {resp.status_code}). Retrying...")
@@ -138,10 +140,6 @@ if st.session_state.job_id and st.session_state.status == "running":
              
         time.sleep(5)
         polling_count += 1
-        
-    if polling_count >= max_retries:
-         st.session_state.status = "timeout"
-         st.error("Polling timeout reached (10 minutes).")
 
 # Display Report
 if st.session_state.status == "completed":
