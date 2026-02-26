@@ -169,7 +169,21 @@ async def run_test_ticket():
     # Run Graph
     initial_state["meta"]["run_id"] = run_id
     initial_state["meta"]["trace_id"] = trace_id
-    output = await app.ainvoke(initial_state)
+    try:
+        output = await app.ainvoke(initial_state)
+        
+        # Save output to audit history
+        try:
+            serializable_state = audit._sanitize(output)
+            await audit.update_run_context(run_id, "fake_client", serializable_state)
+            await audit.complete_run(run_id, "completed")
+        except Exception as e:
+            logger.error(f"Failed to save final state to database in mock: {e}")
+            
+    except Exception as e:
+        logger.error(f"Graph execution failed: {e}")
+        await audit.complete_run(run_id, "failed")
+        return
     
     print("\n" + "="*50)
     print(f"FINAL ANSWER:\n{output.get('final_answer')}")
