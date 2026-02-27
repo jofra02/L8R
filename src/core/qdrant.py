@@ -49,6 +49,12 @@ COLLECTION_INDEXES: Dict[str, List[tuple]] = {
         ("source_type", models.PayloadSchemaType.KEYWORD),
         ("created_at", models.PayloadSchemaType.DATETIME),
     ],
+    "tool_catalog": [
+        ("customer_id", models.PayloadSchemaType.KEYWORD),
+        ("tool_name", models.PayloadSchemaType.KEYWORD),
+        ("server_name", models.PayloadSchemaType.KEYWORD),
+        ("source_type", models.PayloadSchemaType.KEYWORD),
+    ],
 }
 
 
@@ -374,6 +380,63 @@ class VectorStore:
             points_selector=models.PointIdsList(points=[point_id]),
             wait=True
         )
+
+    # ─── Domain Methods: Tool Catalog ──────────────────────────────
+
+    @rag_telemetry(operation_name="index_tool")
+    async def index_tool(
+        self, tool_name: str, description: str, args_schema_json: dict,
+        server_name: str, customer_id: str,
+    ):
+        """
+        Index a tool by its DESCRIPTION (semantic content), not its name.
+        The vector is built from: description + summarized args.
+        Deterministic ID per (customer_id, tool_name) for idempotent re-indexing.
+        """
+        # Build rich text for embedding: description + args summary
+        args_summary = ""
+        if args_schema_json:
+            props = args_schema_json.get("properties", {})
+            required = args_schema_json.get("required", [])
+            parts = []
+            for pname, pinfo in props.items():
+                req_tag = "(required)" if pname in required else "(optional)"
+                pdesc = pinfo.get("description", pinfo.get("title", pname))
+                parts.append(f"{pname} {req_tag}: {pdesc}")
+            args_summary = "Parameters: " + "; ".join(parts)
+
+        embed_text = f"{description}. {args_summary}".strip()
+
+        dedup_key = f"{customer_id}-{tool_name}"
+
+        await self.add_texts(
+            collection_name="tool_catalog",
+            texts=[embed_text],
+            metadatas=[{
+                "tool_name": tool_name,
+                "description": description,
+                "server_name": server_name,
+                "args_schema": args_schema_json,
+            }],
+            ids=[self._generate_id(dedup_key)],
+            customer_id=customer_id,
+            source_type="tool_catalog",
+        )
+
+    @rag_telemetry(operation_name="search_tool_catalog")
+    async def search_tool_catalog(
+        self, intent: str, customer_id: str, limit: int = 8,
+        score_threshold: float = 0.3,
+    ) -> List[Dict[str, Any]]:
+        """
+        Semantic search for tools by INTENT description.
+        Returns tool payloads sorted by relevance.
+        """
+        results = await self.search(
+            "tool_catalog", intent, customer_id, limit,
+            score_threshold=score_threshold,
+        )
+        return [pt.payload for pt in results]
 
 
 vector_store = VectorStore()

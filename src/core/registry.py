@@ -109,3 +109,66 @@ class CapabilityRegistry:
         for tool in external_tools:
             logger.info(f"Registry: Registering external tool {tool.name} from {tool.server_name}")
             cls._tools[tool.name] = tool
+
+    @classmethod
+    async def index_tools_for_tenant(cls, customer_id: str):
+        """Index all registered tools into Qdrant tool_catalog for a specific tenant."""
+        from src.core.qdrant import vector_store
+        
+        tools = cls.list_tools()
+        logger.info(f"Registry: Indexing {len(tools)} tools for tenant '{customer_id}'")
+        
+        for tool in tools:
+            try:
+                args_schema_json = {}
+                if tool.args_schema:
+                    args_schema_json = tool.args_schema.model_json_schema()
+                
+                server_name = getattr(tool, 'server_name', 'builtin')
+                
+                await vector_store.index_tool(
+                    tool_name=tool.name,
+                    description=tool.description or tool.name,
+                    args_schema_json=args_schema_json,
+                    server_name=server_name,
+                    customer_id=customer_id,
+                )
+            except Exception as e:
+                logger.warning(f"Registry: Failed to index tool {tool.name}: {e}")
+        
+        logger.info(f"Registry: Indexed {len(tools)} tools for tenant '{customer_id}'")
+
+    @classmethod
+    async def semantic_search_tools(cls, intent: str, customer_id: str, limit: int = 8) -> List[MCPToolInterface]:
+        """
+        Semantic search for tools by INTENT (what you want to accomplish).
+        Returns actual tool objects from the registry, filtered by vector relevance.
+        Falls back to keyword search if Qdrant is unavailable.
+        """
+        try:
+            from src.core.qdrant import vector_store
+            
+            results = await vector_store.search_tool_catalog(
+                intent=intent,
+                customer_id=customer_id,
+                limit=limit,
+            )
+            
+            # Map back to actual tool objects
+            matched_tools = []
+            for payload in results:
+                tool_name = payload.get("tool_name")
+                tool = cls.get_tool(tool_name)
+                if tool and cls._is_safe(tool.name):
+                    matched_tools.append(tool)
+            
+            if matched_tools:
+                logger.info(f"Registry: Semantic search for '{intent[:50]}' → {len(matched_tools)} tools")
+                return matched_tools
+            
+        except Exception as e:
+            logger.warning(f"Registry: Semantic search failed, falling back to keyword: {e}")
+        
+        # Fallback to keyword search
+        return cls.search_tools(intent, limit=limit)
+

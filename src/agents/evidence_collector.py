@@ -14,6 +14,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Module-level tenant context for _select_tools_for_component
+_current_customer_id: str = "unknown"
+
 
 async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     """
@@ -34,6 +37,10 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     new_evidence = []
     missing_info_list = []
     pending_requirements = []
+    
+    # Set module-level tenant context for semantic search
+    global _current_customer_id
+    _current_customer_id = state.get("customer_id", "unknown")
     
     for comp in components:
         try:
@@ -240,68 +247,88 @@ async def _select_resolution_tool(llm, component, context_str) -> List[Dict[str,
 
 async def _select_tools_for_component(llm, component: Component, ticket_text: str) -> List[Dict[str, Any]]:
     """
-    Uses LLM to find and select MULTIPLE tools.
+    Uses LLM to describe INTENT, then semantic vector search to find tools.
     Returns List[{"name": str, "args": dict}].
     """
-    vendor_context = f"Vendor: {component.vendor}" if component.vendor else "Vendor: Unknown (Infer from tool availability)"
+    vendor_context = f"Vendor: {component.vendor}" if component.vendor else "Vendor: Unknown"
     
-    # Step A: Keyword Search
-    search_prompt = f"""
-    Context:
-    Ticket: "{ticket_text}"
-    Component: {component.id} (Role: {component.role}). {vendor_context}
-    
-    Task: Identify 3-5 specific keywords to search for diagnostic tools. 
-    Focus on the vendor/technology and the action.
-    
-    CRITICAL GUIDELINES:
-    1. INCLUDE terms related to 'observability', 'status', 'health', 'checking', or 'retrieving' configuration.
-    2. EXCLUDE/BAN terms that imply high-load debugging or modification:
-       - NO "debug flow", "sniffer", "packet capture", "pcap"
-       - NO "execute", "set", "configure", "edit"
-       
-    Return ONLY a JSON list of strings.
-    """
+    # Step A: LLM generates a natural language INTENT (not keywords)
+    intent_prompt = f"""
+Context:
+Ticket: "{ticket_text}"
+Component: {component.id} (Role: {component.role}). {vendor_context}
+
+Task: Describe what diagnostic information you need to collect from this component to investigate this issue.
+Write 1-3 sentences describing the READ-ONLY diagnostic actions needed.
+
+Focus on WHAT you want to learn (e.g., "check interface health and traffic stats", "retrieve VPN tunnel status"), NOT tool names.
+
+DO NOT mention specific tool names. Just describe the diagnostic intent.
+
+Return ONLY a JSON object:
+{{"intent": "your diagnostic intent description"}}
+"""
     
     try:
         response = await llm.ainvoke([
             SystemMessage(content="You are an expert Network Engineer."),
-            HumanMessage(content=search_prompt)
+            HumanMessage(content=intent_prompt)
         ])
-        keywords = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
+        parsed = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
+        intent = parsed.get("intent", f"{component.role} status health check")
     except Exception as e:
-        logger.warning(f"LLM Keyword generation failed: {e}")
-        keywords = [component.role, "status"]
-        if component.vendor:
-            keywords.insert(0, component.vendor)
-            
-    logger.info(f"Generated keywords for {component.id}: {keywords}")
-        
-    # Step B: Perform Search & Deduplicate
-    candidate_tools = []
-    for kw in keywords:
-        found = CapabilityRegistry.search_tools(kw, limit=5)
-        candidate_tools.extend(found)
-        
-    unique_tools = {t.name: t for t in candidate_tools}
-    logger.info(f"Found {len(unique_tools)} unique tools for {component.id}")
+        logger.warning(f"LLM intent generation failed: {e}")
+        intent = f"{component.role} {component.vendor or ''} status health diagnostics"
     
-    # Basic tools rely entirely on external MCP registry now
-
-    if not unique_tools:
+    logger.info(f"Diagnostic intent for {component.id}: {intent}")
+    
+    # Step B: Semantic vector search in tool_catalog
+    # We need customer_id — it's not directly available in this function, 
+    # but we pass it from the caller via a module-level approach
+    from src.core.qdrant import vector_store
+    
+    # Try semantic search first
+    try:
+        tool_payloads = await vector_store.search_tool_catalog(
+            intent=intent,
+            customer_id=_current_customer_id,  # Set by the main node function
+            limit=10,
+        )
+        
+        if tool_payloads:
+            candidate_tools = {}
+            for payload in tool_payloads:
+                t_name = payload.get("tool_name")
+                tool = CapabilityRegistry.get_tool(t_name)
+                if tool:
+                    candidate_tools[t_name] = tool
+            
+            logger.info(f"Semantic search found {len(candidate_tools)} tools for {component.id}")
+        else:
+            candidate_tools = {}
+    except Exception as e:
+        logger.warning(f"Semantic search failed, falling back to keyword: {e}")
+        candidate_tools = {}
+    
+    # Fallback to keyword search if semantic returned nothing
+    if not candidate_tools:
+        for kw in [component.role, component.vendor or "status", "health"]:
+            for t in CapabilityRegistry.search_tools(kw, limit=5):
+                candidate_tools[t.name] = t
+    
+    if not candidate_tools:
         return []
 
     tool_descriptions = "\n".join([
         f"- {t.name}: {t.description}\n  Args: {json.dumps(t.args_schema.model_json_schema()) if t.args_schema else 'None'}"
-        for t in unique_tools.values()
+        for t in candidate_tools.values()
     ])
 
-    # Fetch insights for these tools to proactively avoid errors
-    from src.core.qdrant import vector_store
+    # Fetch insights for these tools
     insights_text = ""
     try:
         combined_insights = []
-        for t_name in unique_tools.keys():
+        for t_name in candidate_tools.keys():
             insights = await vector_store.get_tool_insights(t_name, limit=1)
             for ins in insights:
                 combined_insights.append(f"For {t_name}: {ins.get('insight')}")
@@ -311,40 +338,35 @@ async def _select_tools_for_component(llm, component: Component, ticket_text: st
     except Exception as e:
         logger.warning(f"Failed to fetch insights: {e}")
 
-    # Step C: Select Multiple Tools
+    # Step C: LLM selects tools + configures args
     select_prompt = f"""
-    Context:
-    Ticket: "{ticket_text}"
-    Component: {component.id} (Role: {component.role}, {vendor_context})
-    
-    Available Tools:
-    {tool_descriptions}
-    
-    {insights_text}
+Context:
+Ticket: "{ticket_text}"
+Component: {component.id} (Role: {component.role}, {vendor_context})
 
-    Task: Select ALL valuable tools to diagnose the issue. 
-    Don't limit yourself to one. If multiple tools provide different angles (e.g. one checks health, one checks logs), select them all.
-    Construct the arguments for each tool.
-    
-    GUIDELINES:
-    1. CRITICAL: For tools requiring a 'device', 'target', 'host', or 'ip' argument, YOU MUST DECIDE the correct value.
-       - If {component.id} is a valid hostname/IP, use it.
-       - If {component.id} is an Inventory/Asset ID and the tool requires an IP/Address, DO NOT USE THE ID. 
-         Instead, select a 'Discovery Tool' (get_system, get_status, show_interface) to find the address first.
-    2. Analyze the Schema: Distinguish between Mandatory and Optional arguments.
-    3. ANTI-HALLUCINATION: Do NOT invent parameters. If an optional parameter is unknown, OMIT IT. If a mandatory parameter is missing, skip the tool.
-    4. SAFETY: Do NOT select tools that modify configuration (set, edit, delete) or perform intrusive debugging. READ-ONLY only.
-    
-    SPECIAL RULE FOR TARGETS:
-    If this component ({component.id}) is a Network/Subnet/IP (not a firewall/server), DO NOT use it as the 'device' argument. 
-    Use it as 'target', 'subnet', or 'address' as appropriate.
-    
-    Return ONLY a JSON LIST of objects:
-    [
-        {{ "name": "tool_name_1", "args": {{ ... }} }},
-        {{ "name": "tool_name_2", "args": {{ ... }} }}
-    ]
-    """
+Available Tools:
+{tool_descriptions}
+
+{insights_text}
+
+Task: Select ALL valuable tools to diagnose the issue. 
+Don't limit yourself to one. If multiple tools provide different angles, select them all.
+Construct the arguments for each tool.
+
+GUIDELINES:
+1. CRITICAL: For tools requiring 'device', 'target', 'host', or 'ip': 
+   - If {component.id} is a valid hostname/IP, use it.
+   - If it's an Asset ID, select a Discovery Tool first to find the address.
+2. Analyze the Schema: Distinguish between Mandatory and Optional arguments.
+3. ANTI-HALLUCINATION: Do NOT invent parameters. If mandatory param is missing, skip that tool.
+4. SAFETY: READ-ONLY tools only. No modify/delete/configure.
+
+Return ONLY a JSON LIST:
+[
+    {{ "name": "tool_name_1", "args": {{ ... }} }},
+    {{ "name": "tool_name_2", "args": {{ ... }} }}
+]
+"""
     
     try:
         response = await llm.ainvoke([
@@ -352,7 +374,7 @@ async def _select_tools_for_component(llm, component: Component, ticket_text: st
             HumanMessage(content=select_prompt)
         ])
         selection = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
-        if isinstance(selection, dict): # Handle case where LLM returns single object instead of list
+        if isinstance(selection, dict):
             selection = [selection]
         return selection
     except Exception as e:

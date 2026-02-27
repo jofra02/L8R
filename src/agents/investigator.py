@@ -50,12 +50,13 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     Hypothesis: {target_hypothesis.summary}
     Components: {[c.id for c in state.get('components', [])]}
     
-    Task: Identify the SINGLE most effective diagnostic tool execution to verify or disprove this hypothesis.
-    Focus on "proving" the hypothesis.
+    Task: Describe what specific diagnostic action you need to verify or disprove this hypothesis.
+    Write 1-2 sentences describing the READ-ONLY diagnostic action needed.
+    Focus on WHAT you want to learn, NOT tool names.
     
     Return a JSON object with:
-    - "search_query": Space-separated keywords to find tools (e.g. "firewall policy lookup", "interface status", NOT a full sentence).
-    - "reasoning": Why this tool?
+    - "intent": Natural language description of what diagnostic data you need (e.g., "check IPsec VPN tunnel status and peer connectivity")
+    - "reasoning": Why this diagnostic action?
     """
     
     try:
@@ -64,17 +65,18 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
             HumanMessage(content=plan_prompt)
         ])
         plan = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
-        search_query = plan.get("search_query", "ping")
-        logger.info(f"Investigator: Search Query: {search_query}")
+        search_intent = plan.get("intent", "system health status check")
+        logger.info(f"Investigator: Search Intent: {search_intent}")
         
     except Exception as e:
         logger.error(f"Investigator: Plan generation failed: {e}")
         return {}
         
-    # 3. Find Tools
-    tools = CapabilityRegistry.search_tools(search_query, limit=5)
+    # 3. Find Tools via Semantic Search
+    customer_id = state.get("customer_id", "unknown")
+    tools = await CapabilityRegistry.semantic_search_tools(search_intent, customer_id, limit=5)
     if not tools:
-        logger.warning(f"Investigator: No tools found for query '{search_query}'. Fallback to status.")
+        logger.warning(f"Investigator: No tools found for intent '{search_intent[:50]}'. Fallback to status.")
         tools = CapabilityRegistry.search_tools("status", limit=1)
         
     # 4. Select & Configure Tool

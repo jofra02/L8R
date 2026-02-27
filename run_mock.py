@@ -85,6 +85,10 @@ def main():
         CapabilityRegistry.load_builtin_packs()
         await CapabilityRegistry.load_external_tools()
         
+        # Index tools in Qdrant tool_catalog for semantic search
+        logger.info("Indexing tools in tool_catalog for semantic search...")
+        await CapabilityRegistry.index_tools_for_tenant(initial_state["customer_id"])
+        
         # Setup DB references
         async with async_session_factory() as session:
             # 1. Ensure Tenant exists
