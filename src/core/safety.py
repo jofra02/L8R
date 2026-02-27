@@ -36,12 +36,12 @@ async def is_tool_allowed_for_tenant(tool_name: str, customer_id: str) -> bool:
     Falls back to allow-all if no scopes are defined (backward compatible).
     """
     try:
-        from src.core.database import async_session
+        from src.core.database import async_session_factory
         from src.core.orm import CapabilityScope
         from sqlalchemy import select
         import fnmatch
 
-        async with async_session() as session:
+        async with async_session_factory() as session:
             result = await session.execute(
                 select(CapabilityScope).where(CapabilityScope.customer_id == customer_id)
             )
