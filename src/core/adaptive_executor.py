@@ -79,16 +79,13 @@ class AdaptiveExecutor:
                 
                 # 2. Heal / Diagnose
                 try:
-                    print(f"DEBUG: [Attempt {attempts}] calling diagnose_and_fix with {current_args}", flush=True)
                     fixed_args = await self._diagnose_and_fix(tool, current_args, str(e), context)
-                    print(f"DEBUG: [Attempt {attempts}] diagnose returned {fixed_args}", flush=True)
                     
                     if not fixed_args:
                          logger.warning("AdaptiveExec: Diagnosis yielded no fix. Aborting retries.")
                          raise e
                     
                     current_args = fixed_args
-                    print(f"DEBUG: [Attempt {attempts}] current_args updated to {current_args}", flush=True)
                          
                 except MissingDependencyError:
                     raise # Allow signal to bubble up to EvidenceCollector without logging error
