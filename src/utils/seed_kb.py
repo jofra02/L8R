@@ -71,7 +71,7 @@ async def seed_kb(directory: str, customer_id: str):
         batch_size = 100
         for i in range(0, len(points), batch_size):
             batch = points[i:i+batch_size]
-            await vector_store.upsert(
+            await vector_store.upsert_raw(
                 collection_name="knowledge_base",
                 points=batch,
                 customer_id=customer_id

@@ -90,15 +90,11 @@ async def init_db():
     # 1. Postgres migrations are handled by alembic externally for now.
     logger.info("Ensure you have run 'uv run alembic upgrade head' for Postgres.")
 
-    # 2. Qdrant Initialization
+    # 2. Qdrant Initialization (collections + payload indexes)
     try:
         from src.core.qdrant import vector_store
-        await vector_store.ensure_collection("knowledge_base")
-        await vector_store.ensure_collection("evidence")
-        await vector_store.ensure_collection("tool_knowledge")
-        await vector_store.ensure_collection("resolved_tickets")
-        await vector_store.ensure_collection("adaptive_fixes")
-        logger.info("Qdrant collections ensured.")
+        await vector_store.ensure_all_collections()
+        logger.info("Qdrant collections and indexes ensured.")
     except Exception as e:
         logger.error(f"Failed to initialize Qdrant: {e}")
 

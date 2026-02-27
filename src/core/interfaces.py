@@ -75,25 +75,25 @@ class VectorStoreInterface(ABC):
         pass
         
     @abstractmethod
-    async def save_resolved_ticket(self, ticket: Any):
+    async def save_resolved_ticket(self, ticket: Any, customer_id: str):
         pass
         
     @abstractmethod
-    async def find_similar_cases(self, problem_description: str, limit: int = 3, customer_id: str = None) -> List[Any]:
+    async def find_similar_cases(self, problem_description: str, customer_id: str, limit: int = 3) -> List[Any]:
         pass
 
     @abstractmethod
-    async def save_tool_insight(self, knowledge: Any):
+    async def save_tool_insight(self, knowledge: Any, customer_id: str = "global"):
         pass
 
     @abstractmethod
-    async def get_tool_insights(self, tool_name: str, query: str = "", limit: int = 3) -> List[Any]:
+    async def get_tool_insights(self, tool_name: str, customer_id: str = "global", query: str = "", limit: int = 3) -> List[Any]:
         pass
         
     @abstractmethod
-    async def save_adaptive_fix(self, tool_name: str, error_msg: str, insight: str, fix_data: Dict[str, Any]):
+    async def save_adaptive_fix(self, tool_name: str, error_msg: str, insight: str, fix_data: Dict[str, Any], customer_id: str = "global"):
         pass
         
     @abstractmethod
-    async def get_adaptive_fixes(self, tool_name: str, error_msg: str, limit: int = 2) -> List[Any]:
+    async def get_adaptive_fixes(self, tool_name: str, error_msg: str, customer_id: str = "global", limit: int = 2) -> List[Any]:
         pass

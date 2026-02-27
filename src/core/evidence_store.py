@@ -11,8 +11,10 @@ logger = logging.getLogger(__name__)
 class EvidenceStore:
     """Manages immutable evidence artifacts."""
     
-    def __init__(self, base_path: str = "data/evidence"):
+    def __init__(self, base_path: str = "data/evidence", customer_id: str = "unknown", run_id: str = None):
         self.base_path = base_path
+        self.customer_id = customer_id
+        self.run_id = run_id
         os.makedirs(self.base_path, exist_ok=True)
         
     async def save_evidence(self, tool_name: str, tool_args: Dict[str, Any], content: Any, summary: Optional[str] = None) -> EvidenceSnapshot:
@@ -95,7 +97,7 @@ class EvidenceStore:
         # For data integrity, we await it here.
         try:
             from src.core.qdrant import vector_store
-            await vector_store.save_evidence(snapshot)
+            await vector_store.save_evidence(snapshot, customer_id=self.customer_id, run_id=self.run_id)
         except Exception as e:
             # Don't fail the whole tool execution if indexing fails, but log it.
             logger.error(f"EvidenceStore: Failed to index evidence {snapshot_id}: {e}")

@@ -12,7 +12,7 @@ class CaseRetriever:
     def __init__(self, vector_store: VectorStoreInterface):
         self.vector_store = vector_store
         
-    async def retrieve_similar_cases(self, ticket: Ticket, limit: int = 3) -> List[ResolvedTicket]:
+    async def retrieve_similar_cases(self, ticket: Ticket, customer_id: str, limit: int = 3) -> List[ResolvedTicket]:
         """
         Retrieve similar resolved tickets from valid sources.
         """
@@ -20,7 +20,7 @@ class CaseRetriever:
         
         # 1. Fetch more candidates than needed to allow for post-filtering/sorting
         fetch_limit = limit * 2
-        payloads = await self.vector_store.find_similar_cases(ticket.text, limit=fetch_limit)
+        payloads = await self.vector_store.find_similar_cases(ticket.text, customer_id=customer_id, limit=fetch_limit)
         
         # 2. Convert & Filter
         cases = []

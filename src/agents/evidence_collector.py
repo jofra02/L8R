@@ -25,7 +25,10 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     
     logger.info(f"Evidence Collector: Processing {len(components)} components.")
     
-    store = EvidenceStore()
+    store = EvidenceStore(
+        customer_id=state.get("customer_id", "unknown"),
+        run_id=state.get("meta", {}).get("run_id")
+    )
     llm = LLMFactory.get_model_for_agent("evidence_collector")
     
     new_evidence = []

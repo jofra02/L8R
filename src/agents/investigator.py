@@ -37,7 +37,10 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     logger.info(f"Investigator: Verifying Hypothesis (Rank {target_hypothesis.rank}): {target_hypothesis.summary}")
     
     llm = LLMFactory.get_model_for_agent("investigator")
-    store = EvidenceStore()
+    store = EvidenceStore(
+        customer_id=state.get("customer_id", "unknown"),
+        run_id=state.get("meta", {}).get("run_id")
+    )
     
     # 2. Formulate Verification Plan
     # Ask LLM what to do to verify this SPECIFIC hypothesis

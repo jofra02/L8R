@@ -30,7 +30,9 @@ async def planner_agent_node(state: GlobalState) -> Dict[str, Any]:
     cbr_context = ""
     try:
         retriever = CaseRetriever(vector_store)
-        similar_cases = await retriever.retrieve_similar_cases(ticket, limit=3)
+        similar_cases = await retriever.retrieve_similar_cases(
+            ticket, customer_id=state.get("customer_id", "unknown"), limit=3
+        )
         cbr_context = retriever.format_cases_for_context(similar_cases)
     except Exception as e:
         logger.warning(f"Planner: CBR retrieval failed (proceeding without past cases): {e}")
