@@ -5,7 +5,20 @@ from datetime import datetime
 # --- Enums & Literals ---
 Severity = Literal["low", "medium", "high", "critical"]
 TicketMode = Literal["incident", "change"]
-ComponentRole = Literal["firewall", "router", "switch", "server", "process", "service", "unknown"]
+ComponentRole = Literal[
+    # Network
+    "firewall", "router", "switch", "loadbalancer", "gateway", "access_point",
+    # Infrastructure
+    "server", "host", "hypervisor", "node", "cluster", "storage", "nas", "san",
+    # Cloud / Virtualization
+    "vm", "container", "pod", "instance", "function",
+    # Application
+    "service", "process", "application", "database", "api", "queue",
+    # Targets / Abstract
+    "subnet", "network", "endpoint", "user", "dns_name", "url",
+    # Generic
+    "appliance", "controller", "unknown"
+]
 
 # --- Core Entities ---
 
@@ -140,6 +153,56 @@ class ScoringResult(BaseModel):
     rationale: str = ""
     missing_facts: List[str] = Field(default_factory=list, description="Facts still needed for confident diagnosis")
 
+# --- Topology / Dependency Graph ---
+
+class TopologyNode(BaseModel):
+    """An entity in the dependency/topology graph."""
+    id: str                                     # Matches Component.id or auto-generated
+    node_type: str                              # "device", "interface", "subnet", "service", "host", "vm", "container", "dns_name", "vrf", "tunnel"
+    label: str = ""                             # Human-readable label
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    evidence_ref: Optional[str] = None          # EvidenceSnapshot ID that discovered this node
+
+class TopologyEdge(BaseModel):
+    """A relationship between two topology nodes that enables (or blocks) a flow."""
+    source_id: str                              # Node ID
+    target_id: str                              # Node ID
+    relation: str                               # "routes_to", "policy_allow", "policy_deny", "nat",
+                                                # "overlay", "dns_resolves", "depends_on", "serves",
+                                                # "hosts", "proxies", "connects_to"
+    direction: str = "uni"                      # "uni" | "bi"
+    metadata: Dict[str, Any] = Field(default_factory=dict)  # domain-specific attrs
+    confidence: float = 0.5                     # 0.0-1.0 (tool output = high, inferred = low)
+    evidence_ref: Optional[str] = None          # EvidenceSnapshot ID or "inferred"
+
+class PathConstraint(BaseModel):
+    """A condition that must hold for a path to be viable."""
+    constraint_type: str                        # "forward_route", "return_route", "policy_match",
+                                                # "nat_correctness", "tls_valid", "auth_required",
+                                                # "service_healthy", "dns_resolution"
+    description: str                            # Human-readable
+    status: str = "unknown"                     # "passed", "failed", "unknown"
+    edge_ref: Optional[str] = None              # Related edge (source_id-target_id)
+    evidence_ref: Optional[str] = None          # EvidenceSnapshot that confirmed/denied
+
+class CandidatePath(BaseModel):
+    """A plausible flow path between source and destination."""
+    path_id: str
+    source: str                                 # Origin node ID
+    destination: str                            # Destination node ID
+    hops: List[str] = Field(default_factory=list)  # Ordered edge keys ("src->dst")
+    constraints: List[PathConstraint] = Field(default_factory=list)
+    confidence: float = 0.0                     # Overall path viability
+    status: str = "incomplete"                  # "viable", "blocked", "incomplete"
+    evidence_refs: List[str] = Field(default_factory=list)
+
+class PathAnalysis(BaseModel):
+    """Output of the path synthesis and reachability evaluation."""
+    candidate_paths: List[CandidatePath] = Field(default_factory=list)
+    most_likely_breakpoints: List[Dict[str, Any]] = Field(default_factory=list)  # [{edge, constraint, reasoning}]
+    missing_evidence: List[str] = Field(default_factory=list)
+    suggested_probes: List[str] = Field(default_factory=list)  # Read-only intents to fill gaps
+
 # --- Global State (LangGraph) ---
 
 class GlobalState(TypedDict):
@@ -163,6 +226,11 @@ class GlobalState(TypedDict):
     hypotheses: List[Hypothesis]
     scoring: ScoringResult  # Scoring/Decision Engine output
     plan: Plan
+    
+    # Topology / Dependency Graph
+    topology_nodes: List[TopologyNode]
+    topology_edges: List[TopologyEdge]
+    path_analysis: PathAnalysis
     
     final_answer: str
     handoff: HandoffPackage

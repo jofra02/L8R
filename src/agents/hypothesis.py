@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from src.core.models import GlobalState, Hypothesis
+from src.core.models import GlobalState, Hypothesis, PathAnalysis, CandidatePath, PathConstraint
 from src.core.llm import LLMFactory
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
@@ -44,6 +44,22 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
             for h in existing_hypotheses
         ])
     
+    # Format topology graph for context
+    topology_nodes = state.get("topology_nodes", [])
+    topology_edges = state.get("topology_edges", [])
+    topology_str = "No topology data available yet."
+    if topology_edges:
+        lines = []
+        for e in topology_edges:
+            src = e.source_id if hasattr(e, 'source_id') else e.get('source_id', '?')
+            tgt = e.target_id if hasattr(e, 'target_id') else e.get('target_id', '?')
+            rel = e.relation if hasattr(e, 'relation') else e.get('relation', '?')
+            conf = e.confidence if hasattr(e, 'confidence') else e.get('confidence', 0)
+            meta = e.metadata if hasattr(e, 'metadata') else e.get('metadata', {})
+            meta_str = f" {meta}" if meta else ""
+            lines.append(f"- {src} ──[{rel}]──> {tgt} (confidence: {conf:.0%}){meta_str}")
+        topology_str = "\n".join(lines)
+    
     system_prompt_text = """You are an elite, top-tier IT Support and Incident Response Engineer (SME Level) operating across multiple disciplines (Networking, Infrastructure, Cloud, Security, Development, Database, Server OS).
 
         Based on the provided ticket, collected facts, and EXISTING HYPOTHESES, your task is to comprehend the entire scenario, map out all involved components structurally, and generate an updated, strictly-ranked list of logical hypotheses.
@@ -87,7 +103,7 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt_text),
-        ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\nCurrent Hypotheses:\n{hypotheses}\n\n{format_instructions}")
+        ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\nTopology Graph:\n{topology}\n\nCurrent Hypotheses:\n{hypotheses}\n\n{format_instructions}")
     ])
     
     chain = prompt | llm | parser
@@ -96,6 +112,7 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         result = await chain.ainvoke({
             "text": state["ticket"].text,
             "facts": facts_str,
+            "topology": topology_str,
             "hypotheses": hypotheses_str,
             "format_instructions": parser.get_format_instructions()
         })
@@ -105,9 +122,115 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         final_hypotheses = result.hypotheses
         
         logger.info(f"Generated {len(final_hypotheses)} hypotheses.")
-        return {"hypotheses": final_hypotheses}
+        
+        # Path analysis: if topology exists, attempt breakpoint reasoning
+        result_dict: Dict[str, Any] = {"hypotheses": final_hypotheses}
+        
+        if topology_edges:
+            path_analysis = await _extract_path_analysis(llm, state, topology_str, final_hypotheses)
+            if path_analysis:
+                result_dict["path_analysis"] = path_analysis
+        
+        return result_dict
         
     except Exception as e:
         logger.error(f"Hypothesis generation failed: {e}")
-        # Fallback: return existing to avoid losing state on error
         return {"hypotheses": existing_hypotheses}
+
+
+async def _extract_path_analysis(
+    llm, state: GlobalState, topology_str: str, hypotheses: List[Hypothesis]
+) -> PathAnalysis | None:
+    """Use topology + hypotheses to identify candidate paths, breakpoints, and missing evidence."""
+    from langchain_core.messages import SystemMessage, HumanMessage
+    import json
+    
+    ticket_text = state["ticket"].text
+    hyp_str = "\n".join([f"- [{h.id}] {h.summary} (status: {h.status})" for h in hypotheses])
+    
+    prompt = f"""
+Given the topology graph and hypotheses below, analyze the flow paths relevant to the ticket.
+
+Ticket: {ticket_text}
+
+Topology Graph:
+{topology_str}
+
+Hypotheses:
+{hyp_str}
+
+Your task:
+1. Identify candidate paths between the source and destination implied by the ticket.
+2. For each path, list the hops (edges) and evaluate constraints (does a route exist? does a policy allow? is NAT correct?).
+3. Identify the most likely breakpoints — edges where constraints failed or are unknown.
+4. Suggest read-only diagnostic probes that would resolve unknown constraints.
+
+Return ONLY a JSON object:
+{{
+  "candidate_paths": [
+    {{
+      "path_id": "path_1",
+      "source": "source_entity",
+      "destination": "dest_entity",
+      "hops": ["entity_a->entity_b", "entity_b->entity_c"],
+      "constraints": [
+        {{"constraint_type": "forward_route", "description": "...", "status": "passed|failed|unknown"}}
+      ],
+      "confidence": 0.7,
+      "status": "viable|blocked|incomplete"
+    }}
+  ],
+  "most_likely_breakpoints": [
+    {{"edge": "entity_a->entity_b", "constraint": "policy_match", "reasoning": "..."}}
+  ],
+  "missing_evidence": ["description of what data is still needed"],
+  "suggested_probes": ["read-only diagnostic intent"]
+}}
+
+If the ticket does not involve path/flow analysis, return {{"candidate_paths": [], "most_likely_breakpoints": [], "missing_evidence": [], "suggested_probes": []}}.
+"""
+    
+    try:
+        response = await llm.ainvoke(
+            [
+                SystemMessage(content="You are an expert at analyzing system topology and identifying flow paths and breakpoints. Output only valid JSON."),
+                HumanMessage(content=prompt)
+            ],
+            response_format={"type": "json_object"},
+        )
+        data = json.loads(response.content.strip())
+        
+        # Build PathAnalysis from response
+        candidate_paths = []
+        for cp in data.get("candidate_paths", []):
+            constraints = [
+                PathConstraint(
+                    constraint_type=c.get("constraint_type", "unknown"),
+                    description=c.get("description", ""),
+                    status=c.get("status", "unknown"),
+                )
+                for c in cp.get("constraints", [])
+            ]
+            candidate_paths.append(CandidatePath(
+                path_id=cp.get("path_id", ""),
+                source=cp.get("source", ""),
+                destination=cp.get("destination", ""),
+                hops=cp.get("hops", []),
+                constraints=constraints,
+                confidence=float(cp.get("confidence", 0)),
+                status=cp.get("status", "incomplete"),
+            ))
+        
+        analysis = PathAnalysis(
+            candidate_paths=candidate_paths,
+            most_likely_breakpoints=data.get("most_likely_breakpoints", []),
+            missing_evidence=data.get("missing_evidence", []),
+            suggested_probes=data.get("suggested_probes", []),
+        )
+        
+        logger.info(f"Path Analysis: {len(candidate_paths)} paths, {len(analysis.most_likely_breakpoints)} breakpoints")
+        return analysis
+        
+    except Exception as e:
+        logger.warning(f"Path analysis extraction failed: {e}")
+        return None

@@ -125,6 +125,9 @@ async def run_test_ticket():
         missing_info=[],
         hypotheses=[],
         plan=None,
+        topology_nodes=[],
+        topology_edges=[],
+        path_analysis=None,
         final_answer="",
         handoff=None,
         meta={"iterations": 0}
@@ -285,6 +288,9 @@ async def resume_execution(needs_path: str, state_path: str):
     
     # Reset plan so agent re-plans based on new evidence
     state["plan"] = None
+    
+    # Reset path analysis for re-evaluation
+    state["path_analysis"] = None
 
     # 7. Execute
     output = await app.ainvoke(state)

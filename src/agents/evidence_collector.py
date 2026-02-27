@@ -42,10 +42,25 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     global _current_customer_id
     _current_customer_id = state.get("customer_id", "unknown")
     
+    # Build path analysis context for topology-aware intents
+    path_analysis = state.get("path_analysis")
+    path_context = ""
+    if path_analysis:
+        pa = path_analysis if hasattr(path_analysis, 'suggested_probes') else type('PA', (), path_analysis)()
+        probes = pa.suggested_probes if hasattr(pa, 'suggested_probes') else path_analysis.get('suggested_probes', [])
+        missing = pa.missing_evidence if hasattr(pa, 'missing_evidence') else path_analysis.get('missing_evidence', [])
+        if probes or missing:
+            parts = []
+            if missing:
+                parts.append("Missing evidence: " + "; ".join(missing[:5]))
+            if probes:
+                parts.append("Suggested probes: " + "; ".join(probes[:5]))
+            path_context = "\n".join(parts)
+    
     for comp in components:
         try:
             # 1. Select Tools via LLM (Multi-Select)
-            selected_tools = await _select_tools_for_component(llm, comp, ticket_text)
+            selected_tools = await _select_tools_for_component(llm, comp, ticket_text, path_context)
             
             # 2. Brute Force Fallback if no tools selected
             if not selected_tools:
@@ -248,7 +263,7 @@ async def _select_resolution_tool(llm, component, context_str) -> List[Dict[str,
     except:
          return []
 
-async def _select_tools_for_component(llm, component: Component, ticket_text: str) -> List[Dict[str, Any]]:
+async def _select_tools_for_component(llm, component: Component, ticket_text: str, path_context: str = "") -> List[Dict[str, Any]]:
     """
     Uses LLM to describe MULTIPLE specific diagnostic intents, 
     then semantic vector search for each to find comprehensive tools.
@@ -278,7 +293,10 @@ RULES:
 3. Each query should be 1 sentence, focused on ONE diagnostic area
 4. Cover the diagnostic areas most relevant to the ticket issue
 5. Tailor your queries to the component's role and the reported problem
-
+{f"""
+6. PRIORITY — The following evidence gaps have been identified by path analysis. Generate intents that specifically address these:
+{path_context}
+""" if path_context else ""}
 Return ONLY a JSON object:
 {{"intents": ["query 1", "query 2", "query 3"]}}
 """
