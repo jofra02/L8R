@@ -1,6 +1,0 @@
-EXECUTION BLOCKED.
-Missing Info:
-- Exact ips-urlfilter-dns mkey present on the FortiGate for the AWS main page — confirm whether 'aws.amazon.com' is the exact stored key (mkey) or provide the exact domain/entry name as it appears on the device. The previous call failed with HTTP 404 indicating that mkey was not found on the device.
-- Confirmation that the device identifier 'fgt_druidics' is the correct inventory identifier to target for this query (management IP, serial, or canonical inventory name). The error message included serial 'FG200E4Q17909046', but the call arguments must be grounded to the case inventory (S2) or a discovery result (S5).
-Suggested Source: Use the FortiGate discovery/list tool to enumerate ips-urlfilter-dns entries on the target device (S5), and/or provide the exact domain entry and verified device identifier from the user or CMDB (S1/S2).
-RECOMMENDATION: Select a tool to discover this information.

@@ -1,1 +1,0 @@
-{"http_method":"GET","results":[{"interface":"wan2","dns_servers":["181.88.86.157","181.88.86.165"]}],"vdom":"root","path":"system","name":"acquired-dns","status":"success","serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}

@@ -1,1 +1,0 @@
-{"http_method":"GET","results":{"status":"status_ini","ip":"0.0.0.0","netmask":"0.0.0.0","expiry_date":0,"show_gateway":false,"override_dns":true},"vdom":"root","path":"system","name":"interface","action":"dhcp-status","status":"success","serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}

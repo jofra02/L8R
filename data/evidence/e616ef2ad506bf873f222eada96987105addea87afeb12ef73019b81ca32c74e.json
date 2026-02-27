@@ -1,7 +1,0 @@
-EXECUTION BLOCKED.
-Missing Info:
-- Canonical device identifier expected by fgt_monitor_sys_get_debug_download: provide the device management IP, device hostname (resolvable by the automation), or device serial as recorded in the inventory/CMDB. The previous argument used 'fgt_druidics' which produced a 403 and must be mapped to a canonical identifier in the inventory.
-- Confirmation whether the target device is the one with serial 'FG200E4Q17909046' (this serial was returned in the tool error). If yes, provide the inventory entry that maps that serial to the management IP/hostname to use as the 'device' parameter.
-- Authorization/permission confirmation: the account/access group (sysgrp.cfg) used to call the tool must be allowed to download debug files from the target device. Please confirm permissions or provide credentials/role that permit debug download (403 indicates insufficient privileges).
-Suggested Source: Inventory/CMDB (for canonical device identifier and serial->IP mapping) and/or Discovery tool (show system status) to verify management IP and serial; User or IT admin to confirm permissions/credentials.
-RECOMMENDATION: Select a tool to discover this information.

@@ -1,7 +1,0 @@
-EXECUTION BLOCKED.
-Missing Info:
-- Identificador canónico del dispositivo que debe usarse en el parámetro "device" (nombre en inventario, IP de gestión o serial). El intento fallido usó "fgt_druidics" y la respuesta de error contiene el serial 'FG200E4Q17909046' — hay que confirmar cuál de esos identificadores acepta el endpoint.
-- Confirmación de que la cuenta/API usada por la herramienta tiene acceso y permisos para leer objetos 'firewall dnat' en ese dispositivo. El HTTP 424 'Failed Dependency' puede indicar falta de permiso o que el endpoint devolvió error; necesitamos salida de una llamada de descubrimiento de solo-lectura (por ejemplo listar DNAT) o confirmación del administrador.
-- Confirmación del VDOM/scope correcto si aplica. El error muestra vdom 'root', pero confirmar si el dispositivo usa otro VDOM en el que existan objetos DNAT relevantes.
-Suggested Source: Inventario/CMDB para el identificador del dispositivo; herramienta de descubrimiento de solo-lectura (S5) o salidas previas (S3) para verificar existencia de DNAT; o el administrador/red para confirmar permisos de API y VDOM.
-RECOMMENDATION: Select a tool to discover this information.

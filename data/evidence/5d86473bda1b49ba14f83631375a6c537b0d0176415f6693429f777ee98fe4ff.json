@@ -1,1 +1,0 @@
-Error: Error calling tool 'get_config_sync_status': HTTP error 404: Not Found - {'path': 'system', 'name': 'config-sync', 'action': 'status', 'serial': 'FG200E4Q17909046', 'version': 'v7.2.12', 'build': 1761, 'status': 'error', 'http_status': 404}

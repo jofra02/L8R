@@ -1,1 +1,0 @@
-Error: Error calling tool 'get_license_fortianalyzer_status': HTTP error 500: Internal Server Error - {'http_method': 'GET', 'status': 'error', 'http_status': 500, 'vdom': 'root', 'path': 'license', 'name': 'fortianalyzer-status', 'serial': 'FGT60ETK19031088', 'version': 'v7.4.9', 'build': 2829}

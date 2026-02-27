@@ -1,8 +1,0 @@
-EXECUTION BLOCKED.
-Missing Info:
-- Device identifier: the inventory device name or management IP for the FortiGate to target. The failed tool response includes a device serial 'FGT60ETK19031088' but the tool call needs the inventory identifier or mgmt IP that matches your CMDB — please provide or confirm the exact device id/name/mgmt-IP to use.
-- Destination IP(s) for the AWS main page (aws.amazon.com). The debug-flow tool requires numeric IP address(es) (daddr_from/daddr_to). Do not provide a hostname; provide the resolved IPv4 address or range to capture (or indicate to capture any dest).
-- Capture filter details: confirm whether to restrict to HTTPS only (TCP port 443) or capture all protocols, and whether to limit to the source subnet 192.168.241.0/24. If restricting to the subnet, confirm the exact source range to use (e.g., saddr_from=192.168.241.0 and saddr_to=192.168.241.255).
-- Capture settings: desired number of packets (num_packets) and whether to capture IPv6 (ipv6 flag).
-Suggested Source: Inventory (S2) to map serial → device identifier or mgmt IP; DNS/Discovery tool or the User (S5/S1) to resolve aws.amazon.com → numeric IP; User or network admin to confirm capture filter and packet count.
-RECOMMENDATION: Select a tool to discover this information.

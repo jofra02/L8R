@@ -1,6 +1,0 @@
-EXECUTION BLOCKED.
-Missing Info:
-- The exact existing 'name' (mkey) of the multicast-flow entry on the FortiGate. The call with name='multicast-flow' returned 404, meaning that mkey does not exist on the device (serial FGT60ETK19031088). Provide the correct multicast-flow mkey or a listing of available mkeys.
-- Confirm the device identifier to target for the API call (inventory device name or management IP) if different from the device serial shown in the error (FGT60ETK19031088). The tool requires a device identifier that matches the CMDB/inventory.
-Suggested Source: Use a read-only discovery/listing operation on the FortiGate (e.g., CLI: show router multicast-flow or the discovery API that lists router multicast-flow entries) to enumerate valid mkeys, or ask the network/CMDB team to provide the exact multicast-flow entry name and the canonical device identifier to use.
-RECOMMENDATION: Select a tool to discover this information.

@@ -1,1 +1,0 @@
-{"http_method":"GET","results":[{"mac":"04:7c:16:03:4b:b5","chassis_id":"PC-WIN11","port":8,"port_name":"internal1","port_id":"04:7C:16:03:4B:B5","ttl":3601}],"vdom":"root","path":"network","name":"lldp","action":"neighbors","status":"success","serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}

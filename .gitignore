@@ -5,7 +5,8 @@ __pycache__/
 
 # Environment variables
 .env
-.env.local
+.env.*
+!.env.example
 
 # Virtual Environments
 .venv/
@@ -16,6 +17,8 @@ env/
 # IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Distribution / Packaging
 dist/
@@ -45,10 +48,28 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
-# Qdrant local storage (if mapped)
+# Qdrant local storage
 qdrant_storage/
 
-# Local Artifacts & Debug Debris
+# ─── Runtime / Generated Data ───
+# Evidence blobs (raw tool outputs — potentially sensitive infra data)
+data/evidence/
+
+# Paused state / resume files (contain device names, IPs, internal state)
+data/needs.json
+needs.json
+paused_state.json
+
+# Test tickets (may contain real infra details)
+ticket_prueba*.txt
+
+# Internal project task tracker
+task.md
+
+# ─── Research / Scratch ───
+docs/research/
+
+# ─── Local Artifacts & Debug Debris ───
 *.docx
 audit_logs.json
 audit_report.md
@@ -60,7 +81,8 @@ inspect_db.py
 tmp_*.py
 temp_paper.txt
 temp_copy.docx
-ticket_prueba_backup.txt
-paused_state.json
 run_mock_debug.log
-data/evidence/
+
+# ─── Lock files ───
+# uv.lock is auto-generated, exclude to keep diffs clean
+uv.lock

@@ -1,1 +1,0 @@
-{"http_method":"GET","revision":"7220000d979088f8e36b23a157a2614b","results":{"device":"","distance":1,"gateway":"0.0.0.0","geo-filter":""},"vdom":"root","path":"webfilter","name":"ips-urlfilter-setting","action":"","status":"success","http_status":200,"serial":"FGT60ETK19031088","version":"v7.4.9","build":2829}
