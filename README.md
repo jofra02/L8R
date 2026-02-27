@@ -288,6 +288,7 @@ docs/
 | Investigator Flow | [docs/architecture/003_adaptive_investigator_flow.md](docs/architecture/003_adaptive_investigator_flow.md) |
 | Agent Communication Analysis | [docs/architecture/004_agent_communication_analysis.md](docs/architecture/004_agent_communication_analysis.md) |
 | SOCi Compliance | [docs/architecture/soci_compliance_analysis.md](docs/architecture/soci_compliance_analysis.md) |
+| Tool Governance | [docs/architecture/tool_governance.md](docs/architecture/tool_governance.md) |
 | Data Layer Blueprint | [docs/planning/data_layer_blueprint.md](docs/planning/data_layer_blueprint.md) |
 | Model Governance | [docs/planning/model_governance.md](docs/planning/model_governance.md) |
 
