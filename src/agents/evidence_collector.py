@@ -263,18 +263,18 @@ Task: You are preparing a comprehensive diagnostic data collection plan.
 Generate 3-5 SPECIFIC diagnostic queries that describe what data you need to collect.
 
 Each query should target a DIFFERENT diagnostic angle, for example:
-- Routing: "retrieve the full IPv4 routing table and active route entries"
-- Interfaces: "check network interface status, link state, and traffic statistics"  
-- Sessions: "list active firewall sessions and connection tracking"
-- ARP/Neighbors: "get ARP table and neighbor discovery entries"
-- System: "retrieve system resource usage, CPU, memory, and uptime"
+- Status/Health: "retrieve current operational status and health indicators"
+- Configuration: "get the active configuration relevant to the reported issue"  
+- Logs/Events: "list recent logs or events related to the affected component"
+- Connectivity: "check connectivity and reachability of the affected path"
+- Resources: "retrieve resource utilization metrics such as CPU, memory, and uptime"
 
 RULES:
-1. Be SPECIFIC — mention the exact data type (routing table, ARP table, session list, etc.)
+1. Be SPECIFIC — mention the exact data type you need (status table, log entries, active config, etc.)
 2. DO NOT mention tool names — describe the DATA you want
 3. Each query should be 1 sentence, focused on ONE diagnostic area
 4. Cover the diagnostic areas most relevant to the ticket issue
-5. Always include at least one query for routing/connectivity data
+5. Tailor your queries to the component's role and the reported problem
 
 Return ONLY a JSON object:
 {{"intents": ["query 1", "query 2", "query 3"]}}
@@ -293,8 +293,8 @@ Return ONLY a JSON object:
         logger.warning(f"LLM intent generation failed: {e}")
         intents = [
             f"{component.role} status health diagnostics",
-            f"routing table and network connectivity",
-            f"interface status and traffic statistics",
+            f"{component.role} configuration and operational state",
+            f"{component.role} recent logs and events",
         ]
     
     logger.info(f"Diagnostic intents for {component.id}: {intents}")

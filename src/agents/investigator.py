@@ -55,7 +55,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     Focus on WHAT you want to learn, NOT tool names.
     
     Return a JSON object with:
-    - "intent": Natural language description of what diagnostic data you need (e.g., "check IPsec VPN tunnel status and peer connectivity")
+    - "intent": Natural language description of what diagnostic data you need (e.g., "retrieve current status and health metrics for the affected component")
     - "reasoning": Why this diagnostic action?
     """
     
