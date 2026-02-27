@@ -23,7 +23,9 @@ async def enricher_agent_node(state: GlobalState) -> Dict[str, Any]:
     
     if not new_evidence:
         logger.info("Enricher: No new evidence to synthesize.")
-        return {}
+        meta = state.get("meta", {})
+        meta["enricher_skipped"] = True
+        return {"meta": meta}
 
     logger.info(f"Enricher: Synthesizing {len(new_evidence)} new evidence items into facts.")
     llm = LLMFactory.get_model_for_agent("enricher")

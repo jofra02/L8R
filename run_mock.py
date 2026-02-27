@@ -62,7 +62,6 @@ def main():
         "facts": {},
         "hypotheses": [],
         "plan": None,
-        "final_report": "",
         "final_answer": "",
         "handoff": None,
         "pending_requirements": [],

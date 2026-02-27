@@ -38,8 +38,6 @@ class ClientContext(BaseModel):
     known_changes: List[Dict[str, Any]] = Field(default_factory=list)
     access_scopes: List[str] = Field(default_factory=list)
 
-    access_scopes: List[str] = Field(default_factory=list)
-
 # --- Reasoning & Artifacts ---
 
 class ToolKnowledge(BaseModel):

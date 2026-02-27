@@ -7,30 +7,13 @@ from src.core.models import GlobalState, EvidenceSnapshot, Component, PendingReq
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
 from src.core.llm import LLMFactory
+from src.core.safety import is_safe_tool
 from src.config import settings
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
 import logging
 
 logger = logging.getLogger(__name__)
 
-def _is_safe_tool(tool_name: str, tool_args: Dict[str, Any]) -> bool:
-    """Checks if tool usage is safe against blocked keywords."""
-    blocked = settings.SAFETY_BLOCKED_KEYWORDS
-    
-    # Check Name
-    for kw in blocked:
-        if kw in tool_name.lower():
-            logger.warning(f"Safety Block: Tool '{tool_name}' blocked by keyword '{kw}'")
-            return False
-            
-    # Check Args (e.g. "command": "execute ...")
-    for key, val in tool_args.items():
-        if isinstance(val, str):
-            for kw in blocked:
-                if kw in val.lower():
-                    logger.warning(f"Safety Block: Tool '{tool_name}' arg '{key}'='{val}' blocked by keyword '{kw}'")
-                    return False
-    return True
 
 async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     """
@@ -74,7 +57,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                     continue
                 
                 # SAFETY CHECK
-                if not _is_safe_tool(tool_name, tool_args):
+                if not is_safe_tool(tool_name, tool_args):
                      logger.warning(f"Skipping unsafe tool execution: {tool_name}")
                      continue
                 

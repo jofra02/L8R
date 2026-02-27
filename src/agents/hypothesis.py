@@ -19,6 +19,14 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
     facts = state.get("facts", {})
     ticket = state["ticket"]
     
+    # If enricher was skipped (no new evidence), avoid redundant re-analysis
+    if state.get("meta", {}).get("enricher_skipped"):
+        logger.info("Hypothesis Agent: Enricher skipped (no new data). Returning existing hypotheses.")
+        # Clear the flag for next iteration
+        meta = state.get("meta", {})
+        meta["enricher_skipped"] = False
+        return {"meta": meta}
+    
     logger.info("Hypothesis Agent: Generating hypotheses.")
     
     llm = LLMFactory.get_model_for_agent("hypothesis")

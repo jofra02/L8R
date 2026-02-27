@@ -3,6 +3,7 @@ from src.core.models import GlobalState, Hypothesis, PendingRequirement
 from src.core.llm import LLMFactory
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
+from src.core.safety import is_safe_tool
 from src.config import settings
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
 from langchain_core.prompts import ChatPromptTemplate
@@ -12,24 +13,6 @@ import json
 
 logger = logging.getLogger(__name__)
 
-def _is_safe_tool(tool_name: str, tool_args: Dict[str, Any]) -> bool:
-    """Checks if tool usage is safe against blocked keywords."""
-    blocked = settings.SAFETY_BLOCKED_KEYWORDS
-    
-    # Check Name
-    for kw in blocked:
-        if kw in tool_name.lower():
-            logger.warning(f"Safety Block: Tool '{tool_name}' blocked by keyword '{kw}'")
-            return False
-            
-    # Check Args (e.g. "command": "execute ...")
-    for key, val in tool_args.items():
-        if isinstance(val, str):
-            for kw in blocked:
-                if kw in val.lower():
-                    logger.warning(f"Safety Block: Tool '{tool_name}' arg '{key}'='{val}' blocked by keyword '{kw}'")
-                    return False
-    return True
 
 async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     """
@@ -194,7 +177,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                         tool_args[key] = match.id
         
         # SAFETY CHECK
-        if not _is_safe_tool(tool_name, tool_args):
+        if not is_safe_tool(tool_name, tool_args):
              logger.warning(f"Investigator: Skipping unsafe tool execution: {tool_name}")
              return {}
 
@@ -216,18 +199,23 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                 summary=f"Verification for hypothesis: {target_hypothesis.summary}"
             )
             
-            # Mark Hypothesis as 'verifying' (The Hypothesis Agent will re-evaluate and mark verified/rejected)
-            # We return the updated list in state to modify status immediately
-            target_hypothesis.status = "verifying"
+            # Mark Hypothesis as 'verifying' — build clean updated list instead of in-place mutation
+            updated_hypotheses = []
+            for h in hypotheses:
+                if h.id == target_hypothesis.id:
+                    updated_h = h.model_copy(update={"status": "verifying"})
+                    updated_hypotheses.append(updated_h)
+                else:
+                    updated_hypotheses.append(h)
             
             # Append new evidence to state
             current_evidence = state.get("evidence_refs", [])
             updated_evidence = current_evidence + [snapshot]
             
             return {
-                "hypotheses": hypotheses,
+                "hypotheses": updated_hypotheses,
                 "evidence_refs": updated_evidence
-            } # Update state
+            }
             
         except MissingDependencyError as e:
             deps_str = "\n- ".join(e.dependencies)

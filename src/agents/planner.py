@@ -16,9 +16,9 @@ async def planner_agent_node(state: GlobalState) -> Dict[str, Any]:
     ticket = state["ticket"]
     hypotheses = state.get("hypotheses", [])
     
-    # Select the most relevant hypothesis (e.g., the top-ranked one)
-    # If no hypothesis exists, fallback to a general investigation.
-    active_hypothesis = hypotheses[0] if hypotheses else Hypothesis(
+    # Select the most relevant hypothesis (sorted by rank)
+    sorted_hypotheses = sorted(hypotheses, key=lambda h: h.rank) if hypotheses else []
+    active_hypothesis = sorted_hypotheses[0] if sorted_hypotheses else Hypothesis(
         id="default", 
         summary="General System Investigation", 
         rationale="Initial triage."
@@ -62,6 +62,12 @@ Output must be valid JSON adhering to the schema.
 **Active Hypothesis**: {hypothesis_summary}
 {hypothesis_rationale}
 
+### Facts Already Collected
+{facts_summary}
+
+### Evidence Already Gathered
+{evidence_summary}
+
 {cbr_context}
 
 {format_instructions}
@@ -70,12 +76,19 @@ Output must be valid JSON adhering to the schema.
     
     chain = prompt | llm | parser
     
-    # --- 4. Execute Planning ---
+    # --- Build facts and evidence summaries ---
+    facts = state.get("facts", {})
+    evidence_refs = state.get("evidence_refs", [])
+    facts_summary = "\n".join([f"- {k}: {v}" for k, v in facts.items() if not k.startswith("_")]) or "No facts collected yet."
+    evidence_summary_text = "\n".join([f"- [{e.tool_name}]: {e.summary}" for e in evidence_refs[-10:]]) or "No evidence gathered yet."
+
     try:
         plan = await chain.ainvoke({
             "ticket_text": ticket.text,
             "hypothesis_summary": active_hypothesis.summary,
             "hypothesis_rationale": f"Rationale: {active_hypothesis.rationale}" if active_hypothesis.rationale else "",
+            "facts_summary": facts_summary,
+            "evidence_summary": evidence_summary_text,
             "cbr_context": cbr_context,
             "format_instructions": parser.get_format_instructions()
         })

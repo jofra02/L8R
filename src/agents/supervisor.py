@@ -22,7 +22,11 @@ async def supervisor_agent_node(state: GlobalState) -> Dict[str, Any]:
         }
     }
 
-def supervisor_router(state: GlobalState) -> Literal["context_agent", "classifier_agent", "evidence_collector", "planner_agent", "response_agent", "end"]:
+def supervisor_router(state: GlobalState) -> Literal[
+    "context_agent", "classifier_agent", "mapper_agent",
+    "evidence_collector", "investigator_agent", "enricher_agent",
+    "hypothesis_agent", "planner_agent", "response_agent", "end"
+]:
     """
     Conditional Edge Logic.
     Decides the next node based on state.
