@@ -153,7 +153,9 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         components = state.get("components", [])
         
         # Roles that can be actual devices
-        EXECUTOR_ROLES = ["firewall", "router", "switch", "server", "host"]
+        EXECUTOR_ROLES = ["firewall", "router", "switch", "server", "host",
+                          "appliance", "controller", "gateway", "hypervisor", "node",
+                          "cluster", "database", "storage", "loadbalancer"]
         
         for key in ["device", "target", "host", "hostname", "ip"]:
             if key in tool_args:

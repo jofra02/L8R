@@ -34,7 +34,7 @@ async def mapper_agent_node(state: GlobalState) -> Dict[str, Any]:
              inventory_summary = f"Customer has {len(context.inventory)} assets in inventory."
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert IT Support / Incident Engineer. Analyze the ticket and identify technical components (devices, IPs, URLs, services, users). Match against inventory if possible. Infer the 'vendor' (e.g. Fortinet, Cisco, AWS, Microsoft) if explicitly mentioned or implied by the context."),
+        ("system", "You are an expert IT Support / Incident Engineer. Analyze the ticket and identify technical components (devices, IPs, URLs, services, users). Match against inventory if possible. Infer the 'vendor' if explicitly mentioned or implied by the context."),
         ("user", "Context: {inventory}\n\nTicket: {text}\n\n{format_instructions}")
     ])
     

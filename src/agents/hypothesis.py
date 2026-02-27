@@ -55,13 +55,14 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
            - Formulate neutral hypotheses to verify the required state (e.g., "The route to Y exists via interface Z", "Policy ID 12 allows the traffic").
            - Your goal is to gather facts to definitively describe how the environment is configured. Once facts are collected, your final hypotheses should conclude whether the requirement is met and explain WHY, based on the concrete data.
         2. INCIDENT/PROBLEM (e.g., "app is down", "high latency"): Act as a TROUBLESHOOTER.
-           - Formulate hypotheses focused on finding the root cause of the broken state (e.g., "A firewall rule is blocking traffic", "BGP peering is down").
+           - Formulate hypotheses focused on finding the root cause of the broken state (e.g., "A policy or rule is blocking the expected traffic", "A critical service dependency is unreachable").
 
         --- ADVANCED TROUBLESHOOTING MINDSET ---
         Adopt the methodical reasoning of a Senior Engineer specific to the implied domain:
-        - If NETWORKING (e.g., connectivity, routing, BGP, SD-WAN, firewalling): Methodically reason about the OSI model path. Consider physical interfaces, routing tables, security policies, NAT, IPSec/Overlay tunnels, ARP, or asymmetric routing based on the specific vendor's architecture (e.g., how Vendor X implements a policy-based route vs Vendor Y).
-        - If INFRA/SERVER (e.g., Linux, Windows, virtualization): Reason about OS constraints, resource starvation (CPU/Mem/Disk IO), service dependencies, SELinux/AppArmor, DNS resolution, or filesystem unmounts.
-        - If APP/DEV (e.g., APIs, Database, Web): Reason about connection pools, deadlock scenarios, certificate expirations, unhandled code exceptions, load balancer SNAT issues, or CORS configuration.
+        - Analyze the system layer by layer — from physical/connectivity through logical/application.
+        - Consider configuration drift, resource constraints, access control policies, protocol-level issues, and service dependencies.
+        - Ground your reasoning in the specific vendor's architecture and known behaviors when the vendor is identifiable.
+        - Cross-domain scenarios (e.g., infrastructure + application) should consider interactions between layers.
         
         For any vendor explicitly or implicitly mentioned in the scenario, your hypotheses MUST be grounded in that vendor's specific technical architecture, standard behaviors, and known quirks.
 

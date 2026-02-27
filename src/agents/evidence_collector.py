@@ -81,10 +81,13 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                 # We distinguish between EXECUTORS (Devices) and TARGETS (Subnets, IPs, etc.)
                 
                 # Roles that can act as a 'device' executor
-                EXECUTOR_ROLES = ["firewall", "router", "switch", "server", "host", "loadbalancer"]
+                EXECUTOR_ROLES = ["firewall", "router", "switch", "server", "host", "loadbalancer",
+                                  "appliance", "controller", "gateway", "hypervisor", "node", "cluster",
+                                  "database", "storage", "nas", "san"]
                 
                 # Roles that are usually targets
-                TARGET_ROLES = ["subnet", "network", "ip", "address", "url", "service", "process"]
+                TARGET_ROLES = ["subnet", "network", "ip", "address", "url", "service", "process",
+                                "endpoint", "user", "application", "container", "pod", "vm", "instance"]
                 
                 comp_role_norm = comp.role.lower()
                 is_executor = any(r in comp_role_norm for r in EXECUTOR_ROLES)
@@ -282,7 +285,7 @@ Return ONLY a JSON object:
     
     try:
         response = await llm.ainvoke([
-            SystemMessage(content="You are an expert Network Engineer performing systematic diagnostics."),
+            SystemMessage(content="You are an expert IT Systems Engineer performing systematic diagnostics."),
             HumanMessage(content=intent_prompt)
         ])
         parsed = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
@@ -383,7 +386,7 @@ Return ONLY a JSON LIST:
     
     try:
         response = await llm.ainvoke([
-            SystemMessage(content="You are an expert Network Engineer. Select comprehensive diagnostic tools."),
+            SystemMessage(content="You are an expert IT Systems Engineer. Select comprehensive diagnostic tools."),
             HumanMessage(content=select_prompt)
         ])
         selection = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
@@ -410,20 +413,17 @@ def _get_brute_force_tools(component: Component) -> List[Dict[str, Any]]:
         if "delete" in name or "remove" in name or "shutdown" in name or "reboot" in name:
              continue # Unsafe
         
-        # Must start with 'get', 'check', 'monitor', 'list', 'show'
-        if not any(name.startswith(p) for p in ["get", "check", "monitor", "list", "show", "fgt_monitor", "fgt_get"]):
+        # Must be a read-only operation prefix
+        if not any(name.startswith(p) for p in ["get", "check", "monitor", "list", "show", "describe", "fetch"]):
              continue
              
         # Match vendor if known
         if vendor_kw and vendor_kw not in name:
              continue
              
-        # Match role/context if possible (loose match)
-        # For FortiGate tools (fgt_), we assume they match if vendor is Fortinet
-        if vendor_kw == "fortinet" and "fgt_" in name:
-             # Heuristic: Pick a small subset of general health tools to avoid running 2000 commands
-             if any(k in name for k in ["health", "status", "info", "system"]):
-                 candidates.append({"name": t.name, "args": {"device": component.id}}) # Assume 'device' arg for fgt
+        # Match general health/status tools for the matched vendor
+        if any(k in name for k in ["health", "status", "info", "system", "summary", "overview"]):
+            candidates.append({"name": t.name, "args": {"device": component.id}})
         
         # External tools only handled natively
 
