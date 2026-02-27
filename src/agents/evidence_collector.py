@@ -7,7 +7,7 @@ from src.core.models import GlobalState, EvidenceSnapshot, Component, PendingReq
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
 from src.core.llm import LLMFactory
-from src.core.safety import is_safe_tool
+from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
 from src.config import settings
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
 import logging
@@ -62,6 +62,12 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                 # SAFETY CHECK
                 if not is_safe_tool(tool_name, tool_args):
                      logger.warning(f"Skipping unsafe tool execution: {tool_name}")
+                     continue
+                
+                # GOVERNANCE CHECK (CapabilityScope)
+                customer_id = state.get("customer_id", "unknown")
+                if not await is_tool_allowed_for_tenant(tool_name, customer_id):
+                     logger.warning(f"Skipping tool {tool_name}: not allowed for tenant {customer_id}")
                      continue
                 
                 # Smart Argument Injection based on Component Role

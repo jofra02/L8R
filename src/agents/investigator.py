@@ -3,7 +3,7 @@ from src.core.models import GlobalState, Hypothesis, PendingRequirement
 from src.core.llm import LLMFactory
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
-from src.core.safety import is_safe_tool
+from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
 from src.config import settings
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
 from langchain_core.prompts import ChatPromptTemplate
@@ -182,6 +182,12 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         # SAFETY CHECK
         if not is_safe_tool(tool_name, tool_args):
              logger.warning(f"Investigator: Skipping unsafe tool execution: {tool_name}")
+             return {}
+        
+        # GOVERNANCE CHECK (CapabilityScope)
+        customer_id = state.get("customer_id", "unknown")
+        if not await is_tool_allowed_for_tenant(tool_name, customer_id):
+             logger.warning(f"Investigator: Tool {tool_name} not allowed for tenant {customer_id}")
              return {}
 
         try:

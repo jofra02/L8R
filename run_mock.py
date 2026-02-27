@@ -61,6 +61,7 @@ def main():
         "missing_info": [],
         "facts": {},
         "hypotheses": [],
+        "scoring": None,
         "plan": None,
         "final_answer": "",
         "handoff": None,

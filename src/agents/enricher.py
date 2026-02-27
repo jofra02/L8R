@@ -50,23 +50,29 @@ async def enricher_agent_node(state: GlobalState) -> Dict[str, Any]:
         evidence_str = json.dumps(compressed_evidence, indent=2)
         
         prompt = f"""
-        Extract key technical facts from the following evidence snippet gathered during an IT incident investigation.
-        Focus on concrete values: IP addresses, error codes, statuses, latency, configuration settings.
-        
-        Evidence Tool: {ref.tool_name}
-        Evidence Summary: {ref.summary}
-        Evidence Content (Compressed): 
-        {evidence_str}
-        
-        Return ONLY a JSON dictionary of key-value pairs representing the discrete facts found.
-        Example: {{"interface_wan1_status": "down", "dns_latency_ms": 150}}
-        """
+Extract key technical facts from the following evidence snippet gathered during an IT incident investigation.
+
+Focus on:
+1. **Concrete values**: IP addresses, error codes, statuses, latency, configuration settings, firmware versions.
+2. **MITRE ATT&CK mapping**: If the evidence suggests attack-related behavior, include a "mitre_mapping" key with tactic (e.g., "TA0001 Initial Access") and technique (e.g., "T1190 Exploit Public-Facing Application"). Only include if clearly applicable.
+
+Evidence Tool: {ref.tool_name}
+Evidence Summary: {ref.summary}
+Evidence Content (Compressed):
+{evidence_str}
+
+Return ONLY a valid JSON dictionary of key-value pairs.
+Example: {{"interface_wan1_status": "down", "dns_latency_ms": 150, "mitre_mapping": {{"tactic": "TA0040 Impact", "technique": "T1499 Endpoint Denial of Service"}}}}
+"""
         
         try:
-             response = await llm.ainvoke([
-                 SystemMessage(content="You are a data extraction specialist. Output only valid JSON."),
-                 HumanMessage(content=prompt)
-             ])
+             response = await llm.ainvoke(
+                 [
+                     SystemMessage(content="You are a data extraction specialist. Output only valid JSON. Include MITRE ATT&CK mapping only when evidence clearly indicates attack-related behavior."),
+                     HumanMessage(content=prompt)
+                 ],
+                 response_format={"type": "json_object"},
+             )
              extracted_json = response.content.strip().replace("```json", "").replace("```", "")
              extracted_facts = json.loads(extracted_json)
              

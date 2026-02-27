@@ -131,6 +131,15 @@ class PendingRequirement(BaseModel):
     tool_name: str # "ping"
     component_id: str # "asset:fgt_01"
 
+class ScoringResult(BaseModel):
+    """Output of the Scoring/Decision Engine node."""
+    risk_score: float = Field(default=0.0, description="Overall risk score 1-10 (severity × confidence × impact)")
+    confidence: float = Field(default=0.0, description="0.0-1.0 evidence coverage vs required facts")
+    evidence_coverage: float = Field(default=0.0, description="Fraction of required facts that have evidence")
+    decision: Literal["proceed_to_plan", "needs_more_evidence", "escalate_to_human"] = "needs_more_evidence"
+    rationale: str = ""
+    missing_facts: List[str] = Field(default_factory=list, description="Facts still needed for confident diagnosis")
+
 # --- Global State (LangGraph) ---
 
 class GlobalState(TypedDict):
@@ -152,6 +161,7 @@ class GlobalState(TypedDict):
     pending_requirements: List[PendingRequirement] # Structured blocking requirements
     
     hypotheses: List[Hypothesis]
+    scoring: ScoringResult  # Scoring/Decision Engine output
     plan: Plan
     
     final_answer: str
