@@ -1,85 +1,57 @@
 # Evidence Collector Agent
 
 ## Description
-The Evidence Collector Agent is responsible for gathering the initial set of facts about the environment. It uses a two-stage approach: "Smart Selection" (LLM-driven) and "Brute Force Fallback" (Heuristic-driven) to ensure that at least some baseline evidence is always collected.
+The Evidence Collector Agent gathers the initial diagnostic evidence about the environment. It uses a **multi-intent approach**: the LLM generates 3-5 specific diagnostic intents, each searched independently in Qdrant for comprehensive tool coverage. When topology/path analysis exists, it prioritizes filling identified evidence gaps.
 
 ## Role in Graph
 - **Node Name:** `evidence_collector`
-- **Upstream:** `supervisor` (typically when no evidence exists yet)
+- **Upstream:** `supervisor` (when evidence is needed)
 - **Downstream:** `enricher_agent` (to parse and analyze the raw outputs)
 
 ## Inputs
 - `state["ticket"]`: Ticket text to understand the issue.
 - `state["components"]`: List of identified components to target.
-- `state["evidence_refs"]`: Existing evidence (it appends to this list).
+- `state["evidence_refs"]`: Existing evidence (appends to this list).
+- `state["path_analysis"]`: (optional) Path analysis with suggested probes and missing evidence.
 
 ## Outputs
 - `state["evidence_refs"]`: List of new `EvidenceSnapshot` objects pointing to the collected data.
 
-## Prompts
+## Tool Selection Pipeline
 
-### 1. Keyword Generation (Smart Selection Step A)
-**System:** "You are an expert Network Engineer."
-**Goal:** Generate search keywords to find relevant tools in the registry.
-**Prompt Structure:**
-```text
-Context:
-Ticket: "{ticket_text}"
-Component: {component_id} (Role: {role}). {vendor_context}
+### Step A: Multi-Intent Generation
+**System:** "You are an expert IT Systems Engineer performing systematic diagnostics."
 
-Task: Identify 3-5 specific keywords to search for diagnostic tools. 
-Focus on the vendor/technology and the action.
-CRITICAL: Include terms like 'monitor', 'status', 'health', 'check', 'get'.
+For each component, the LLM generates 3-5 specific diagnostic intents covering different angles:
+- Current status and health metrics
+- Configuration and settings
+- Logs, events, or error records
+- Connectivity and reachability information
+- Resource utilization and performance
 
-Return ONLY a JSON list of strings.
-```
+When `path_analysis.suggested_probes` or `missing_evidence` exist, they are injected as **priority intents** to fill topology evidence gaps.
 
-### 2. Tool Selection (Smart Selection Step C)
-**System:** "You are an expert Network Engineer. Select comprehensive diagnostic tools."
-**Goal:** Select multiple tools from the search results.
-**Prompt Structure:**
-```text
-Context:
-Ticket: "{ticket_text}"
-Component: {component_id} ...
+### Step B: Semantic Search (per intent)
+Each intent is searched individually in Qdrant's `tool_catalog` collection with tenant isolation. Results are merged and deduplicated to maximize tool diversity.
 
-Available Tools:
-{tool_descriptions}
+### Step C: Tool Selection & Argument Configuration
+**System:** "You are an expert IT Systems Engineer. Select comprehensive diagnostic tools."
 
-Task: Select ALL valuable tools to diagnose the issue.
-Construct the arguments for each tool.
+The LLM selects tools from the search results and configures arguments with:
+- **Role-Based Sanitization**: Executor devices (firewalls, routers, servers, hypervisors, databases, etc.) get `device` argument. Targets (subnets, IPs, services, containers, VMs) get `target` argument.
+- **Anti-Hallucination**: Missing mandatory params → skip tool.
+- **Safety**: Read-only tools only.
 
-GUIDELINES:
-1. CRITICAL: For tools requiring a 'device', 'target', 'host', or 'ip' argument, USE "{component_id}" as the value.
-2. Analyze the Schema: Distinguish between Mandatory and Optional arguments.
-3. ANTI-HALLUCINATION: Do NOT invent parameters. If an optional parameter is unknown, OMIT IT.
-4. SPECIAL RULE FOR TARGETS: If this component is a Subnet/IP, DO NOT use it as the 'device'. Use it as 'target' or 'address'.
-
-Return ONLY a JSON LIST of objects:
-[ { "name": "...", "args": { ... } } ]
-```
+### Step D: Brute Force Fallback
+If Smart Selection yields no tools:
+- Iterates all registered tools.
+- Filters for read-only prefixes: `get`, `check`, `monitor`, `list`, `show`, `describe`, `fetch`.
+- Matches vendor keyword if known.
+- Selects general health/status/info/system/summary/overview tools.
+- Limited to top 5 to prevent overload.
 
 ## Key Logic & Interactions
-
--   **LLM Model:** Uses `LLM_MODEL_EVIDENCE_COLLECTOR` (e.g., `gpt-4.1-mini`), which is specifically optimized for tool calling speed.
-
-### 1. Smart Selection & Device Targeting
-For each component:
-1.  Asks LLM for keywords.
-2.  Searches `CapabilityRegistry`.
-3.  Asks LLM to select tools.
-4.  **Role-Based Sanitization:**
-    *   **Executors (Firewalls, Routers):** Component ID is injected as `device`.
-    *   **Targets (Subnets, IPs):** Component ID is injected as `target`, `destination`, or `subnet`. It is NEVER used as `device` to prevent "Device NOT FOUND" errors.
-
-### 2. Brute Force Fallback
-If Smart Selection yields no tools (e.g., due to search failure or empty LLM response):
--   It iterates through **all** available tools in the registry.
--   Filters for "safe" read-only verbs (`get`, `check`, `monitor`, `list`, `show`).
--   Matches against the component's `vendor` and `role`.
--   **Fortinet Heuristic:** If vendor is Fortinet, it prioritizes `fgt_` tools containing "health", "status", "info", or "system".
--   **Universal Fallback:** Always considers `ping` if available.
--   Limits execution to the top 5 matches to prevent system overload.
-
-### Evidence Storage
-Like the Investigator, it saves raw outputs to the `EvidenceStore` and appends the reference snapshots to the global state.
+- **LLM Model:** Uses `LLM_MODEL_EVIDENCE_COLLECTOR` (e.g., `gpt-4.1-mini`) — optimized for tool calling speed.
+- **Tool Governance**: Every tool checked against `CapabilityScope` allowlists and safety blocklists.
+- **Adaptive Execution**: Tools executed via `AdaptiveExecutor` with self-healing on failures.
+- **Evidence Storage**: Raw outputs saved to `EvidenceStore` (disk), references appended to state.

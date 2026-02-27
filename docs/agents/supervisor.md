@@ -1,7 +1,7 @@
 # Supervisor Agent
 
 ## Description
-The Supervisor Agent acts as the central router and state manager for the SupportAI-Agent. It does not perform complex reasoning itself but directs the execution flow based on the current state of the global context. It enforces the maximum iteration limit to prevent infinite loops.
+The Supervisor Agent acts as the central router and state manager. It does not perform complex reasoning itself but directs execution flow based on the current state. It enforces iteration limits to prevent infinite loops and uses the **Scoring Engine's decision gate** to determine next steps.
 
 ## Role in Graph
 - **Node Name:** `supervisor`
@@ -15,31 +15,39 @@ The Supervisor Agent acts as the central router and state manager for the Suppor
 - `state["meta"]["iterations"]`: Increments the iteration counter.
 - **Routing Decision:** Returns the name of the next node to execute.
 
-## Logic & Routing Rules
+## Routing Pipeline
 
-The Supervisor evaluates the state in the following order:
+The Supervisor evaluates the state in priority order:
 
-1.  **Safety Break:**
-    -   If `state["meta"]["iterations"] >= MAX_ITERATIONS`, routes to `response_agent` (forcing a "Handoff" report).
+| Priority | Condition | Route |
+|:---|:---|:---|
+| 0 | `iterations >= MAX_ITERATIONS` | `response_agent` (forced exit) |
+| 1 | No `client_context` | `context_agent` |
+| 2 | No `classification` | `classifier_agent` |
+| 3 | No `components` | `mapper_agent` |
+| 4 | No `evidence_refs` | `evidence_collector` |
+| 5 | `pending_requirements` exist | `response_agent` (HITL pause) |
+| 6 | `scoring.decision = proceed_to_plan` | `planner_agent` (or `response_agent` if plan exists) |
+| 7 | `scoring.decision = needs_more_evidence` | `investigator_agent` (if active hypotheses) or `evidence_collector` |
+| 8 | `scoring.decision = escalate_to_human` | `response_agent` |
+| 9 | Verified hypothesis (pre-scoring) | `planner_agent` |
+| 10 | Active hypotheses (pre-scoring) | `investigator_agent` |
+| 11 | Default | `response_agent` |
 
-2.  **Context & Classification & Mapping:**
-    -   Ensures prerequisites (Context, Domains, Components) are present.
+## Iteration Limits
+- **Normal mode:** 15 iterations max
+- **Fast mode (`TEST_MODE_FAST`):** 8 iterations max
 
-3.  **Evidence Collection (Initial):**
-    -   If `state["evidence_refs"]` is empty, routes to `evidence_collector`.
-
-4.  **Active Diagnosis Loop (The Core):**
-    -   Checks `state["hypotheses"]`.
-    -   **Success:** If there is a `verified` hypothesis, routes to `planner_agent` (or `response_agent`).
-    -   **Investigation:** If there is a `proposed` hypothesis, routes to `investigator_agent`.
-
-5.  **Quality Control & Feedback:**
-    -   Before exiting to `response_agent`, it checks: "Do we have a verified diagnosis?".
-    -   **Retry:** If NO and iterations < MAX, it loops back to `planner_agent` or `investigator_agent` to gather more proof.
-    -   **Abort:** If NO and iterations >= MAX, it proceeds to `response_agent` but flags the report as "Inconclusive".
-
-6.  **Final Response:**
-    -   If the diagnosis is confirmed or the loop is exhausted, routes to `response_agent`.
+## Resume Handling
+On resume (after HITL pause):
+- `scoring` is reset to `None` so the supervisor doesn't re-use old decisions.
+- `plan` is reset to `None` for re-planning.
+- `path_analysis` is reset to `None` for re-evaluation.
+- `iterations` is reset to 0.
 
 ## Interactions
-The Supervisor sits at the center of the "Hub and Spoke" (or star) topology for parts of the graph, although some agents (like `Investigator` -> `Enricher` -> `Hypothesis`) form linear sub-chains that eventually loop back to the Supervisor for the next routing decision.
+The Supervisor sits at the center of the graph. Some agents form fixed sub-chains:
+```
+evidence_collector → enricher → hypothesis → scoring → supervisor
+investigator       → enricher → hypothesis → scoring → supervisor
+```

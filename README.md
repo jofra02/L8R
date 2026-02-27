@@ -1,6 +1,6 @@
 # Support AI Agent Framework
 
-A production-grade, multi-agent system that automates **L1/L2 technical support** for IT infrastructure. Built on **LangGraph** for stateful orchestration, **MCP (Model Context Protocol)** for secure tool execution, and a strict **multi-tenant** architecture with per-tenant data isolation.
+A production-grade, multi-agent system that automates **L1/L2 technical support** for IT infrastructure, cloud, and application environments. Built on **LangGraph** for stateful orchestration, **MCP (Model Context Protocol)** for secure tool execution, and a strict **multi-tenant** architecture with per-tenant data isolation. Features **graph-based topology reasoning** for path analysis and breakpoint detection.
 
 ---
 
@@ -50,14 +50,14 @@ graph TD
 
 | Step | Agent | Reads | Writes | Doc |
 |:---|:---|:---|:---|:---|
-| 1 | **Supervisor** | `meta.iterations` | `meta.iterations` | [docs/agents/supervisor.md](docs/agents/supervisor.md) |
-| 2 | **Context Agent** | `customer_id` | `client_context` (inventory, baselines) | [docs/agents/context_agent.md](docs/agents/context_agent.md) |
+| 1 | **Supervisor** | `meta.iterations`, `scoring` | `meta.iterations` | [docs/agents/supervisor.md](docs/agents/supervisor.md) |
+| 2 | **Context Agent** | `customer_id` | `client_context`, `topology_nodes`, `topology_edges` | [docs/agents/context_agent.md](docs/agents/context_agent.md) |
 | 3 | **Classifier** | `ticket.text` | `classification` (domains, confidence) | [docs/agents/classifier.md](docs/agents/classifier.md) |
 | 4 | **Mapper** | `ticket`, `client_context` | `components` (devices, services) | [docs/agents/mapper.md](docs/agents/mapper.md) |
-| 5 | **Evidence Collector** | `components`, `ticket` | `evidence_refs` (tool outputs) | [docs/agents/evidence_collector.md](docs/agents/evidence_collector.md) |
-| 6 | **Enricher** | `evidence_refs`, `facts` | `facts` (key-value + ATT&CK mapping) | [docs/agents/enricher.md](docs/agents/enricher.md) |
-| 7 | **Hypothesis Agent** | `facts`, `ticket` | `hypotheses` (ranked, with status) | [docs/agents/hypothesis.md](docs/agents/hypothesis.md) |
-| 8 | **Scoring Engine** | `hypotheses`, `evidence_refs`, `facts`, `ticket.severity` | `scoring` (risk, confidence, decision gate) | — |
+| 5 | **Evidence Collector** | `components`, `ticket`, `path_analysis` | `evidence_refs` (tool outputs) | [docs/agents/evidence_collector.md](docs/agents/evidence_collector.md) |
+| 6 | **Enricher** | `evidence_refs`, `facts`, `topology_*` | `facts`, `topology_nodes`, `topology_edges` | [docs/agents/enricher.md](docs/agents/enricher.md) |
+| 7 | **Hypothesis Agent** | `facts`, `ticket`, `topology_*`, `baselines`, `known_changes` | `hypotheses`, `path_analysis` | [docs/agents/hypothesis.md](docs/agents/hypothesis.md) |
+| 8 | **Scoring Engine** | `hypotheses`, `evidence_refs`, `facts`, `ticket.severity` | `scoring` (risk, confidence, decision gate) | [docs/agents/scoring.md](docs/agents/scoring.md) |
 | 9 | **Investigator** | `hypotheses`, `components` | `evidence_refs`, `hypotheses.status` | [docs/agents/investigator.md](docs/agents/investigator.md) |
 | 10 | **Planner** | `ticket`, `hypotheses`, `facts`, `evidence_refs` | `plan` (diagnosis, remediation, rollback) | [docs/agents/planner.md](docs/agents/planner.md) |
 | 11 | **Response Agent** | entire state | `final_answer`, `handoff` | [docs/agents/response.md](docs/agents/response.md) |
@@ -91,11 +91,14 @@ The scoring agent runs after every hypothesis update and produces a **determinis
 
 ## Key Features
 
+- **Path & Dependency Reasoning:** Builds a graph-based topology model from evidence. Identifies candidate flow paths, breakpoints, and missing evidence. Proposes read-only verification probes. See [Hypothesis Agent](docs/agents/hypothesis.md).
 - **Case-Based Reasoning (CBR):** The planner queries Qdrant for past resolved tickets to learn from historical fixes before generating a new plan.
 - **Adaptive Tool Execution:** If a tool fails, the `AdaptiveExecutor` queries the vector DB for documented fixes and auto-recovers. Learned fixes are persisted for future use. See [Adaptive Execution & Learning](docs/architecture/002_adaptive_execution_learning.md).
-- **Smart Device Targeting:** Distinguishes between executor devices (firewalls, routers) and targets (subnets, IPs) to prevent argument mismatches. See [Evidence Collector Technical](docs/evidence_collector_technical.md).
+- **Multi-Intent Tool Discovery:** Evidence collector generates 3-5 diagnostic intents per component, each searched independently via Qdrant for comprehensive tool coverage.
+- **Smart Device Targeting:** Distinguishes between executor devices and targets across 30+ roles to prevent argument mismatches.
 - **Tool Governance:** Two-layer safety: keyword blocklist (`is_safe_tool`) + per-tenant `CapabilityScope` ORM allowlists (`is_tool_allowed_for_tenant`).
 - **MITRE ATT&CK Enrichment:** The enricher maps evidence to ATT&CK tactics/techniques when applicable.
+- **Topology-Aware Baselines:** Known normal metrics and recent changes are injected into hypothesis reasoning.
 - **Structured Engineering Reports:** Output is a formatted technical document, not a chat summary.
 - **Async API:** REST job pattern (HTTP 202 + polling). See [API Integration Guide](docs/api_integration.md).
 - **Full Audit Trail:** Every agent step and tool call is logged to PostgreSQL. See [SOCi Compliance Analysis](docs/architecture/soci_compliance_analysis.md).
@@ -106,18 +109,7 @@ The scoring agent runs after every hypothesis update and produces a **determinis
 
 ### PostgreSQL (Relational)
 
-Managed via Alembic migrations. Key tables:
-
-| Table | Purpose |
-|:---|:---|
-| `platform_tenants` | Tenant registry (customer_id, plan, status) |
-| `capability_scopes` | Per-tenant tool allowlists |
-| `tickets` | Normalized ticket storage |
-| `agent_runs` | Execution sessions with full `state_json` snapshots |
-| `agent_events` | Granular step-by-step audit log |
-| `tool_call_audits` | Every tool invocation with args/result |
-
-See [Data Layer Blueprint](docs/planning/data_layer_blueprint.md) for schema details.
+See [Data Layer & Architecture Reference](docs/architecture/data_layer.md) for complete schema, collections, and data flow documentation.
 
 ### Qdrant (Vector)
 
@@ -229,8 +221,8 @@ src/
 │   ├── classifier.py    # Domain classification
 │   ├── mapper.py        # Component identification
 │   ├── evidence_collector.py  # Tool execution loop
-│   ├── enricher.py      # Fact extraction + ATT&CK mapping
-│   ├── hypothesis.py    # Root cause hypothesis generation
+│   ├── enricher.py      # Fact extraction + topology extraction + ATT&CK mapping
+│   ├── hypothesis.py    # Root cause hypothesis + path analysis
 │   ├── investigator.py  # Hypothesis verification via tools
 │   ├── planner.py       # Resolution plan generation (CBR)
 │   └── response.py      # Final report + HITL handler
@@ -289,6 +281,7 @@ docs/
 | Agent Communication Analysis | [docs/architecture/004_agent_communication_analysis.md](docs/architecture/004_agent_communication_analysis.md) |
 | SOCi Compliance | [docs/architecture/soci_compliance_analysis.md](docs/architecture/soci_compliance_analysis.md) |
 | Tool Governance | [docs/architecture/tool_governance.md](docs/architecture/tool_governance.md) |
+| Data Layer Reference | [docs/architecture/data_layer.md](docs/architecture/data_layer.md) |
 | Data Layer Blueprint | [docs/planning/data_layer_blueprint.md](docs/planning/data_layer_blueprint.md) |
 | Model Governance | [docs/planning/model_governance.md](docs/planning/model_governance.md) |
 
