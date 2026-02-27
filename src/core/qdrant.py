@@ -208,6 +208,7 @@ class VectorStore:
         extra_filter: list = None,
     ) -> List[models.ScoredPoint]:
         """Search with MANDATORY customer_id filter and optional extra filters."""
+        await self.ensure_collection(collection_name)
         vector = await self._get_embedding(query_text)
         tenant_filter = self._build_tenant_filter(customer_id, extra_must=extra_filter)
         
@@ -422,6 +423,37 @@ class VectorStore:
             customer_id=customer_id,
             source_type="tool_catalog",
         )
+
+    async def get_indexed_tool_names(self, customer_id: str) -> set:
+        """
+        Return the set of tool_names already indexed in tool_catalog for a tenant.
+        Uses scroll (no embedding call) — cheap and fast.
+        """
+        await self.ensure_collection("tool_catalog")
+        
+        indexed = set()
+        offset = None
+        tenant_filter = self._build_tenant_filter(customer_id)
+        
+        while True:
+            results, next_offset = await self.client.scroll(
+                collection_name="tool_catalog",
+                scroll_filter=tenant_filter,
+                limit=250,
+                offset=offset,
+                with_payload=["tool_name"],
+                with_vectors=False,
+            )
+            for pt in results:
+                name = pt.payload.get("tool_name")
+                if name:
+                    indexed.add(name)
+            
+            if next_offset is None:
+                break
+            offset = next_offset
+        
+        return indexed
 
     @rag_telemetry(operation_name="search_tool_catalog")
     async def search_tool_catalog(

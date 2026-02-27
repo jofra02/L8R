@@ -112,13 +112,42 @@ class CapabilityRegistry:
 
     @classmethod
     async def index_tools_for_tenant(cls, customer_id: str):
-        """Index all registered tools into Qdrant tool_catalog for a specific tenant."""
+        """
+        Index registered tools into Qdrant tool_catalog for a specific tenant.
+        Uses diff logic: only indexes tools not already present, avoiding
+        unnecessary OpenAI Embedding API calls on warm startups.
+        """
         from src.core.qdrant import vector_store
         
         tools = cls.list_tools()
-        logger.info(f"Registry: Indexing {len(tools)} tools for tenant '{customer_id}'")
+        registry_names = {t.name for t in tools}
         
-        for tool in tools:
+        # Fast scroll — no embeddings, just payload field
+        already_indexed = await vector_store.get_indexed_tool_names(customer_id)
+        
+        new_tools = registry_names - already_indexed
+        stale_tools = already_indexed - registry_names  # tools removed from MCP
+        
+        if not new_tools and not stale_tools:
+            logger.info(
+                f"Registry: tool_catalog up to date for '{customer_id}' "
+                f"({len(already_indexed)} tools). Skipping indexing."
+            )
+            return
+        
+        if stale_tools:
+            logger.info(f"Registry: {len(stale_tools)} stale tools detected (not cleaning up yet)")
+        
+        logger.info(
+            f"Registry: Indexing {len(new_tools)} NEW tools for '{customer_id}' "
+            f"(skipping {len(already_indexed)} already indexed)"
+        )
+        
+        tools_by_name = {t.name: t for t in tools}
+        indexed_count = 0
+        
+        for tool_name in new_tools:
+            tool = tools_by_name[tool_name]
             try:
                 args_schema_json = {}
                 if tool.args_schema:
@@ -133,10 +162,11 @@ class CapabilityRegistry:
                     server_name=server_name,
                     customer_id=customer_id,
                 )
+                indexed_count += 1
             except Exception as e:
                 logger.warning(f"Registry: Failed to index tool {tool.name}: {e}")
         
-        logger.info(f"Registry: Indexed {len(tools)} tools for tenant '{customer_id}'")
+        logger.info(f"Registry: Indexed {indexed_count}/{len(new_tools)} new tools for '{customer_id}'")
 
     @classmethod
     async def semantic_search_tools(cls, intent: str, customer_id: str, limit: int = 8) -> List[MCPToolInterface]:

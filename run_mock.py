@@ -85,6 +85,11 @@ def main():
         CapabilityRegistry.load_builtin_packs()
         await CapabilityRegistry.load_external_tools()
         
+        # Bootstrap ALL Qdrant collections + indexes
+        from src.core.qdrant import vector_store
+        logger.info("Ensuring all Qdrant collections exist...")
+        await vector_store.ensure_all_collections()
+        
         # Index tools in Qdrant tool_catalog for semantic search
         logger.info("Indexing tools in tool_catalog for semantic search...")
         await CapabilityRegistry.index_tools_for_tenant(initial_state["customer_id"])
