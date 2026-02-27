@@ -48,11 +48,11 @@ class Settings(BaseSettings):
     LLM_MODEL_MAPPER: str = "gpt-5-nano"
     LLM_MODEL_SUPERVISOR: str = "gpt-5-mini" 
     LLM_MODEL_EVIDENCE_COLLECTOR: str = "gpt-4.1-mini"
-    LLM_MODEL_ENRICHER: str = "gpt-5-nano"
-    LLM_MODEL_HYPOTHESIS: str = "gpt-5-mini"
+    LLM_MODEL_ENRICHER: str = "gpt-5-mini"
+    LLM_MODEL_HYPOTHESIS: str = "gpt-5.2"
     LLM_MODEL_INVESTIGATOR: str = "gpt-5.2"
     LLM_MODEL_PLANNER: str = "gpt-5.2"
-    LLM_MODEL_RESPONSE: str = "gpt-4o-mini"
+    LLM_MODEL_RESPONSE: str = "gpt-5-mini"
     
     # Global Tuning
     LLM_REASONING_EFFORT: str = "low" # Can be injected into reasoning models to speed up tasks
