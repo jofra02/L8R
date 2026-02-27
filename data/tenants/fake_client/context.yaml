@@ -1,5 +1,5 @@
 customer_id: "fake_client"
-version: "1.0.2"
+version: "1.1.0"
 inventory:
   - id: "fgt_casa"
     ref: "Local FortiGate-60E"
@@ -23,6 +23,34 @@ inventory:
       description: "Fortigate Firewall of Druidics's office"
       tags: ["Perimeter", "Firewall"]
 
-dependencies: []
-baselines: []
-access_scopes: ["network_read"]
+dependencies:
+  - source_id: "fgt_casa"
+    target_id: "fgt_druidics"
+    relation: "connects_to"
+    metadata:
+      link_type: "vpn_ipsec"
+      description: "Site-to-site VPN between local and Druidics office"
+
+baselines:
+  - component_id: "fgt_casa"
+    metric: "cpu_usage"
+    normal_value: "< 30%"
+    description: "Under normal operation, CPU stays low on this 60E"
+  - component_id: "fgt_druidics"
+    metric: "session_count"
+    normal_value: "~2000"
+    description: "Typical active sessions during business hours"
+  - component_id: "fgt_druidics"
+    metric: "uptime_days"
+    normal_value: "> 30"
+    description: "Last reboot was more than a month ago"
+
+known_changes:
+  - date: "2026-02-20"
+    description: "Upgraded firmware on fgt_druidics from 7.4.3 to 7.4.5"
+    component_id: "fgt_druidics"
+    change_type: "update"
+  - date: "2026-02-25"
+    description: "Added new firewall policy for guest VLAN on fgt_casa"
+    component_id: "fgt_casa"
+    change_type: "config_change"

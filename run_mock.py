@@ -103,7 +103,7 @@ def main():
             tenant = await session.get(PlatformTenant, "fake_client")
             if not tenant:
                 print("    Creating missing PlatformTenant 'fake_client'...")
-                tenant = PlatformTenant(id="fake_client", name="Mock Test Client")
+                tenant = PlatformTenant(customer_id="fake_client", name="Mock Test Client")
                 session.add(tenant)
                 await session.commit()
             

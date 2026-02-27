@@ -41,15 +41,35 @@ class Component(BaseModel):
     priority: int = 1
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
+class InventoryDependency(BaseModel):
+    """A known dependency/relationship between inventory components. Seeds the topology graph."""
+    source_id: str                  # Component ID
+    target_id: str                  # Component ID
+    relation: str                   # "routes_to", "depends_on", "serves", "hosts", "connects_to"
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+class Baseline(BaseModel):
+    """A known normal metric for a component — helps distinguish anomaly from expected state."""
+    component_id: str               # Which component
+    metric: str                     # "cpu_usage", "latency_ms", "session_count", "uptime_days"
+    normal_value: str               # "< 60%", "~30ms", "> 99.9%"
+    description: str = ""
+
+class KnownChange(BaseModel):
+    """A recent change in the environment — common root cause candidate."""
+    date: str                       # "2026-02-25"
+    description: str                # "Upgraded firmware on fgt_druidics to 7.4.5"
+    component_id: Optional[str] = None  # Affected component
+    change_type: str = "update"     # "update", "addition", "removal", "config_change"
+
 class ClientContext(BaseModel):
     """Context and constraints for a specific customer."""
     customer_id: str
     version: str
     inventory: List[Component] = Field(default_factory=list)
-    dependencies: List[Dict[str, Any]] = Field(default_factory=list)
-    baselines: List[Dict[str, Any]] = Field(default_factory=list)
-    known_changes: List[Dict[str, Any]] = Field(default_factory=list)
-    access_scopes: List[str] = Field(default_factory=list)
+    dependencies: List[InventoryDependency] = Field(default_factory=list)
+    baselines: List[Baseline] = Field(default_factory=list)
+    known_changes: List[KnownChange] = Field(default_factory=list)
 
 # --- Reasoning & Artifacts ---
 

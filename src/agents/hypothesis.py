@@ -60,6 +60,30 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
             lines.append(f"- {src} ──[{rel}]──> {tgt} (confidence: {conf:.0%}){meta_str}")
         topology_str = "\n".join(lines)
     
+    # Format baselines and known changes
+    client_context = state.get("client_context")
+    baselines_str = "No baselines defined."
+    changes_str = "No recent changes known."
+    if client_context:
+        ctx = client_context if hasattr(client_context, 'baselines') else type('C', (), client_context)()
+        baselines = ctx.baselines if hasattr(ctx, 'baselines') else client_context.get('baselines', [])
+        known_changes = ctx.known_changes if hasattr(ctx, 'known_changes') else client_context.get('known_changes', [])
+        if baselines:
+            bl_lines = []
+            for b in baselines:
+                comp = b.component_id if hasattr(b, 'component_id') else b.get('component_id', '?')
+                metric = b.metric if hasattr(b, 'metric') else b.get('metric', '?')
+                val = b.normal_value if hasattr(b, 'normal_value') else b.get('normal_value', '?')
+                bl_lines.append(f"- {comp}: {metric} = {val}")
+            baselines_str = "\n".join(bl_lines)
+        if known_changes:
+            kc_lines = []
+            for c in known_changes:
+                date = c.date if hasattr(c, 'date') else c.get('date', '?')
+                desc = c.description if hasattr(c, 'description') else c.get('description', '?')
+                kc_lines.append(f"- [{date}] {desc}")
+            changes_str = "\n".join(kc_lines)
+    
     system_prompt_text = """You are an elite, top-tier IT Support and Incident Response Engineer (SME Level) operating across multiple disciplines (Networking, Infrastructure, Cloud, Security, Development, Database, Server OS).
 
         Based on the provided ticket, collected facts, and EXISTING HYPOTHESES, your task is to comprehend the entire scenario, map out all involved components structurally, and generate an updated, strictly-ranked list of logical hypotheses.
@@ -103,7 +127,7 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt_text),
-        ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\nTopology Graph:\n{topology}\n\nCurrent Hypotheses:\n{hypotheses}\n\n{format_instructions}")
+        ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\nTopology Graph:\n{topology}\n\nBaselines (normal values):\n{baselines}\n\nRecent Changes:\n{known_changes}\n\nCurrent Hypotheses:\n{hypotheses}\n\n{format_instructions}")
     ])
     
     chain = prompt | llm | parser
@@ -113,6 +137,8 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
             "text": state["ticket"].text,
             "facts": facts_str,
             "topology": topology_str,
+            "baselines": baselines_str,
+            "known_changes": changes_str,
             "hypotheses": hypotheses_str,
             "format_instructions": parser.get_format_instructions()
         })
