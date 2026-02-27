@@ -45,9 +45,6 @@ def audit_node(node_func, node_name: str):
         return result
     return wrapped
 
-
-# ... (omitted)
-
 # 1. Add Nodes (Wrapped)
 workflow.add_node("supervisor", audit_node(supervisor_agent_node, "supervisor"))
 workflow.add_node("context_agent", audit_node(context_agent_node, "context_agent"))
@@ -86,17 +83,9 @@ workflow.add_conditional_edges(
 workflow.add_edge("context_agent", "supervisor")
 workflow.add_edge("classifier_agent", "supervisor")
 workflow.add_edge("mapper_agent", "supervisor")
-workflow.add_edge("evidence_collector", "enricher_agent") # Linear sub-chain: Collect -> Enrich -> Supervisor
-workflow.add_edge("investigator_agent", "enricher_agent") # New: Investigate -> Enrich -> Hypothesis -> Supervisor
-workflow.add_edge("enricher_agent", "hypothesis_agent") # Enrich -> Hypothesis -> Supervisor
-
-# 3. Return Edges to Supervisor
-# After each specialist finishes, return to supervisor to update state/iteration and route again
-workflow.add_edge("context_agent", "supervisor")
-workflow.add_edge("classifier_agent", "supervisor")
-workflow.add_edge("mapper_agent", "supervisor")
-workflow.add_edge("evidence_collector", "enricher_agent") # Linear sub-chain: Collect -> Enrich -> Supervisor
-workflow.add_edge("enricher_agent", "hypothesis_agent") # Enrich -> Hypothesis -> Supervisor
+workflow.add_edge("evidence_collector", "enricher_agent")    # Sub-chain: Collect -> Enrich
+workflow.add_edge("investigator_agent", "enricher_agent")    # Sub-chain: Investigate -> Enrich
+workflow.add_edge("enricher_agent", "hypothesis_agent")      # Sub-chain: Enrich -> Hypothesis
 workflow.add_edge("hypothesis_agent", "supervisor")
 workflow.add_edge("planner_agent", "supervisor")
 workflow.add_edge("response_agent", END)

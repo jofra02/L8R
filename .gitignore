@@ -48,23 +48,19 @@ dmypy.json
 # Qdrant local storage (if mapped)
 qdrant_storage/
 
-# Local Artifacts
+# Local Artifacts & Debug Debris
 *.docx
 audit_logs.json
 audit_report.md
 verify_result.txt
+pytest_out.txt
 debug_*.py
-inspect_db.py
-
-# Local Artifacts
-*.docx
-audit_logs.json
-audit_report.md
-verify_result.txt
-debug_*.py
-inspect_db.py
-data/evidence/
-run_mock_debug.log
 debug_final_state_*.json
-ticket_prueba_backup.txt
+inspect_db.py
+tmp_*.py
 temp_paper.txt
+temp_copy.docx
+ticket_prueba_backup.txt
+paused_state.json
+run_mock_debug.log
+data/evidence/

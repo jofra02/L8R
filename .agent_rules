@@ -1,0 +1,8 @@
+# Agent Communication Rules
+- Maintain a strict, professional, direct, and technical tone.
+- Do NOT use overly enthusiastic language, colloquialisms, or infantilizing phrases (e.g., "¡Ah! Qué interesante", "Excelente ojo").
+- Avoid unnecessary exclamation marks or emojis.
+- Deliver facts, code, and explanations concisely without conversational filler.
+
+# Operational Rules
+- NEVER interact with Git (git add, git commit, git push, etc.) unless EXPLICITLY instructed to do so by the user.

@@ -93,7 +93,6 @@ async def init_db():
     # 2. Qdrant Initialization
     try:
         from src.core.qdrant import vector_store
-        from src.core.qdrant import vector_store
         await vector_store.ensure_collection("knowledge_base")
         await vector_store.ensure_collection("evidence")
         await vector_store.ensure_collection("tool_knowledge")
@@ -189,11 +188,6 @@ async def run_test_ticket():
     print(f"FINAL ANSWER:\n{output.get('final_answer')}")
     print("="*50)
     
-    if output.get("plan"):
-        print("\nPLAN Generated:")
-        for step in output["plan"].diagnosis_steps:
-            print(f"- {step.tool}: {step.description}")
-
     if output.get("plan"):
         print("\nPLAN Generated:")
         for step in output["plan"].diagnosis_steps:

@@ -131,7 +131,13 @@ def main():
         print(final_state.get("final_answer", "No report generated."))
         print("="*80)
         
-        await audit.complete_run(run_id, status="completed")
+        # Save output to audit history
+        try:
+            serializable_state = audit._sanitize(final_state)
+            await audit.update_run_context(run_id, "fake_client", serializable_state)
+            await audit.complete_run(run_id, status="completed")
+        except Exception as e:
+            logger.error(f"Failed to save final state to database in mock: {e}")
 
     asyncio.run(seed_and_run())
 

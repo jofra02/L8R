@@ -1,34 +1,13 @@
 {
-  "ticket_id": "8c5ad85a-8dbc-41e6-928f-2022e8aea7a4",
+  "ticket_id": "MOCK-af211c",
   "status": "paused_for_input",
   "required_inputs": [
     {
-      "key": "missing_ping_fgt_casa",
-      "tool": "ping",
-      "component": "fgt_casa",
-      "instruction": "I need A concrete target to ping (the exact IP address or hostname of the AWS endpoint the users are trying to reach). Also confirm the test source/context: should the ping be run from the firewall 'fgt_casa' (provide the inventory identifier or management IP / source interface) or from a host in subnet 192.168.241.0 (provide a host IP)? to execute 'ping' on fgt_casa.",
-      "value": "3.163.139.104"
-    },
-    {
-      "key": "missing_ping_users_192.168.241.x",
-      "tool": "ping",
-      "component": "users_192.168.241.x",
-      "instruction": "I need IP o hostname v\u00e1lido para hacer ping. Necesito al menos uno de los siguientes (no puedo inferirlo):\n  - La IP o el hostname exacto de la \"p\u00e1gina principal de AWS\" que se quiere comprobar (por ejemplo el FQDN que los usuarios intentan alcanzar),\n  - La IP del gateway de la subred 192.168.241.0 o la IP de la interfaz interna del FortiGate asociada a esa subred (si el ping debe ejecutarse hacia el firewall/gateway),\n  - La IP de un host dentro de la subred 192.168.241.0 para comprobar conectividad interna.\nAdem\u00e1s indique desde qu\u00e9 dispositivo/ubicaci\u00f3n debe ejecutarse el ping (p. ej. desde el FortiGate, desde un host cliente, o desde una herramienta de diagn\u00f3stico). to execute 'ping' on users_192.168.241.x.",
-      "value": "3.163.139.104"
-    },
-    {
-      "key": "missing_ping_users_192.168.241.x",
-      "tool": "ping",
-      "component": "users_192.168.241.x",
-      "instruction": "I need Which exact target should be pinged and from where? Need (A) the intended ping target: either the subnet gateway IP for 192.168.241.0 OR the external AWS host/IP (the 'main AWS page') to test. The previously used value 192.168.241.1 is unreachable and cannot be assumed correct. And (B) the origin of the ping: the device/host to run the ping from (e.g., FortiGate device identifier or its management IP, or a host on 192.168.241.0). to execute 'ping' on users_192.168.241.x.",
-      "value": "A: 192.168.241.1, B:null"
-    },
-    {
-      "key": "missing_fgt_monitor_sys_get_config_sync_status_aws_main_page",
-      "tool": "fgt_monitor_sys_get_config_sync_status",
-      "component": "aws_main_page",
-      "instruction": "I need Target device to query for config-sync status: provide the device inventory identifier or management IP (or confirm the device with serial 'FGT60ETK19031088' is the target). Also confirm whether this FortiGate is part of an SLBC/HA cluster and the FortiOS version/build if available. to execute 'fgt_monitor_sys_get_config_sync_status' on aws_main_page.",
-      "value": "It is not a ha cluster"
+      "key": "missing_fgt_cmdb_sys_get_speed_test_schedule_interface_fgt_druidics",
+      "tool": "fgt_cmdb_sys_get_speed_test_schedule_interface",
+      "component": "fgt_druidics",
+      "instruction": "I need Valid 'interface' mkey for system speed-test-schedule on device fgt_druidics (the value 'any' does not exist, causing HTTP 404). to execute 'fgt_cmdb_sys_get_speed_test_schedule_interface' on fgt_druidics.",
+      "value": "do not use this tool"
     }
   ]
 }
