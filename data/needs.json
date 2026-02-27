@@ -1,20 +1,13 @@
 {
-  "ticket_id": "MOCK-b924bb",
+  "ticket_id": "UI-3105e8",
   "status": "paused_for_input",
   "required_inputs": [
     {
-      "key": "missing_fgt_cmdb_sys_post_interface_fgt_casa",
-      "tool": "fgt_cmdb_sys_post_interface",
-      "component": "fgt_casa",
-      "instruction": "I need Intent confirmation: this ticket says 'validar/collect evidence' (read-only), but the selected tool is fgt_cmdb_sys_post_interface (POST=create). Please confirm whether you really want to CREATE/MODIFY an interface, or if you meant to READ existing interface config (would require a GET/list tool instead).; If the intent is truly POST (create interface), the request is missing required interface attributes that cannot be inferred from the case: at minimum the new interface 'name' and its 'type/mode' (e.g., physical/vlan/aggregate/tunnel), plus any required linkage fields (e.g., parent 'interface' for VLAN, 'vlanid', and addressing 'ip').; Scope/VDOM: the error shows vdom='root'. Confirm the target VDOM (root vs another), since creating an interface in the wrong VDOM would be incorrect. to execute 'fgt_cmdb_sys_post_interface' on fgt_casa.",
-      "value": "Do not perform config changes in any kind"
-    },
-    {
-      "key": "missing_fgt_monitor_fw_get_firewall_sessions_fgt_druidics",
-      "tool": "fgt_monitor_fw_get_firewall_sessions",
+      "key": "missing_fgt_cmdb_sys_put_interface_name_fgt_druidics",
+      "tool": "fgt_cmdb_sys_put_interface_name",
       "component": "fgt_druidics",
-      "instruction": "I need Tool dependency mismatch: the MCP tool 'fgt_monitor_fw_get_firewall_sessions' is calling an endpoint that the target FortiGate (serial FG200E4Q17909046, FortiOS v7.2.12 build 1761) returns as HTTP 404 Not Found (path=firewall, name=sessions). This is not fixable by changing the provided arguments (count/srcaddr/dstaddr/device) because 404 indicates the backend route does not exist for this device/firmware or is not exposed by the API proxy.; Need the correct supported monitor/API path (or alternative tool) to retrieve sessions on FortiOS 7.2.12 for this device, OR confirmation that the API account/profile has permissions to access session monitoring endpoints.; If the environment uses VDOMs, confirm the VDOM scope expected by the tooling/API proxy for session queries (not present in schema, but could be required in the backend). to execute 'fgt_monitor_fw_get_firewall_sessions' on fgt_druidics.",
-      "value": "Tools are made for FortiOS 7.4, if used in any other FortiOS version, it should not work properly"
+      "instruction": "I need Interface mkey real en fgt_druidics para usar como name__path (el valor 'interface' no es un nombre de interfaz v\u00e1lido; debe ser algo existente como portX, vlanY, etc.).; Qu\u00e9 cambios exactos se quieren aplicar en esa interfaz (campos a actualizar: ip, allowaccess, role, vlanid, etc.).; VDOM objetivo si no es 'root' (el error muestra que se intent\u00f3 en vdom=root). to execute 'fgt_cmdb_sys_put_interface_name' on fgt_druidics.",
+      "value": "internal7"
     }
   ]
 }

@@ -274,10 +274,17 @@ async def resume_execution(needs_path: str, state_path: str):
     if isinstance(state.get("plan"), dict):
         state["plan"] = Plan(**state["plan"])
 
-    # 6. Reset Iterations to give the agent time to think with new info
+    # 6. Reset state for re-investigation with new facts
     if "meta" in state:
         state["meta"]["iterations"] = 0
         logger.info("Iterations reset to 0 for resume.")
+    
+    # Reset scoring so supervisor doesn't re-use old decision (e.g. escalate_to_human)
+    state["scoring"] = None
+    logger.info("Scoring reset to None — agent will re-evaluate with new facts.")
+    
+    # Reset plan so agent re-plans based on new evidence
+    state["plan"] = None
 
     # 7. Execute
     output = await app.ainvoke(state)

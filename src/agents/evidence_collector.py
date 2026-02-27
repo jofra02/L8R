@@ -247,68 +247,81 @@ async def _select_resolution_tool(llm, component, context_str) -> List[Dict[str,
 
 async def _select_tools_for_component(llm, component: Component, ticket_text: str) -> List[Dict[str, Any]]:
     """
-    Uses LLM to describe INTENT, then semantic vector search to find tools.
+    Uses LLM to describe MULTIPLE specific diagnostic intents, 
+    then semantic vector search for each to find comprehensive tools.
     Returns List[{"name": str, "args": dict}].
     """
     vendor_context = f"Vendor: {component.vendor}" if component.vendor else "Vendor: Unknown"
     
-    # Step A: LLM generates a natural language INTENT (not keywords)
+    # Step A: LLM generates MULTIPLE specific diagnostic intents
     intent_prompt = f"""
 Context:
 Ticket: "{ticket_text}"
 Component: {component.id} (Role: {component.role}). {vendor_context}
 
-Task: Describe what diagnostic information you need to collect from this component to investigate this issue.
-Write 1-3 sentences describing the READ-ONLY diagnostic actions needed.
+Task: You are preparing a comprehensive diagnostic data collection plan.
+Generate 3-5 SPECIFIC diagnostic queries that describe what data you need to collect.
 
-Focus on WHAT you want to learn (e.g., "check interface health and traffic stats", "retrieve VPN tunnel status"), NOT tool names.
+Each query should target a DIFFERENT diagnostic angle, for example:
+- Routing: "retrieve the full IPv4 routing table and active route entries"
+- Interfaces: "check network interface status, link state, and traffic statistics"  
+- Sessions: "list active firewall sessions and connection tracking"
+- ARP/Neighbors: "get ARP table and neighbor discovery entries"
+- System: "retrieve system resource usage, CPU, memory, and uptime"
 
-DO NOT mention specific tool names. Just describe the diagnostic intent.
+RULES:
+1. Be SPECIFIC — mention the exact data type (routing table, ARP table, session list, etc.)
+2. DO NOT mention tool names — describe the DATA you want
+3. Each query should be 1 sentence, focused on ONE diagnostic area
+4. Cover the diagnostic areas most relevant to the ticket issue
+5. Always include at least one query for routing/connectivity data
 
 Return ONLY a JSON object:
-{{"intent": "your diagnostic intent description"}}
+{{"intents": ["query 1", "query 2", "query 3"]}}
 """
     
     try:
         response = await llm.ainvoke([
-            SystemMessage(content="You are an expert Network Engineer."),
+            SystemMessage(content="You are an expert Network Engineer performing systematic diagnostics."),
             HumanMessage(content=intent_prompt)
         ])
         parsed = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
-        intent = parsed.get("intent", f"{component.role} status health check")
+        intents = parsed.get("intents", [f"{component.role} status and health check"])
+        if isinstance(intents, str):
+            intents = [intents]
     except Exception as e:
         logger.warning(f"LLM intent generation failed: {e}")
-        intent = f"{component.role} {component.vendor or ''} status health diagnostics"
+        intents = [
+            f"{component.role} status health diagnostics",
+            f"routing table and network connectivity",
+            f"interface status and traffic statistics",
+        ]
     
-    logger.info(f"Diagnostic intent for {component.id}: {intent}")
+    logger.info(f"Diagnostic intents for {component.id}: {intents}")
     
-    # Step B: Semantic vector search in tool_catalog
-    # We need customer_id — it's not directly available in this function, 
-    # but we pass it from the caller via a module-level approach
+    # Step B: Semantic vector search for EACH intent, merge + deduplicate
     from src.core.qdrant import vector_store
     
-    # Try semantic search first
-    try:
-        tool_payloads = await vector_store.search_tool_catalog(
-            intent=intent,
-            customer_id=_current_customer_id,  # Set by the main node function
-            limit=10,
-        )
-        
-        if tool_payloads:
-            candidate_tools = {}
+    candidate_tools = {}
+    
+    for intent in intents:
+        try:
+            tool_payloads = await vector_store.search_tool_catalog(
+                intent=intent,
+                customer_id=_current_customer_id,
+                limit=5,  # Top 5 per intent
+            )
+            
             for payload in tool_payloads:
                 t_name = payload.get("tool_name")
-                tool = CapabilityRegistry.get_tool(t_name)
-                if tool:
-                    candidate_tools[t_name] = tool
-            
-            logger.info(f"Semantic search found {len(candidate_tools)} tools for {component.id}")
-        else:
-            candidate_tools = {}
-    except Exception as e:
-        logger.warning(f"Semantic search failed, falling back to keyword: {e}")
-        candidate_tools = {}
+                if t_name and t_name not in candidate_tools:
+                    tool = CapabilityRegistry.get_tool(t_name)
+                    if tool:
+                        candidate_tools[t_name] = tool
+        except Exception as e:
+            logger.warning(f"Semantic search failed for intent '{intent[:50]}': {e}")
+    
+    logger.info(f"Semantic search found {len(candidate_tools)} unique tools for {component.id}")
     
     # Fallback to keyword search if semantic returned nothing
     if not candidate_tools:
