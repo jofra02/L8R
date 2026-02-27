@@ -61,14 +61,17 @@ def supervisor_router(state: GlobalState) -> Literal[
     # 6. SCORING-DRIVEN DECISION GATE
     scoring = state.get("scoring")
     if scoring:
-        decision = scoring.decision
+        # Handle both ScoringResult object and dict (from JSON resume)
+        decision = scoring.get("decision") if isinstance(scoring, dict) else scoring.decision
+        confidence = scoring.get("confidence", 0) if isinstance(scoring, dict) else scoring.confidence
+        risk_score = scoring.get("risk_score", 0) if isinstance(scoring, dict) else scoring.risk_score
         
         if decision == "proceed_to_plan":
             if state.get("plan"):
                 # Plan already exists → go to response
                 logger.info("Supervisor: Plan ready, routing to response.")
                 return "response_agent"
-            logger.info(f"Supervisor: Scoring gate → proceed_to_plan (confidence={scoring.confidence:.0%})")
+            logger.info(f"Supervisor: Scoring gate → proceed_to_plan (confidence={confidence:.0%})")
             return "planner_agent"
         
         elif decision == "needs_more_evidence":
@@ -83,7 +86,7 @@ def supervisor_router(state: GlobalState) -> Literal[
                 return "evidence_collector"
         
         elif decision == "escalate_to_human":
-            logger.info(f"Supervisor: Scoring gate → escalate_to_human (risk={scoring.risk_score})")
+            logger.info(f"Supervisor: Scoring gate → escalate_to_human (risk={risk_score})")
             return "response_agent"
     
     # 7. Fallback: Pre-scoring routing (first iteration, before scoring exists)
