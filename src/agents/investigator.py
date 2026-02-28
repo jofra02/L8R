@@ -53,6 +53,8 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     Task: Describe what specific diagnostic action you need to verify or disprove this hypothesis.
     Write 1-2 sentences describing the READ-ONLY diagnostic action needed.
     Focus on WHAT you want to learn, NOT tool names.
+
+    CRITICAL: Always prefer inspecting CONFIGURATION (routes, policies, rules, service definitions, resource bindings) over live traffic analysis (debug flows, packet captures, session tables, sniffers). Configuration is deterministic, always available, and sufficient to verify most hypotheses.
     
     Return a JSON object with:
     - "intent": Natural language description of what diagnostic data you need (e.g., "retrieve current status and health metrics for the affected component")
@@ -117,14 +119,15 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     
     GUIDELINES:
     1. Analyze the Schema: Distinguish between Mandatory (Required) and Optional arguments. 
-    2. Context Check: Look for parameter values (like 'interface_name', 'policy_id', 'protocol') in the provided 'Facts', 'Components', and 'Evidence'.
+    2. Context Check: Look for parameter values (like resource names, identifiers, scopes, endpoints) in the provided 'Facts', 'Components', and 'Evidence'.
     3. CRITICAL: Use Component IDs for 'device', 'target', 'host' arguments.
     4. ANTI-HALLUCINATION: If a MANDATORY parameter is missing from the context, DO NOT INVENT IT. 
        - If you cannot fill a mandatory param, do NOT select that tool. Choose a simpler tool (like `get_status` or `show_system`) that requires fewer args.
     5. BLOCKED TOOLS: Check 'Previous Evidence' for "BLOCKED" or "Missing Info" regarding specific tools.
        - If a tool was recently BLOCKED due to missing info, DO NOT retry it unless you see the missing info in 'Facts' or 'Evidence'.
-       - Instead, select a **Discovery Tool** (e.g., `get_interfaces`, `show_system`, `get_routes`) to FIND that missing information.
+       - Instead, select a **Discovery Tool** (e.g., `get_status`, `list_resources`, `show_info`) to FIND that missing information.
     6. SAFETY: Do NOT select tools that modify configuration (set, edit, delete) or perform intrusive debugging. READ-ONLY only.
+    7. CONFIGURATION-FIRST: Prefer tools that read existing configuration (routes, policies, rules, bindings, definitions) over tools that inspect live traffic (debug flows, packet captures, session tables, sniffers). Configuration analysis is deterministic and always available.
     
     Return JSON:
     {{
@@ -169,7 +172,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                 if not match:
                      match = next((c for c in components if c.ref.lower() == str(val).lower() or c.role.lower() == str(val).lower()), None)
                      
-                if match:
+                if match and match.id != val:
                     # SMART CHECK: Only use this component as 'device' if it is an EXECUTOR
                     if key == "device":
                         is_executor = any(r in match.role.lower() for r in EXECUTOR_ROLES)
@@ -179,7 +182,6 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                         else:
                              logger.warning(f"Investigator: Prevented using non-executor '{match.id}' ({match.role}) as 'device'.")
                     else:
-                        # For target/host/ip, it's safe to use any component
                         logger.info(f"Investigator: Auto-correcting argument {key}='{val}' -> '{match.id}'")
                         tool_args[key] = match.id
         

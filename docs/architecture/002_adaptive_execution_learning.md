@@ -29,8 +29,8 @@ An asynchronous process that runs after a *recovered* failure (or optionally, af
 **Logic Flow:**
 1.  Compare `Failed Args` vs `Successful Args`.
 2.  Extract the "Rule" or "Trick".
-    *   *Example*: "When using `get_firewall_policy`, always convert `policyid` to integer."
-    *   *Example*: "For `fortios_configuration`, the `vdom` parameter is mandatory even if documentation says optional."
+    *   *Example*: "When using `get_resource_details`, always convert `resource_id` to integer."
+    *   *Example*: "For `get_configuration`, the `scope` parameter is mandatory even if documentation says optional."
 3.  Create a `ToolUsageInsight` object.
 4.  Save to **Vector Store (Qdrant)** under `tool_knowledge` collection.
 
@@ -77,7 +77,7 @@ Update `src/core/qdrant.py`.
 
 ## 5. User Experience
 - **Day 1**: System executes tools, hits common errors (400 Bad Request, missing params), enters Retry Loop, fixes them, and slows down slightly.
-- **Day 2**: System remembers the fixes. "Ah, I recall `fortios` needs this header." It executes correctly on the first try. Speed increases. Reliability increases.
+- **Day 2**: System remembers the fixes. It executes correctly on the first try. Speed increases. Reliability increases.
 
 ## 6. Diagram of Flow
 ```mermaid

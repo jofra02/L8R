@@ -75,9 +75,13 @@ async def receive_webhook(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/v1/jobs/{job_id}")
-async def get_job_status(job_id: str, service: IngestionService = Depends(get_ingestion_service)):
-    """Fetch the status of an active execution."""
-    status = await service.get_job_status(job_id)
+async def get_job_status(
+    job_id: str,
+    customer_id: str = Header(None, alias="X-Customer-ID"),
+    service: IngestionService = Depends(get_ingestion_service)
+):
+    """Fetch the status of an active execution (tenant-scoped if header provided)."""
+    status = await service.get_job_status(job_id, customer_id=customer_id)
     if not status:
         raise HTTPException(status_code=404, detail="Job not found")
     return status
@@ -93,9 +97,13 @@ async def get_tenant_jobs(customer_id: str, limit: int = 20, service: IngestionS
     return await service.get_tenant_jobs(customer_id, limit)
 
 @app.get("/api/v1/tickets/{ticket_id}/report")
-async def get_ticket_report(ticket_id: str, service: IngestionService = Depends(get_ingestion_service)):
-    """Fetch the generated markdown report once completed."""
-    report = await service.get_ticket_report(ticket_id)
+async def get_ticket_report(
+    ticket_id: str,
+    customer_id: str = Header(None, alias="X-Customer-ID"),
+    service: IngestionService = Depends(get_ingestion_service)
+):
+    """Fetch the generated markdown report once completed (tenant-scoped)."""
+    report = await service.get_ticket_report(ticket_id, customer_id=customer_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not generated yet or ticket not found")
     return report

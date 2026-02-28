@@ -29,12 +29,13 @@ class AdaptiveExecutor:
     3. Continuous Learning (Save insights)
     """
 
-    def __init__(self, max_retries: int = None):
+    def __init__(self, max_retries: int = None, customer_id: str = "unknown"):
         if max_retries is None:
             self.max_retries = 1 if settings.TEST_MODE_FAST else 2
         else:
             self.max_retries = max_retries
-            
+
+        self.customer_id = customer_id
         self.llm = LLMFactory.get_model_for_agent("hypothesis") # Use fast model for diagnosis
 
     async def execute(self, tool: MCPToolInterface, args: Dict[str, Any], context: str = "") -> str:
@@ -119,7 +120,7 @@ class AdaptiveExecutor:
 
         Hard Rules:
         1) NO FABRICATION
-        - You may NOT invent: device names, interfaces, VDOMs, IPs, subnets, ports, policy IDs, object names, usernames, paths, etc.
+        - You may NOT invent: device names, interfaces, addresses, ports, identifiers, object names, credentials, paths, resource names, etc.
         - If a value is unknown, mark it unknown.
 
         2) EVERY PARAMETER MUST HAVE PROVENANCE
@@ -131,9 +132,9 @@ class AdaptiveExecutor:
         Before retrying a tool call, validate that each parameter matches tool schema and known context.
 
         4) SEMANTIC TYPE CHECKING (Identifiers vs Values)
-        - Distinguish Identifiers from Addresses: If a tool requires a network address (IP/Hostname), but the parameter provided is an Inventory Identifier (e.g. "device_id", "server_name"), DO NOT USE THE IDENTIFIER AS THE ADDRESS.
-        - Resolution: You must RESOLVE the identifier to its actual value (e.g. Management IP) using Source S2 (Inventory) or S5 (Discovery).
-        - Prohibition: NEVER substitute a random value (like public domains 'google.com' or 'aws.amazon.com') just to make the tool work.
+        - Distinguish Identifiers from Addresses: If a tool requires a real address, hostname, or resource identifier, but the parameter provided is an abstract Inventory Identifier (e.g. "device_id", "asset_name"), DO NOT USE THE IDENTIFIER AS THE VALUE.
+        - Resolution: You must RESOLVE the identifier to its actual value using Source S2 (Inventory) or S5 (Discovery).
+        - Prohibition: NEVER substitute a random or placeholder value just to make the tool work.
         - Failure: If you cannot resolve the value, return OPTION B (Missing Info).
 
         Sources of Truth (ordered):
@@ -141,7 +142,7 @@ class AdaptiveExecutor:
         S2) Client inventory (CMDB / inventory snapshot / “device facts” dataset)
         S3) Previous tool outputs from this same case (successful tool calls)
         S4) Deterministic derivations from S1–S3 (e.g., IP ∈ subnet → interface)
-        S5) Discovery via dedicated read-only tools (show interfaces/routes/policies/objects/logs)
+        S5) Discovery via dedicated read-only tools (e.g. list resources, describe components, show configuration, get status)
 
         Repair Loop (how you operate after a tool error):
         A) Classify failure cause (Schema, Missing param, Invalid value, Wrong scope, etc.)
@@ -168,10 +169,10 @@ class AdaptiveExecutor:
         }}
 
         Grounding Checks (generic invariants):
-        - device: must match a real device identifier in inventory.
-        - vdom/tenant/scope: must match the case’s scope.
-        - interface/zone: must exist on the selected device.
-        - sourceip/destip: must be real values from the case.
+        - device/host: must match a real identifier in inventory.
+        - scope/tenant/context: must match the case’s scope.
+        - resource_name/endpoint/interface: must exist on the selected component.
+        - source/destination addresses: must be real values from the case.
         
         ---------------------------------------------------------
         
@@ -302,8 +303,8 @@ class AdaptiveExecutor:
              )
              
              # Save to general knowledge (optional, for Evidence Collector)
-             await vector_store.save_tool_insight(knowledge)
-             
+             await vector_store.save_tool_insight(knowledge, customer_id=self.customer_id)
+
              # Save to Dedicated Adaptive Fixes (for Self-Healing)
              # FIX: Ensure nested dicts are serialized strings to prevent Qdrant 400 Bad Request
              # Qdrant payload values must be simple types or lists, deeply nested user objects might check schema strictness.
@@ -313,9 +314,10 @@ class AdaptiveExecutor:
                  error_msg=error_msg,
                  insight=insight_text,
                  fix_data={
-                     "bad": json.dumps(original_args, default=str), 
+                     "bad": json.dumps(original_args, default=str),
                      "good": json.dumps(fixed_args, default=str)
-                 }
+                 },
+                 customer_id=self.customer_id
              )
              
              logger.info(f"AdaptiveExec: LEARNED new insight for {tool_name}: {insight_text}")

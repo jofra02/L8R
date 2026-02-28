@@ -6,7 +6,7 @@ The Hypothesis Agent is the reasoning engine of the system. It consumes the tick
 ## Role in Graph
 - **Node Name:** `hypothesis_agent`
 - **Upstream:** `enricher_agent`
-- **Downstream:** `scoring_agent` → `supervisor`
+- **Downstream:** `scoring_agent` -> `supervisor`
 
 ## Inputs
 - `state["ticket"]`: Ticket text.
@@ -25,30 +25,37 @@ The Hypothesis Agent is the reasoning engine of the system. It consumes the tick
 **Context injected into prompt:**
 - Ticket text
 - Collected facts
-- Topology graph (formatted as `src ──[relation]──> tgt (confidence)`)
+- Topology graph (formatted as `src --[relation]--> tgt (confidence)`)
 - Baselines (normal values per component)
 - Known changes (recent modifications)
 - Existing hypotheses
 
 **Dual-Role Adaptation:**
-1. **VALIDATION/INQUIRY** tickets → Act as investigator/analyst, formulate neutral verification hypotheses.
-2. **INCIDENT/PROBLEM** tickets → Act as troubleshooter, focus on root cause.
+1. **VALIDATION/INQUIRY** tickets -> Act as investigator/analyst, formulate neutral verification hypotheses.
+2. **INCIDENT/PROBLEM** tickets -> Act as troubleshooter, focus on root cause.
 
 **Advanced Troubleshooting Mindset:**
-- Analyze systems layer by layer (physical → logical → application).
-- Consider configuration drift, resource constraints, access control policies, service dependencies.
+- Analyze systems layer by layer (physical -> logical -> application).
+- Consider configuration drift, resource constraints, access control policies, protocol-level issues, service dependencies, application errors, and data integrity.
 - Ground reasoning in vendor-specific architecture when identifiable.
+- Cross-domain scenarios (e.g., infrastructure + application) should consider interactions between layers.
+- **Configuration-First**: Always verify hypotheses by analyzing existing configuration (routes, policies, rules, service definitions, resource bindings) rather than relying on live traffic captures, debug flows, or session data. Configuration is deterministic and always available; live traffic is not.
 
 ### Path Analysis (when topology exists)
 After hypothesis generation, a second LLM call performs:
 1. **Path Synthesis**: Identify candidate paths between source and destination implied by the ticket.
-2. **Constraint Evaluation**: For each hop, evaluate constraints (route exists? policy allows? NAT correct?).
+2. **Constraint Evaluation**: For each hop, evaluate constraints (reachability, access control, configuration, dependency).
 3. **Breakpoint Detection**: Identify edges where constraints failed or are unknown.
 4. **Verification Suggestions**: Propose read-only diagnostic probes to fill evidence gaps.
 
+**Configuration-First Principle for Probes:**
+- Always suggest probes that inspect existing configuration (routing tables, policies, rules, ACLs, service definitions, resource bindings).
+- Never suggest packet captures, debug flows, sniffers, session tables, or traffic analysis as probes.
+- Only suggest non-intrusive status/health checks when configuration analysis is provably insufficient.
+
 **Output Contract:**
 - `CandidatePath[]` with hops, constraints (passed/failed/unknown), confidence, status (viable/blocked/incomplete).
-- `MostLikelyBreakpoints[]` with edge, constraint type, and reasoning.
+- `MostLikelyBreakpoints[]` with edge, constraint type (reachability/access_control/configuration), and reasoning.
 - `MissingEvidence[]` + `SuggestedProbes[]`.
 
 ## Key Logic & Interactions
@@ -56,3 +63,4 @@ After hypothesis generation, a second LLM call performs:
 - **Iterative**: Runs in a loop. First pass guesses from ticket context. Subsequent passes refine based on new evidence.
 - **Status Management**: Hypotheses start as `proposed`, move to `verifying` (investigator), then `verified` or `rejected`.
 - **Fast Mode**: When `TEST_MODE_FAST` is enabled, returns exactly 1 hypothesis.
+- **Domain-Agnostic**: Operates across all IT domains — not biased toward any specific technology or infrastructure type.

@@ -34,8 +34,8 @@ class Ticket(BaseModel):
 
 class Component(BaseModel):
     """A device, service, or entity involved in the issue."""
-    id: str  # Unique identifier (e.g., hostname, IP, uuid)
-    ref: str  # Human-readable reference name
+    id: str = Field(description="Exact asset ID from inventory when matched. For unknown assets use hostname or IP.")
+    ref: str = Field(description="Human-readable reference name (e.g. hostname, display name)")
     role: ComponentRole
     vendor: Optional[str] = None # e.g. "fortinet", "microsoft", "aws"
     priority: int = 1

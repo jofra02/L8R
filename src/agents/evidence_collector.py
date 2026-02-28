@@ -57,10 +57,16 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                 parts.append("Suggested probes: " + "; ".join(probes[:5]))
             path_context = "\n".join(parts)
     
+    # Build a summary of ALL components so each intent generation has cross-device context
+    all_components_str = ", ".join([f"{c.id} ({c.role})" for c in components]) if components else "none"
+
     for comp in components:
         try:
             # 1. Select Tools via LLM (Multi-Select)
-            selected_tools = await _select_tools_for_component(llm, comp, ticket_text, path_context)
+            selected_tools = await _select_tools_for_component(
+                llm, comp, ticket_text, path_context,
+                all_components_summary=all_components_str,
+            )
             
             # 2. Brute Force Fallback if no tools selected
             if not selected_tools:
@@ -107,31 +113,22 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                 comp_role_norm = comp.role.lower()
                 is_executor = any(r in comp_role_norm for r in EXECUTOR_ROLES)
                 
-                # 1. Handle 'device' argument
+                # 1. Handle 'device' argument — only inject if placeholder
                 if "device" in tool_args:
-                    if is_executor:
-                        # It is an executor. 
-                        # Only overwrite if the LLM provided a placeholder or if it matches the ID
-                        if tool_args["device"] in ["<device>", "DEVICE", ""] or tool_args["device"] == comp.id:
-                             tool_args["device"] = comp.id
-                    else:
-                        pass
+                    if is_executor and tool_args["device"] in ["<device>", "DEVICE", ""]:
+                        tool_args["device"] = comp.id
 
-                # 2. Handle 'target'/'host'/'ip' arguments
-                # These usually refer to the subject of the check
+                # 2. Handle 'target'/'host'/'ip' arguments — only inject if placeholder
                 for key in ["target", "host", "hostname", "ip", "address", "subnet", "destination"]:
                     if key in tool_args:
-                         # Use component ID only if it's NOT an asset ID (heuristic) or if we don't have a better value
                          curr_val = tool_args[key]
-                         if curr_val in ["<target>", "TARGET", ""] or curr_val == comp.id:
-                             # Check if comp.id is an Asset ID (e.g. "asset:...") and tool needs IP?
-                             # For now, we inject. The AdaptiveExecutor will catch mismatch.
+                         if curr_val in ["<target>", "TARGET", ""]:
                              tool_args[key] = comp.id
 
                 logger.info(f"Evidence Collector: Executing {tool_name} with {tool_args}")
                 try:
                     # ADAPTIVE EXECUTION
-                    executor = AdaptiveExecutor()
+                    executor = AdaptiveExecutor(customer_id=customer_id)
                     # Context for diagnosis
                     facts_str = json.dumps(state.get("facts", {}), default=str)
                     context = f"Ticket: {ticket_text}\nComponent: {comp.id} ({comp.role})\nFacts: {facts_str}\nGoal: Collect evidence."
@@ -263,62 +260,68 @@ async def _select_resolution_tool(llm, component, context_str) -> List[Dict[str,
     except:
          return []
 
-async def _select_tools_for_component(llm, component: Component, ticket_text: str, path_context: str = "") -> List[Dict[str, Any]]:
+async def _select_tools_for_component(
+    llm, component: Component, ticket_text: str, path_context: str = "",
+    all_components_summary: str = "",
+) -> List[Dict[str, Any]]:
     """
-    Uses LLM to describe MULTIPLE specific diagnostic intents, 
-    then semantic vector search for each to find comprehensive tools.
+    Uses LLM to describe specific diagnostic intents derived from the ticket,
+    then semantic vector search for each to find tools.
     Returns List[{"name": str, "args": dict}].
     """
     vendor_context = f"Vendor: {component.vendor}" if component.vendor else "Vendor: Unknown"
-    
-    # Step A: LLM generates MULTIPLE specific diagnostic intents
+    vendor_tag = component.vendor or ""
+
+    # Step A: LLM generates SHORT search queries for tool catalog lookup.
+    # These are NOT diagnostic plans — they are keyword-style queries
+    # optimized for semantic similarity against tool descriptions.
     intent_prompt = f"""
-Context:
 Ticket: "{ticket_text}"
 Component: {component.id} (Role: {component.role}). {vendor_context}
+All components: {all_components_summary}
 
-Task: You are preparing a comprehensive diagnostic data collection plan.
-Generate 3-5 SPECIFIC diagnostic queries that describe what data you need to collect.
-
-Each query should target a DIFFERENT diagnostic angle, for example:
-- Status/Health: "retrieve current operational status and health indicators"
-- Configuration: "get the active configuration relevant to the reported issue"  
-- Logs/Events: "list recent logs or events related to the affected component"
-- Connectivity: "check connectivity and reachability of the affected path"
-- Resources: "retrieve resource utilization metrics such as CPU, memory, and uptime"
+Task: Generate 1-3 SHORT tool-search queries to find the right diagnostic tools for this component.
 
 RULES:
-1. Be SPECIFIC — mention the exact data type you need (status table, log entries, active config, etc.)
-2. DO NOT mention tool names — describe the DATA you want
-3. Each query should be 1 sentence, focused on ONE diagnostic area
-4. Cover the diagnostic areas most relevant to the ticket issue
-5. Tailor your queries to the component's role and the reported problem
+1. Each query must be 2-6 words — like a search engine query, NOT a sentence.
+2. Include the vendor or technology name when known (e.g. "fortigate", "vcenter", "cisco").
+3. Focus on the CATEGORY of tool needed (routing, policy, interface, performance, logs, database, deployment, container, api, authentication, storage, backup, etc.).
+4. Do NOT include IPs, subnets, or ticket-specific details — those are for tool arguments, not tool search.
+5. Do NOT write sentences or descriptions — write search keywords only.
+6. CONFIGURATION-FIRST: Prefer tools that read existing configuration (routes, policies, rules, definitions) over live traffic tools (debug flows, captures, sniffers, sessions). Topology and reachability can be inferred from configuration.
 {f"""
-6. PRIORITY — The following evidence gaps have been identified by path analysis. Generate intents that specifically address these:
+6. Also address these evidence gaps:
 {path_context}
 """ if path_context else ""}
+EXAMPLES (do not copy literally, adapt to the ticket and vendor):
+{{"intents": ["firewall routing table", "firewall policy rules"]}}
+{{"intents": ["database replication status", "connection pool metrics"]}}
+{{"intents": ["kubernetes pod health", "container resource usage"]}}
+{{"intents": ["vm performance metrics", "hypervisor storage"]}}
+{{"intents": ["application error logs", "api endpoint status"]}}
+{{"intents": ["directory service authentication", "ldap connectivity"]}}
+
 Return ONLY a JSON object:
-{{"intents": ["query 1", "query 2", "query 3"]}}
+{{"intents": ["query 1", "query 2"]}}
 """
-    
+
     try:
         response = await llm.ainvoke([
-            SystemMessage(content="You are an expert IT Systems Engineer performing systematic diagnostics."),
+            SystemMessage(content="You are a tool-search specialist. Output short keyword queries for finding IT diagnostic tools."),
             HumanMessage(content=intent_prompt)
         ])
         parsed = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
-        intents = parsed.get("intents", [f"{component.role} status and health check"])
+        intents = parsed.get("intents", [f"{vendor_tag} {component.role} status"])
         if isinstance(intents, str):
             intents = [intents]
     except Exception as e:
         logger.warning(f"LLM intent generation failed: {e}")
         intents = [
-            f"{component.role} status health diagnostics",
-            f"{component.role} configuration and operational state",
-            f"{component.role} recent logs and events",
+            f"{vendor_tag} {component.role} status".strip(),
+            f"{vendor_tag} {component.role} configuration".strip(),
         ]
-    
-    logger.info(f"Diagnostic intents for {component.id}: {intents}")
+
+    logger.info(f"Tool search queries for {component.id}: {intents}")
     
     # Step B: Semantic vector search for EACH intent, merge + deduplicate
     from src.core.qdrant import vector_store

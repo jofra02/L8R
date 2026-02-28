@@ -49,7 +49,7 @@ async def planner_agent_node(state: GlobalState) -> Dict[str, Any]:
 Your goal is to create a safe, step-by-step Execution Plan to verify the active hypothesis and resolve the issue.
 
 GUIDELINES:
-1. **Safety First**: Do NOT modify system state (reboots, config changes) without first verifying the diagnosis.
+1. **Safety First**: Do NOT modify system state (restarts, configuration changes, destructive operations) without first verifying the diagnosis.
 2. **Diagnosis Steps**: actions to confirm the hypothesis.
 3. **Proposed Changes**: actions to fix the root cause (once verified).
 4. **Validation**: steps to confirm the fix works.

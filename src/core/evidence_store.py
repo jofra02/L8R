@@ -12,9 +12,10 @@ class EvidenceStore:
     """Manages immutable evidence artifacts."""
     
     def __init__(self, base_path: str = "data/evidence", customer_id: str = "unknown", run_id: str = None):
-        self.base_path = base_path
         self.customer_id = customer_id
         self.run_id = run_id
+        # Namespace by tenant to isolate evidence on disk
+        self.base_path = os.path.join(base_path, customer_id)
         os.makedirs(self.base_path, exist_ok=True)
         
     async def save_evidence(self, tool_name: str, tool_args: Dict[str, Any], content: Any, summary: Optional[str] = None) -> EvidenceSnapshot:

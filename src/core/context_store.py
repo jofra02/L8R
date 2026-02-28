@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, update
 from typing import Optional
 from src.core.models import ClientContext
 from src.core.orm import ClientContextORM
@@ -39,9 +39,16 @@ class ContextStore:
             return None
 
     async def save_context(self, context: ClientContext) -> ClientContextORM:
-        """Save a new version of the client context."""
-        # Deactivate previous versions (optional, or just append new active one)
-        # For simplicity, we append new active version.
+        """Save a new version of the client context. Deactivates previous active versions."""
+        # Deactivate all previous active versions for this tenant
+        await self.session.execute(
+            update(ClientContextORM)
+            .where(
+                ClientContextORM.customer_id == context.customer_id,
+                ClientContextORM.is_active == True
+            )
+            .values(is_active=False)
+        )
         
         orm_obj = ClientContextORM(
             customer_id=context.customer_id,

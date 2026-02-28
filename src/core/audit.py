@@ -13,8 +13,9 @@ class AuditService:
     """
     Service for structural logging of Agent execution (The "Bitacora").
     """
-    
-    async def create_run(self, ticket_id: str, trace_id: str) -> str:
+    _seq_counters: Dict[str, int] = {}  # run_id -> next seq
+
+    async def create_run(self, ticket_id: str, trace_id: str, customer_id: str) -> str:
         """
         Start a new execution run.
         Returns: run_id (UUID string)
@@ -28,8 +29,8 @@ class AuditService:
                     ticket_id=ticket_id,
                     trace_id=trace_id,
                     status="running",
-                    state_json={}, # Initial snapshot could be passed here
-                    customer_id="global" # Placeholder, should be updated or passed
+                    state_json={},
+                    customer_id=customer_id
                 )
                 session.add(run)
                 await session.commit()
@@ -58,42 +59,53 @@ class AuditService:
         except Exception as e:
             logger.error(f"Audit: Failed to update run context: {e}")
 
-    async def complete_run(self, run_id: str, status: str = "completed"):
-        """Mark run as finished."""
+    async def complete_run(
+        self,
+        run_id: str,
+        status: str = "completed",
+        final_answer: Optional[str] = None,
+        hypothesis_count: Optional[int] = None,
+        decision: Optional[str] = None,
+    ):
+        """Mark run as finished, optionally storing denormalized summary fields."""
         try:
             async with async_session_factory() as session:
-                stmt = (
-                    update(AgentRunORM)
-                    .where(AgentRunORM.id == run_id)
-                    .values(
-                        status=status,
-                        ended_at=datetime.utcnow()
-                    )
-                )
+                values: Dict[str, Any] = {"status": status, "ended_at": datetime.utcnow()}
+                if final_answer is not None:
+                    values["final_answer"] = final_answer
+                if hypothesis_count is not None:
+                    values["hypothesis_count"] = hypothesis_count
+                if decision is not None:
+                    values["decision"] = decision
+                stmt = update(AgentRunORM).where(AgentRunORM.id == run_id).values(**values)
                 await session.execute(stmt)
                 await session.commit()
         except Exception as e:
             logger.error(f"Audit: Failed to complete run: {e}")
+
+    def _next_seq(self, run_id: str) -> int:
+        """Return and increment the sequence counter for a run."""
+        seq = self._seq_counters.get(run_id, 0) + 1
+        self._seq_counters[run_id] = seq
+        return seq
 
     async def log_event(self, run_id: str, node: str, input_state: Dict[str, Any], output_state: Dict[str, Any]):
         """
         Log a single step (Node Execution).
         """
         try:
-            # We assume sequential calls, but for async safety we might settle for approximate sequence
-            # or rely on timestamp. 
+            seq = self._next_seq(run_id)
             async with async_session_factory() as session:
                 event = AgentEventORM(
                     run_id=run_id,
                     customer_id=input_state.get("customer_id", "unknown"),
                     node=node,
-                    seq=0, # TODO: Track sequence info in Meta if strict ordering needed
+                    seq=seq,
                     input_json=self._sanitize(input_state),
                     output_json=self._sanitize(output_state)
                 )
                 session.add(event)
                 await session.commit()
-                # logger.debug(f"Audit: Logged event for {node}")
         except Exception as e:
             logger.error(f"Audit: Failed to log event for {node}: {e}")
 

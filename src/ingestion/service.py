@@ -44,7 +44,7 @@ class IngestionService:
         
         # 3. Create Audit Run (Job ID)
         trace_id = str(uuid.uuid4())
-        run_id = await self.audit.create_run(ticket.id, trace_id)
+        run_id = await self.audit.create_run(ticket.id, trace_id, customer_id)
         
         logger.info(f"Ticket {ticket.id} persisted. Run ID {run_id} created.")
         
@@ -75,7 +75,11 @@ class IngestionService:
             "missing_info": [],
             "facts": {},
             "hypotheses": [],
+            "scoring": None,
             "plan": None,
+            "topology_nodes": [],
+            "topology_edges": [],
+            "path_analysis": None,
             "final_report": "",
             "final_answer": "",
             "handoff": None,
@@ -104,33 +108,32 @@ class IngestionService:
             logger.info(f"DEBUG: serializable_state keys before save: {list(serializable_state.keys())}")
             
             await self.audit.update_run_context(run_id, customer_id, serializable_state)
-            
-            # complete_run does not exist yet wait, let me check AuditService
-            # Need to patch audit service for complete_run or just update status via query
-            await self._mark_run_completed(run_id, "completed")
+
+            # Populate denormalized summary columns (S6)
+            final_answer = str(final_state.get("final_answer") or "")
+            hypothesis_count = len(final_state.get("hypotheses") or [])
+            await self.audit.complete_run(
+                run_id, "completed",
+                final_answer=final_answer,
+                hypothesis_count=hypothesis_count,
+            )
             logger.info(f"Background execution completed for Run {run_id}")
-            
+
         except Exception as e:
             logger.error(f"Background execution failed for Run {run_id}: {e}")
-            await self._mark_run_completed(run_id, "failed")
+            await self.audit.complete_run(run_id, "failed")
 
-    async def _mark_run_completed(self, run_id: str, status: str):
-         """Helper to mark run completed since AuditService may lack it."""
-         from sqlalchemy import update
-         from src.core.database import async_session_factory
-         async with async_session_factory() as session:
-             stmt = update(AgentRunORM).where(AgentRunORM.id == run_id).values(status=status, ended_at=datetime.datetime.now())
-             await session.execute(stmt)
-             await session.commit()
-
-    async def get_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
-        """Fetch the status of an agent run."""
-        stmt = select(AgentRunORM).where(AgentRunORM.id == job_id)
+    async def get_job_status(self, job_id: str, customer_id: str = None) -> Optional[Dict[str, Any]]:
+        """Fetch the status of an agent run (tenant-scoped)."""
+        conditions = [AgentRunORM.id == job_id]
+        if customer_id:
+            conditions.append(AgentRunORM.customer_id == customer_id)
+        stmt = select(AgentRunORM).where(*conditions)
         result = await self.session.execute(stmt)
         run = result.scalar_one_or_none()
         if not run:
             return None
-        return {"job_id": run.id, "status": run.status, "ticket_id": run.ticket_id}
+        return {"job_id": run.id, "status": run.status, "ticket_id": run.ticket_id, "customer_id": run.customer_id}
         
     async def get_tenant_jobs(self, customer_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Fetch recent jobs for a specific tenant."""
@@ -163,9 +166,12 @@ class IngestionService:
         # Handle the field correctly (PlatformTenant has customer_id as PK)
         return [{"id": t.customer_id, "name": t.name} for t in tenants]
 
-    async def get_ticket_report(self, ticket_id: str) -> Optional[Dict[str, Any]]:
-        """Fetch the final report for a ticket's latest run."""
-        stmt = select(AgentRunORM).where(AgentRunORM.ticket_id == ticket_id).order_by(AgentRunORM.started_at.desc()).limit(1)
+    async def get_ticket_report(self, ticket_id: str, customer_id: str = None) -> Optional[Dict[str, Any]]:
+        """Fetch the final report for a ticket's latest run (tenant-scoped)."""
+        conditions = [AgentRunORM.ticket_id == ticket_id]
+        if customer_id:
+            conditions.append(AgentRunORM.customer_id == customer_id)
+        stmt = select(AgentRunORM).where(*conditions).order_by(AgentRunORM.started_at.desc()).limit(1)
         result = await self.session.execute(stmt)
         run = result.scalar_one_or_none()
         

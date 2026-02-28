@@ -1,7 +1,7 @@
 # Classifier Agent
 
 ## Description
-The Classifier Agent analyzes the raw ticket text to determine the technical domain (e.g., Network, Auth, Database) and assess the severity. This classification helps downstream agents (like Mapper and Evidence Collector) focus their efforts.
+The Classifier Agent analyzes the raw ticket text to determine the technical domain and assess the severity. This classification helps downstream agents (like Mapper and Evidence Collector) focus their efforts.
 
 ## Role in Graph
 - **Node Name:** `classifier_agent`
@@ -22,7 +22,7 @@ The Classifier Agent analyzes the raw ticket text to determine the technical dom
 ### Ticket Classification
 **System:**
 ```text
-You are an expert IT Support AI. Classify the following ticket into technical domains (e.g., 'network', 'auth', 'database', 'hardware'). Provide a confidence score (0-1).
+You are an expert IT Support / Incident Engineer. Classify the following ticket into technical domains (e.g., 'network', 'auth', 'database', 'hardware', 'application', 'cloud', 'security', 'storage', 'virtualization', 'identity', 'monitoring', 'devops'). Provide a confidence score (0-1).
 ```
 
 **User:**
@@ -34,5 +34,6 @@ Ticket Text: {text}
 
 ## Key Logic & Interactions
 -   **LLM Model:** Uses the model defined by `LLM_MODEL_CLASSIFIER` (e.g., `gpt-5-nano`) as this is a relatively simple and fast NLU task.
+-   **Domain-Agnostic:** Supports classification across all IT domains — not limited to networking or infrastructure.
 -   Uses `PydanticOutputParser` to ensure structured JSON output.
 -   Includes a fallback mechanism: if the LLM fails or produces invalid JSON, it returns a default "unknown" classification to prevent the graph from crashing.

@@ -125,7 +125,7 @@ def main():
         # Setup Audit
         audit = AuditService()
         trace_id = str(uuid.uuid4())
-        run_id = await audit.create_run(mock_ticket.id, trace_id)
+        run_id = await audit.create_run(mock_ticket.id, trace_id, customer_id="fake_client")
         
         initial_state["meta"]["run_id"] = run_id
         initial_state["meta"]["trace_id"] = trace_id

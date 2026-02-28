@@ -61,10 +61,10 @@ async def enricher_agent_node(state: GlobalState) -> Dict[str, Any]:
         
         # ─── Pass 1: Fact Extraction ──────────────────────────────
         fact_prompt = f"""
-Extract key technical facts from the following evidence snippet gathered during an IT incident investigation.
+Extract key technical facts from the following evidence snippet gathered during an IT investigation.
 
 Focus on:
-1. **Concrete values**: IP addresses, error codes, statuses, latency, configuration settings, firmware versions.
+1. **Concrete values**: identifiers, addresses, error codes, statuses, performance metrics (latency, throughput, response times), configuration settings, version numbers, resource utilization, log entries, and any measurable quantities.
 2. **MITRE ATT&CK mapping**: If the evidence suggests attack-related behavior, include a "mitre_mapping" key with tactic and technique. Only include if clearly applicable.
 
 Evidence Tool: {ref.tool_name}
@@ -96,7 +96,7 @@ Return ONLY a valid JSON dictionary of key-value pairs.
         
         # ─── Pass 2: Topology Extraction ─────────────────────────
         topo_prompt = f"""
-Analyze the following evidence and extract **relationships between entities** (devices, subnets, services, interfaces, etc.).
+Analyze the following evidence and extract **relationships between entities** (devices, services, applications, databases, containers, subnets, APIs, storage, queues, etc.).
 
 Known components: {components_str}
 
@@ -107,18 +107,18 @@ Evidence Content (Compressed):
 
 Extract two things:
 
-1. **nodes**: Entities found in the evidence (devices, subnets, interfaces, services, VMs, etc.)
+1. **nodes**: Entities found in the evidence (any identifiable component, resource, or endpoint).
 2. **edges**: Relationships between entities that describe connectivity, dependency, or data flow.
 
-Edge relation types: "routes_to", "policy_allow", "policy_deny", "nat", "overlay", "dns_resolves", "depends_on", "serves", "hosts", "proxies", "connects_to"
+Edge relation types: "connects_to", "depends_on", "serves", "hosts", "routes_to", "calls_api", "queries", "reads_from", "writes_to", "authenticates_via", "publishes_to", "subscribes_to", "replicates_to", "load_balances", "proxies", "mounts", "dns_resolves", "policy_allow", "policy_deny", "nat"
 
 Return ONLY a JSON object:
 {{
   "nodes": [
-    {{"id": "entity_id", "node_type": "device|subnet|interface|service|host|vm|dns_name", "label": "human label"}}
+    {{"id": "entity_id", "node_type": "device|service|application|database|container|subnet|interface|host|vm|api|storage|cluster|queue|endpoint|dns_name", "label": "human label"}}
   ],
   "edges": [
-    {{"source_id": "entity_a", "target_id": "entity_b", "relation": "routes_to", "direction": "uni|bi", "metadata": {{}}, "confidence": 0.8}}
+    {{"source_id": "entity_a", "target_id": "entity_b", "relation": "connects_to", "direction": "uni|bi", "metadata": {{}}, "confidence": 0.8}}
   ]
 }}
 

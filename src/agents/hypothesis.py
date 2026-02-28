@@ -92,17 +92,18 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         First, determine the INTENT of the ticket:
         1. VALIDATION/INQUIRY (e.g., "validate if X can reach Y", "how is this configured"): Act as an INVESTIGATOR/ANALYST. 
            - DO NOT assume there is a problem/error. 
-           - Formulate neutral hypotheses to verify the required state (e.g., "The route to Y exists via interface Z", "Policy ID 12 allows the traffic").
+           - Formulate neutral hypotheses to verify the required state (e.g., "The path from A to B exists via component Z", "The access control rule permits the expected flow").
            - Your goal is to gather facts to definitively describe how the environment is configured. Once facts are collected, your final hypotheses should conclude whether the requirement is met and explain WHY, based on the concrete data.
         2. INCIDENT/PROBLEM (e.g., "app is down", "high latency"): Act as a TROUBLESHOOTER.
-           - Formulate hypotheses focused on finding the root cause of the broken state (e.g., "A policy or rule is blocking the expected traffic", "A critical service dependency is unreachable").
+           - Formulate hypotheses focused on finding the root cause of the broken state (e.g., "An access control rule is blocking the expected flow", "A critical service dependency is unreachable or degraded").
 
         --- ADVANCED TROUBLESHOOTING MINDSET ---
         Adopt the methodical reasoning of a Senior Engineer specific to the implied domain:
         - Analyze the system layer by layer — from physical/connectivity through logical/application.
-        - Consider configuration drift, resource constraints, access control policies, protocol-level issues, and service dependencies.
+        - Consider configuration drift, resource constraints, access control policies, protocol-level issues, service dependencies, application errors, and data integrity.
         - Ground your reasoning in the specific vendor's architecture and known behaviors when the vendor is identifiable.
         - Cross-domain scenarios (e.g., infrastructure + application) should consider interactions between layers.
+        - CONFIGURATION-FIRST: Always verify hypotheses by analyzing existing configuration (routes, policies, rules, service definitions, resource bindings) rather than relying on live traffic captures, debug flows, or session data. Configuration is deterministic and always available; live traffic is not.
         
         For any vendor explicitly or implicitly mentioned in the scenario, your hypotheses MUST be grounded in that vendor's specific technical architecture, standard behaviors, and known quirks.
 
@@ -187,9 +188,15 @@ Hypotheses:
 
 Your task:
 1. Identify candidate paths between the source and destination implied by the ticket.
-2. For each path, list the hops (edges) and evaluate constraints (does a route exist? does a policy allow? is NAT correct?).
+2. For each path, list the hops (edges) and evaluate constraints (does a valid route/path exist? does a policy/rule allow the flow? is the translation/mapping correct?).
 3. Identify the most likely breakpoints — edges where constraints failed or are unknown.
 4. Suggest read-only diagnostic probes that would resolve unknown constraints.
+
+CRITICAL — CONFIGURATION-FIRST PRINCIPLE:
+- ALWAYS verify constraints by inspecting existing CONFIGURATION (routing tables, policies, rules, ACLs, service definitions, resource bindings) rather than live traffic or real-time data.
+- NEVER suggest packet captures, debug flows, sniffers, session tables, or traffic analysis as probes. These are intrusive, require specific runtime conditions, and are unreliable for validation.
+- The correct approach is: read the configuration → determine if the path/rule/binding EXISTS and is correctly defined → conclude.
+- Only if configuration analysis is provably insufficient (e.g., dynamic behavior that cannot be inferred from config), suggest a non-intrusive status/health check.
 
 Return ONLY a JSON object:
 {{
@@ -200,14 +207,14 @@ Return ONLY a JSON object:
       "destination": "dest_entity",
       "hops": ["entity_a->entity_b", "entity_b->entity_c"],
       "constraints": [
-        {{"constraint_type": "forward_route", "description": "...", "status": "passed|failed|unknown"}}
+        {{"constraint_type": "reachability|access_control|configuration|dependency", "description": "...", "status": "passed|failed|unknown"}}
       ],
       "confidence": 0.7,
       "status": "viable|blocked|incomplete"
     }}
   ],
   "most_likely_breakpoints": [
-    {{"edge": "entity_a->entity_b", "constraint": "policy_match", "reasoning": "..."}}
+    {{"edge": "entity_a->entity_b", "constraint": "access_control|reachability|configuration", "reasoning": "..."}}
   ],
   "missing_evidence": ["description of what data is still needed"],
   "suggested_probes": ["read-only diagnostic intent"]

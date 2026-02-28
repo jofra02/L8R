@@ -61,7 +61,9 @@ class Settings(BaseSettings):
     # Safety & Governance
     SAFETY_BLOCKED_KEYWORDS: List[str] = [
         "debug flow", "sniffer", "packet capture", "pcap", "tcpdump", "wireshark",
-        "execute", "configure", "set ", "edit ", "delete", "rm ", "shutdown", "reboot"
+        "execute", "configure", "set ", "edit ", "delete", "rm ", "shutdown", "reboot",
+        "drop database", "truncate", "format", "destroy", "purge", "kill ",
+        "deploy", "push", "publish", "migrate", "alter ", "grant ", "revoke "
     ]
 
     # Global API Keys

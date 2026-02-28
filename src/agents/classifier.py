@@ -19,7 +19,7 @@ async def classifier_agent_node(state: GlobalState) -> Dict[str, Any]:
     parser = PydanticOutputParser(pydantic_object=Classification)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert IT Support / Incident Engineer. Classify the following ticket into technical domains (e.g., 'network', 'auth', 'database', 'hardware'). Provide a confidence score (0-1)."),
+        ("system", "You are an expert IT Support / Incident Engineer. Classify the following ticket into technical domains (e.g., 'network', 'auth', 'database', 'hardware', 'application', 'cloud', 'security', 'storage', 'virtualization', 'identity', 'monitoring', 'devops'). Provide a confidence score (0-1)."),
         ("user", "Ticket Text: {text}\n\n{format_instructions}")
     ])
     

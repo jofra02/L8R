@@ -162,7 +162,7 @@ async def run_test_ticket():
     audit = AuditService()
     # Use a trace_id if available or generate one
     trace_id = str(uuid.uuid4())
-    run_id = await audit.create_run(ticket.id, trace_id)
+    run_id = await audit.create_run(ticket.id, trace_id, customer_id="fake_client")
     
     # Run Graph
     initial_state["meta"]["run_id"] = run_id
