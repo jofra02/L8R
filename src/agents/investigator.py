@@ -6,6 +6,11 @@ from src.core.evidence_store import EvidenceStore
 from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
 from src.config import settings
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
+from src.utils.state_formatters import (
+    format_topology_edges, format_baselines, format_known_changes,
+    format_facts, format_hypotheses, format_path_analysis,
+    format_evidence_summaries,
+)
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage
 import logging
@@ -42,22 +47,51 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         run_id=state.get("meta", {}).get("run_id")
     )
     
-    # 2. Formulate Verification Plan
-    # Ask LLM what to do to verify this SPECIFIC hypothesis
+    # 2. Build full scenario context (same view as Hypothesis agent)
+    # Truncation limits are tighter here — investigator focuses on one hypothesis
+    facts_str = format_facts(state.get("facts", {}), max_items=15)
+    topology_str = format_topology_edges(state.get("topology_edges", []), max_items=20)
+    baselines_str = format_baselines(state.get("client_context"), max_items=10)
+    changes_str = format_known_changes(state.get("client_context"), max_items=5)
+    path_str = format_path_analysis(state.get("path_analysis"), max_breakpoints=5)
+    all_hypotheses_str = format_hypotheses(hypotheses, max_items=8)
+
+    # 3. Formulate Verification Plan with full context
     plan_prompt = f"""
     Context:
     Ticket: {state['ticket'].text}
-    Hypothesis: {target_hypothesis.summary}
+
+    Target Hypothesis: {target_hypothesis.summary}
+    Rationale: {target_hypothesis.rationale}
+
+    All Hypotheses (for awareness — do NOT re-investigate rejected ones):
+    {all_hypotheses_str}
+
     Components: {[c.id for c in state.get('components', [])]}
-    
+
+    Facts Collected So Far:
+    {facts_str}
+
+    Topology Graph:
+    {topology_str}
+
+    Baselines (normal values):
+    {baselines_str}
+
+    Recent Changes:
+    {changes_str}
+    {f"""
+    Path Analysis:
+    {path_str}
+    """ if path_str else ""}
     Task: Describe what specific diagnostic action you need to verify or disprove this hypothesis.
     Write 1-2 sentences describing the READ-ONLY diagnostic action needed.
     Focus on WHAT you want to learn, NOT tool names.
 
     CRITICAL: Always prefer inspecting CONFIGURATION (routes, policies, rules, service definitions, resource bindings) over live traffic analysis (debug flows, packet captures, session tables, sniffers). Configuration is deterministic, always available, and sufficient to verify most hypotheses.
-    
+
     Return a JSON object with:
-    - "intent": Natural language description of what diagnostic data you need (e.g., "retrieve current status and health metrics for the affected component")
+    - "intent": Natural language description of what diagnostic data you need (e.g., "retrieve current configuration for the affected component")
     - "reasoning": Why this diagnostic action?
     """
     
@@ -74,20 +108,19 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         logger.error(f"Investigator: Plan generation failed: {e}")
         return {}
         
-    # 3. Find Tools via Semantic Search
+    # 4. Find Tools via Semantic Search
     customer_id = state.get("customer_id", "unknown")
     tools = await CapabilityRegistry.semantic_search_tools(search_intent, customer_id, limit=5)
     if not tools:
         logger.warning(f"Investigator: No tools found for intent '{search_intent[:50]}'. Fallback to status.")
         tools = CapabilityRegistry.search_tools("status", limit=1)
         
-    # 4. Select & Configure Tool
+    # 5. Select & Configure Tool
     # Ask LLM to pick the best tool and define args (linking to components)
     
-    # Context Injection
+    # Context Injection (reuse formatted strings from plan phase + evidence)
     facts = state.get("facts", {})
-    evidence_list = state.get("evidence_refs", [])
-    evidence_context = "\n".join([f"- {e.tool_name}: {e.summary}" for e in evidence_list[-5:]]) # Last 5 items
+    evidence_context = format_evidence_summaries(state.get("evidence_refs", []), max_items=8)
 
     # Fetch insights
     from src.core.qdrant import vector_store
@@ -106,15 +139,26 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     tool_select_prompt = f"""
     Applicable Tools:
     {json.dumps([{'name': t.name, 'description': t.description, 'args': t.args_schema.model_json_schema()} for t in tools], indent=2)}
-    
+
     {insights_text}
 
     Hypothesis: {target_hypothesis.summary}
+    Rationale: {target_hypothesis.rationale}
     Components: {json.dumps([c.model_dump() for c in state.get('components', [])], default=str)}
     Facts: {json.dumps(facts, default=str)}
+
+    Topology Graph:
+    {topology_str}
+
+    Baselines:
+    {baselines_str}
+    {f"""
+    Path Analysis:
+    {path_str}
+    """ if path_str else ""}
     Previous Evidence:
     {evidence_context}
-    
+
     Task: Select the best tool and configure arguments.
     
     GUIDELINES:
@@ -149,7 +193,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         logger.error(f"Investigator: Tool selection failed: {e}")
         return {}
         
-    # 5. Execute
+    # 6. Execute
     tool = CapabilityRegistry.get_tool(tool_name)
     if tool:
         # Sanitize arguments: Ensure 'device'/'target' maps to a real Component ID

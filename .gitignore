@@ -83,6 +83,15 @@ temp_paper.txt
 temp_copy.docx
 run_mock_debug.log
 
+# ─── Claude Code ───
+.claude/
+
+# ─── Manual / temporary plans ───
+Implementation Plan*.md
+
+# ─── Pending implementation (not ready for commit) ───
+src/utils/state_formatters.py
+
 # ─── Lock files ───
 # uv.lock is auto-generated, exclude to keep diffs clean
 uv.lock

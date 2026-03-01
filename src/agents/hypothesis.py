@@ -1,6 +1,10 @@
 from typing import Any, Dict, List
 from src.core.models import GlobalState, Hypothesis, PathAnalysis, CandidatePath, PathConstraint
 from src.core.llm import LLMFactory
+from src.utils.state_formatters import (
+    format_topology_edges, format_baselines, format_known_changes,
+    format_facts, format_hypotheses,
+)
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
@@ -32,57 +36,15 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
     llm = LLMFactory.get_model_for_agent("hypothesis")
     parser = PydanticOutputParser(pydantic_object=HypothesisList)
     
-    # Format facts for prompt
-    facts_str = "\n".join([f"- {k}: {v}" for k, v in facts.items()]) or "No specific facts collected yet."
-    
-    # Format existing hypotheses for context
+    # Format state context for prompt (shared formatters with truncation)
+    facts_str = format_facts(facts)
     existing_hypotheses = state.get("hypotheses", [])
-    hypotheses_str = "No existing hypotheses."
-    if existing_hypotheses:
-        hypotheses_str = "\n".join([
-            f"- [{h.id}] ({h.status}) {h.summary} (Rank: {h.rank})" 
-            for h in existing_hypotheses
-        ])
-    
-    # Format topology graph for context
-    topology_nodes = state.get("topology_nodes", [])
+    hypotheses_str = format_hypotheses(existing_hypotheses)
     topology_edges = state.get("topology_edges", [])
-    topology_str = "No topology data available yet."
-    if topology_edges:
-        lines = []
-        for e in topology_edges:
-            src = e.source_id if hasattr(e, 'source_id') else e.get('source_id', '?')
-            tgt = e.target_id if hasattr(e, 'target_id') else e.get('target_id', '?')
-            rel = e.relation if hasattr(e, 'relation') else e.get('relation', '?')
-            conf = e.confidence if hasattr(e, 'confidence') else e.get('confidence', 0)
-            meta = e.metadata if hasattr(e, 'metadata') else e.get('metadata', {})
-            meta_str = f" {meta}" if meta else ""
-            lines.append(f"- {src} ──[{rel}]──> {tgt} (confidence: {conf:.0%}){meta_str}")
-        topology_str = "\n".join(lines)
-    
-    # Format baselines and known changes
+    topology_str = format_topology_edges(topology_edges)
     client_context = state.get("client_context")
-    baselines_str = "No baselines defined."
-    changes_str = "No recent changes known."
-    if client_context:
-        ctx = client_context if hasattr(client_context, 'baselines') else type('C', (), client_context)()
-        baselines = ctx.baselines if hasattr(ctx, 'baselines') else client_context.get('baselines', [])
-        known_changes = ctx.known_changes if hasattr(ctx, 'known_changes') else client_context.get('known_changes', [])
-        if baselines:
-            bl_lines = []
-            for b in baselines:
-                comp = b.component_id if hasattr(b, 'component_id') else b.get('component_id', '?')
-                metric = b.metric if hasattr(b, 'metric') else b.get('metric', '?')
-                val = b.normal_value if hasattr(b, 'normal_value') else b.get('normal_value', '?')
-                bl_lines.append(f"- {comp}: {metric} = {val}")
-            baselines_str = "\n".join(bl_lines)
-        if known_changes:
-            kc_lines = []
-            for c in known_changes:
-                date = c.date if hasattr(c, 'date') else c.get('date', '?')
-                desc = c.description if hasattr(c, 'description') else c.get('description', '?')
-                kc_lines.append(f"- [{date}] {desc}")
-            changes_str = "\n".join(kc_lines)
+    baselines_str = format_baselines(client_context)
+    changes_str = format_known_changes(client_context)
     
     system_prompt_text = """You are an elite, top-tier IT Support and Incident Response Engineer (SME Level) operating across multiple disciplines (Networking, Infrastructure, Cloud, Security, Development, Database, Server OS).
 
