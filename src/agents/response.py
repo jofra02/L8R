@@ -108,6 +108,32 @@ The agent has paused execution because it lacks critical information to proceed.
          steps = "\n".join([f"{i+1}. {s.description} (Expected: {s.expected_outcome})" for i, s in enumerate(plan.diagnosis_steps)])
          plan_text = f"Diagnosis Steps:\n{steps}"
 
+    # --- Mode-specific guardrail blocks ---
+    mode_guardrails = ""
+    if ticket.mode == "validation":
+        mode_guardrails = """
+    MODE-SPECIFIC RULES (validation):
+    - PROHIBITED language: "probably", "likely", "possibly", "might", "could be", "appears to", "seems like", "may be missing".
+    - Each check item MUST use exactly one of: "Confirmed", "Not confirmed", "Inconclusive".
+    - Inconclusive items MUST include the exact next probe (tool name + arguments) needed to resolve.
+    - Present checks in table format: | Check | Status | Evidence | Next Probe |
+    """
+    elif ticket.mode == "inquiry":
+        mode_guardrails = """
+    MODE-SPECIFIC RULES (inquiry):
+    - Answer the question directly and factually.
+    - Every statement must cite an evidence snapshot (tool name + summary).
+    - Use "Inconclusive" if evidence is insufficient. Do NOT speculate.
+    """
+
+    general_guardrails = """
+    LANGUAGE GUARDRAILS (all modes):
+    - Prefer definitive statements backed by evidence refs over probabilistic hedging.
+    - Use "Inconclusive" instead of "probably", "likely", "might", "could be", "appears to", "seems like".
+    - Every conclusion MUST cite at least one evidence snapshot (tool name + summary).
+    - If evidence is insufficient for a definitive conclusion, state "Inconclusive" and specify the exact diagnostic action needed to resolve.
+    """
+
     system_prompt = f"""
     SYSTEM PROMPT - "IT Support / Incident & Change Engineer"
 
@@ -123,7 +149,8 @@ The agent has paused execution because it lacks critical information to proceed.
     - BE CONCISE AND DIRECT. Do not elaborate unless it adds critical value.
     - PRIORITIZE the directly useful conclusion. If the user asked to validate a configuration, and it is correct, conclude "Yes, the configuration is valid and operational".
     - In the "Evidence and Tools Executed" section, group executions and mention failures only if they add context.
-
+    {mode_guardrails}
+    {general_guardrails}
     Output Format (Markdown):
     # Technical Report - Ticket {ticket.id}
 
@@ -142,6 +169,7 @@ The agent has paused execution because it lacks critical information to proceed.
 
     user_input = f"""
     Ticket: {ticket.text}
+    Ticket Mode: {ticket.mode}
     Context: {state.get('client_context', 'Unknown')}
     
     Facts: {json.dumps(facts, default=str)}

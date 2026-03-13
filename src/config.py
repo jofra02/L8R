@@ -36,7 +36,7 @@ class Settings(BaseSettings):
         # }
          "remote-server": {
              "transport": "sse",
-             "url": "http://generico.jdreconquista.com.ar:19568/sse"
+             "url": "http://100.112.130.105:8000/sse"
          }
     }
     

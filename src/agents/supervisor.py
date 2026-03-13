@@ -102,9 +102,9 @@ def supervisor_router(state: GlobalState) -> Literal[
         if active:
             return "investigator_agent"
     
-    # 8. No hypotheses yet but evidence exists → fallback to planner
-    if not state.get("plan"):
-        return "planner_agent"
+    # 8. No hypotheses yet but evidence exists → run enricher→hypothesis→scoring
+    if not state.get("hypotheses"):
+        return "enricher_agent"
     
     # 9. Default: go to response
     return "response_agent"

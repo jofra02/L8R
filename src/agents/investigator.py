@@ -1,17 +1,16 @@
 from typing import Any, Dict, List
-from src.core.models import GlobalState, Hypothesis, PendingRequirement
+from src.core.models import GlobalState, Hypothesis, PendingRequirement, ToolSelectionContext
 from src.core.llm import LLMFactory
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
 from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
-from src.config import settings
+from src.core.tool_selector import ToolSelector
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
+from src.utils.arg_sanitizer import sanitize_tool_args, is_executor_role, EXECUTOR_ARG_KEYS
 from src.utils.state_formatters import (
-    format_topology_edges, format_baselines, format_known_changes,
-    format_facts, format_hypotheses, format_path_analysis,
+    format_path_analysis,
     format_evidence_summaries,
 )
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage
 import logging
 import json
@@ -22,243 +21,118 @@ logger = logging.getLogger(__name__)
 async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     """
     LangGraph node: Selects top hypothesis and executes specific verification tools.
+    Uses centralized ToolSelector pipeline for tool selection.
     """
     hypotheses = state.get("hypotheses", [])
-    
+
     # 1. Select Target Hypothesis
-    # We want to finish 'verifying' ones (unblock them) or start 'proposed' ones.
     candidates = [h for h in hypotheses if h.status in ["proposed", "verifying"]]
-    
-    # Sort: 
-    # 1. 'verifying' first (Stick to the active thread)
-    # 2. Then by Rank
     candidates.sort(key=lambda x: (0 if x.status == "verifying" else 1, x.rank))
-    
+
     if not candidates:
         logger.info("Investigator: No proposed hypotheses to verify.")
         return {}
-        
+
     target_hypothesis = candidates[0]
     logger.info(f"Investigator: Verifying Hypothesis (Rank {target_hypothesis.rank}): {target_hypothesis.summary}")
-    
+
     llm = LLMFactory.get_model_for_agent("investigator")
     store = EvidenceStore(
         customer_id=state.get("customer_id", "unknown"),
         run_id=state.get("meta", {}).get("run_id")
     )
-    
-    # 2. Build full scenario context (same view as Hypothesis agent)
-    # Truncation limits are tighter here — investigator focuses on one hypothesis
-    facts_str = format_facts(state.get("facts", {}), max_items=15)
-    topology_str = format_topology_edges(state.get("topology_edges", []), max_items=20)
-    baselines_str = format_baselines(state.get("client_context"), max_items=10)
-    changes_str = format_known_changes(state.get("client_context"), max_items=5)
-    path_str = format_path_analysis(state.get("path_analysis"), max_breakpoints=5)
-    all_hypotheses_str = format_hypotheses(hypotheses, max_items=8)
 
-    # 3. Formulate Verification Plan with full context
-    plan_prompt = f"""
-    Context:
-    Ticket: {state['ticket'].text}
-
-    Target Hypothesis: {target_hypothesis.summary}
-    Rationale: {target_hypothesis.rationale}
-
-    All Hypotheses (for awareness — do NOT re-investigate rejected ones):
-    {all_hypotheses_str}
-
-    Components: {[c.id for c in state.get('components', [])]}
-
-    Facts Collected So Far:
-    {facts_str}
-
-    Topology Graph:
-    {topology_str}
-
-    Baselines (normal values):
-    {baselines_str}
-
-    Recent Changes:
-    {changes_str}
-    {f"""
-    Path Analysis:
-    {path_str}
-    """ if path_str else ""}
-    Task: Describe what specific diagnostic action you need to verify or disprove this hypothesis.
-    Write 1-2 sentences describing the READ-ONLY diagnostic action needed.
-    Focus on WHAT you want to learn, NOT tool names.
-
-    CRITICAL: Always prefer inspecting CONFIGURATION (routes, policies, rules, service definitions, resource bindings) over live traffic analysis (debug flows, packet captures, session tables, sniffers). Configuration is deterministic, always available, and sufficient to verify most hypotheses.
-
-    Return a JSON object with:
-    - "intent": Natural language description of what diagnostic data you need (e.g., "retrieve current configuration for the affected component")
-    - "reasoning": Why this diagnostic action?
-    """
-    
-    try:
-        response = await llm.ainvoke([
-            SystemMessage(content="You are an expert IT Troubleshooter."),
-            HumanMessage(content=plan_prompt)
-        ])
-        plan = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
-        search_intent = plan.get("intent", "system health status check")
-        logger.info(f"Investigator: Search Intent: {search_intent}")
-        
-    except Exception as e:
-        logger.error(f"Investigator: Plan generation failed: {e}")
-        return {}
-        
-    # 4. Find Tools via Semantic Search
+    # 2. Build context for ToolSelector
     customer_id = state.get("customer_id", "unknown")
-    tools = await CapabilityRegistry.semantic_search_tools(search_intent, customer_id, limit=5)
-    if not tools:
-        logger.warning(f"Investigator: No tools found for intent '{search_intent[:50]}'. Fallback to status.")
-        tools = CapabilityRegistry.search_tools("status", limit=1)
-        
-    # 5. Select & Configure Tool
-    # Ask LLM to pick the best tool and define args (linking to components)
-    
-    # Context Injection (reuse formatted strings from plan phase + evidence)
+    components = state.get("components", [])
     facts = state.get("facts", {})
+    path_str = format_path_analysis(state.get("path_analysis"), max_breakpoints=5)
     evidence_context = format_evidence_summaries(state.get("evidence_refs", []), max_items=8)
 
-    # Fetch insights
-    from src.core.qdrant import vector_store
-    insights_text = ""
-    try:
-        combined_insights = []
-        for t in tools:
-            insights = await vector_store.get_tool_insights(t.name, limit=1)
-            for ins in insights:
-                combined_insights.append(f"For {t.name}: {ins.get('insight')}")
-        if combined_insights:
-            insights_text = "LEARNED BEST PRACTICES:\n" + "\n".join(combined_insights)
-    except Exception as e:
-        logger.warning(f"Investigator failed to fetch insights: {e}")
-    
-    tool_select_prompt = f"""
-    Applicable Tools:
-    {json.dumps([{'name': t.name, 'description': t.description, 'args': t.args_schema.model_json_schema()} for t in tools], indent=2)}
+    # Derive target component from hypothesis (best match from components)
+    target_component = components[0] if components else None
 
-    {insights_text}
+    # 3. Use ToolSelector in investigation mode
+    selector = ToolSelector(customer_id=customer_id)
+    ctx = ToolSelectionContext(
+        ticket_text=state["ticket"].text,
+        component=target_component,
+        components=components,
+        hypothesis=target_hypothesis,
+        facts=facts,
+        path_context=path_str,
+        evidence_summaries=evidence_context,
+        mode="investigation",
+    )
+    selections = await selector.select_tools(ctx, max_intents=2, max_tools=3)
 
-    Hypothesis: {target_hypothesis.summary}
-    Rationale: {target_hypothesis.rationale}
-    Components: {json.dumps([c.model_dump() for c in state.get('components', [])], default=str)}
-    Facts: {json.dumps(facts, default=str)}
-
-    Topology Graph:
-    {topology_str}
-
-    Baselines:
-    {baselines_str}
-    {f"""
-    Path Analysis:
-    {path_str}
-    """ if path_str else ""}
-    Previous Evidence:
-    {evidence_context}
-
-    Task: Select the best tool and configure arguments.
-    
-    GUIDELINES:
-    1. Analyze the Schema: Distinguish between Mandatory (Required) and Optional arguments. 
-    2. Context Check: Look for parameter values (like resource names, identifiers, scopes, endpoints) in the provided 'Facts', 'Components', and 'Evidence'.
-    3. CRITICAL: Use Component IDs for 'device', 'target', 'host' arguments.
-    4. ANTI-HALLUCINATION: If a MANDATORY parameter is missing from the context, DO NOT INVENT IT. 
-       - If you cannot fill a mandatory param, do NOT select that tool. Choose a simpler tool (like `get_status` or `show_system`) that requires fewer args.
-    5. BLOCKED TOOLS: Check 'Previous Evidence' for "BLOCKED" or "Missing Info" regarding specific tools.
-       - If a tool was recently BLOCKED due to missing info, DO NOT retry it unless you see the missing info in 'Facts' or 'Evidence'.
-       - Instead, select a **Discovery Tool** (e.g., `get_status`, `list_resources`, `show_info`) to FIND that missing information.
-    6. SAFETY: Do NOT select tools that modify configuration (set, edit, delete) or perform intrusive debugging. READ-ONLY only.
-    7. CONFIGURATION-FIRST: Prefer tools that read existing configuration (routes, policies, rules, bindings, definitions) over tools that inspect live traffic (debug flows, packet captures, session tables, sniffers). Configuration analysis is deterministic and always available.
-    
-    Return JSON:
-    {{
-        "tool_name": "name",
-        "arguments": {{ "arg": "value" }}
-    }}
-    """
-    
-    try:
-        response = await llm.ainvoke([
-            SystemMessage(content="You are an expert Automation Engineer."),
-            HumanMessage(content=tool_select_prompt)
-        ])
-        selection = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
-        tool_name = selection["tool_name"]
-        tool_args = selection["arguments"]
-        
-    except Exception as e:
-        logger.error(f"Investigator: Tool selection failed: {e}")
+    if not selections:
+        logger.warning("Investigator: ToolSelector returned no tools.")
         return {}
-        
-    # 6. Execute
-    tool = CapabilityRegistry.get_tool(tool_name)
-    if tool:
-        # Sanitize arguments: Ensure 'device'/'target' maps to a real Component ID
-        components = state.get("components", [])
-        
-        # Roles that can be actual devices
-        EXECUTOR_ROLES = ["firewall", "router", "switch", "server", "host",
-                          "appliance", "controller", "gateway", "hypervisor", "node",
-                          "cluster", "database", "storage", "loadbalancer"]
-        
-        for key in ["device", "target", "host", "hostname", "ip"]:
-            if key in tool_args:
-                val = tool_args[key]
-                
-                # Try to find a matching component
-                # 1. Exact ID Match
-                match = next((c for c in components if c.id == val), None)
-                
-                # 2. Ref/Role Match (Auto-correct)
-                if not match:
-                     match = next((c for c in components if c.ref.lower() == str(val).lower() or c.role.lower() == str(val).lower()), None)
-                     
-                if match and match.id != val:
-                    # SMART CHECK: Only use this component as 'device' if it is an EXECUTOR
-                    if key == "device":
-                        is_executor = any(r in match.role.lower() for r in EXECUTOR_ROLES)
-                        if is_executor:
-                             logger.info(f"Investigator: Auto-correcting argument {key}='{val}' -> '{match.id}'")
-                             tool_args[key] = match.id
-                        else:
-                             logger.warning(f"Investigator: Prevented using non-executor '{match.id}' ({match.role}) as 'device'.")
-                    else:
+
+    # 4. Execute tools (highest priority first)
+    for sel in selections:
+        tool_name = sel.name
+        tool_args = sel.args
+
+        tool = CapabilityRegistry.get_tool(tool_name)
+        if not tool:
+            logger.warning(f"Investigator: Tool {tool_name} not found in registry.")
+            continue
+
+        # Auto-correct LLM-generated values to real component IDs
+        for key in list(tool_args.keys()):
+            if key not in EXECUTOR_ARG_KEYS and key not in ("target", "ip", "address", "subnet", "destination", "network", "cidr"):
+                continue
+            val = tool_args[key]
+
+            match = next((c for c in components if c.id == val), None)
+            if not match:
+                match = next((c for c in components if c.ref.lower() == str(val).lower() or c.role.lower() == str(val).lower()), None)
+
+            if match and match.id != val:
+                if key in EXECUTOR_ARG_KEYS:
+                    if is_executor_role(match.role):
                         logger.info(f"Investigator: Auto-correcting argument {key}='{val}' -> '{match.id}'")
                         tool_args[key] = match.id
-        
+                    else:
+                        logger.warning(f"Investigator: Prevented using non-executor '{match.id}' ({match.role}) as '{key}'.")
+                else:
+                    logger.info(f"Investigator: Auto-correcting argument {key}='{val}' -> '{match.id}'")
+                    tool_args[key] = match.id
+
+        # Type-aware placeholder sanitization
+        best_comp = next((c for c in components if c.id in str(tool_args.values())), components[0] if components else None)
+        if best_comp:
+            tool_args = sanitize_tool_args(tool_args, best_comp)
+
         # SAFETY CHECK
         if not is_safe_tool(tool_name, tool_args):
-             logger.warning(f"Investigator: Skipping unsafe tool execution: {tool_name}")
-             return {}
-        
-        # GOVERNANCE CHECK (CapabilityScope)
-        customer_id = state.get("customer_id", "unknown")
+            logger.warning(f"Investigator: Skipping unsafe tool execution: {tool_name}")
+            continue
+
+        # GOVERNANCE CHECK
         if not await is_tool_allowed_for_tenant(tool_name, customer_id):
-             logger.warning(f"Investigator: Tool {tool_name} not allowed for tenant {customer_id}")
-             return {}
+            logger.warning(f"Investigator: Tool {tool_name} not allowed for tenant {customer_id}")
+            continue
 
         try:
             logger.info(f"Investigator: Executing {tool_name} with {tool_args}")
-            
-            # ADAPTIVE EXECUTION
-            executor = AdaptiveExecutor()
+
+            executor = AdaptiveExecutor(customer_id=customer_id)
             facts_str = json.dumps(state.get("facts", {}), default=str)
             context = f"Ticket: {state['ticket'].text}\nFacts: {facts_str}\nHypothesis: {target_hypothesis.summary}\nGoal: Verify hypothesis."
-            
+
             output = await executor.execute(tool, tool_args, context)
-            
-            # Save Evidence
+
             snapshot = await store.save_evidence(
                 tool_name=tool_name,
                 tool_args=tool_args,
                 content=output,
                 summary=f"Verification for hypothesis: {target_hypothesis.summary}"
             )
-            
-            # Mark Hypothesis as 'verifying' — build clean updated list instead of in-place mutation
+
+            # Mark hypothesis as 'verifying'
             updated_hypotheses = []
             for h in hypotheses:
                 if h.id == target_hypothesis.id:
@@ -266,109 +140,92 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                     updated_hypotheses.append(updated_h)
                 else:
                     updated_hypotheses.append(h)
-            
-            # Append new evidence to state
+
             current_evidence = state.get("evidence_refs", [])
             updated_evidence = current_evidence + [snapshot]
-            
+
             return {
                 "hypotheses": updated_hypotheses,
                 "evidence_refs": updated_evidence
             }
-            
+
         except MissingDependencyError as e:
             deps_str = "\n- ".join(e.dependencies)
             logger.warning(f"Investigator: Blocked by Missing Dependencies:\n- {deps_str}")
-            
-            # 1. SAVE THE FAILURE EVIDENCE FIRST
-            # So the report shows "Tool X Failed"
+
             fail_snapshot = await store.save_evidence(
                 tool_name=tool_name,
                 tool_args=tool_args,
                 content=f"EXECUTION FAILED (Missing Dependencies):\n{deps_str}\nOriginal Error: {str(e)}",
                 summary=f"Failed to run {tool_name}: Missing dependencies."
             )
-            # We don't return immediately, we try recovery. 
-            # But we must add this to the list we effectively return/accumulation logic.
-            # We'll accumulate 'new_evidence_for_this_turn' locally if we want, 
-            # but simpler: just append to a list we build.
-            
-            # Let's fix the variable scope. We need to append to `current_evidence`.
+
             current_evidence = state.get("evidence_refs", [])
-            # We will append fail_snapshot to current_evidence shortly.
-            
+
             # --- INTERNAL RECOVERY LOOP ---
-            # Attempt to resolve the blocker immediately by running a Discovery Tool.
             logger.info(f"Investigator: Attempting in-flight resolution for blockers.")
-            
+
             try:
-                # 1. Select Resolution Tool
                 resolution_context = f"""
                 Problem: Tool '{tool_name}' failed.
                 Missing Info:
                 {deps_str}
                 Source Hint: {e.suggested_source}
-                
+
                 Task: Select a DIFFERENT tool to FETCH this missing information immediately.
                 """
-                
-                resolution_tools = await _select_resolution_tool(llm, None, resolution_context) # Component is implicit in context
-                
+
+                resolution_tools = await _select_resolution_tool(llm, None, resolution_context)
+
                 if resolution_tools:
                     res_tool_def = resolution_tools[0]
                     res_tool_name = res_tool_def["name"]
                     res_tool_args = res_tool_def["args"]
-                    
+
                     logger.info(f"Investigator: Recovery - Executing resolution tool {res_tool_name}")
-                    
-                    # 2. Execute Resolution Tool
+
                     res_tool = CapabilityRegistry.get_tool(res_tool_name)
                     if res_tool:
                         res_output = await executor.execute(res_tool, res_tool_args, context)
-                        
-                        # 3. Save Resolution Evidence
+
                         res_snapshot = await store.save_evidence(
                             tool_name=res_tool_name,
                             tool_args=res_tool_args,
                             content=res_output,
                             summary=f"Resolution for blocker in {tool_name}"
                         )
-                        
+
                         current_evidence = state.get("evidence_refs", [])
                         updated_evidence = current_evidence + [fail_snapshot, res_snapshot]
-                        
-                        # Return success with new evidence!
-                        # The next iteration will pick up the original investigation, now unblocked.
+
                         return {
                             "evidence_refs": updated_evidence
                         }
             except Exception as res_e:
-                 logger.error(f"Investigator: Recovery failed: {res_e}")
+                logger.error(f"Investigator: Recovery failed: {res_e}")
 
-            # Fallback: Just save the Blocker Evidence if recovery failed/skipped
+            # Fallback: save blocker evidence
             snapshot = await store.save_evidence(
                 tool_name="system_advisor",
                 tool_args={"blocked_tool": tool_name, "missing": e.dependencies},
                 content=f"EXECUTION BLOCKED.\nMissing Info:\n- {deps_str}\nSuggested Source: {e.suggested_source}\nRECOMMENDATION: Select a tool to discover this information.",
                 summary=f"BLOCKED: Needed {len(e.dependencies)} inputs (e.g. {e.dependencies[0]}) to run {tool_name}."
             )
-            
-            # --- RAISE HITL SIGNAL ---
-            # So the Human-In-The-Loop can prompt the user for missing info
+
             req = PendingRequirement(
                 key=f"missing_{tool_name}_auto",
                 description=f"{deps_str}",
                 source_hint=e.suggested_source,
                 tool_name=tool_name,
-                component_id="unknown" # We don't enforce component ID matching tightly here
+                component_id="unknown"
             )
-            
+
             current_evidence = state.get("evidence_refs", [])
             updated_evidence = current_evidence + [fail_snapshot, snapshot]
-            
+
             pending_requirements = state.get("pending_requirements", [])
             pending_requirements.append(req)
-            
+
             return {
                 "evidence_refs": updated_evidence,
                 "pending_requirements": pending_requirements
@@ -376,7 +233,6 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
 
         except Exception as e:
             logger.error(f"Investigator: Execution failed: {e}")
-            # Capture failure as evidence
             fail_snapshot = await store.save_evidence(
                 tool_name=tool_name,
                 tool_args=tool_args,
@@ -388,32 +244,31 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
             return {
                 "evidence_refs": updated_evidence
             }
+
     return {}
 
+
 async def _select_resolution_tool(llm, component, context_str) -> List[Dict[str, Any]]:
-    """
-    Helper to select a tool to resolve missing info.
-    (Duplicated/Shared logic with EvidenceCollector)
-    """
+    """Helper to select a tool to resolve missing info."""
     prompt = f"""
     Context: {context_str}
-    
+
     Task: Select ONE read-only tool to retrieve the missing information.
     Return JSON: [ {{ "name": "tool", "args": {{ ... }} }} ]
     """
     try:
-         # Search specifically for "info" or "status" or "list"
-         found = CapabilityRegistry.search_tools("status info list get", limit=10)
-         tools_json = json.dumps([{'name': t.name, 'description': t.description} for t in found])
-         
-         full_prompt = prompt + f"\nChoose from:\n{tools_json}"
-         
-         response = await llm.ainvoke([
-             SystemMessage(content="You are a Recovery Specialist."), 
-             HumanMessage(content=full_prompt)
-         ])
-         selection = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
-         if isinstance(selection, dict): return [selection]
-         return selection
-    except:
-         return []
+        found = CapabilityRegistry.search_tools("status info list get", limit=10)
+        tools_json = json.dumps([{'name': t.name, 'description': t.description} for t in found])
+
+        full_prompt = prompt + f"\nChoose from:\n{tools_json}"
+
+        response = await llm.ainvoke([
+            SystemMessage(content="You are a Recovery Specialist."),
+            HumanMessage(content=full_prompt)
+        ])
+        selection = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
+        if isinstance(selection, dict):
+            return [selection]
+        return selection
+    except Exception:
+        return []

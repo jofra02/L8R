@@ -1,10 +1,11 @@
 from typing import List, Dict, Any, Optional, Literal, TypedDict
+from dataclasses import dataclass, field as dc_field
 from pydantic import BaseModel, Field
 from datetime import datetime
 
 # --- Enums & Literals ---
 Severity = Literal["low", "medium", "high", "critical"]
-TicketMode = Literal["incident", "change"]
+TicketMode = Literal["incident", "change", "validation", "inquiry"]
 ComponentRole = Literal[
     # Network
     "firewall", "router", "switch", "loadbalancer", "gateway", "access_point",
@@ -222,6 +223,52 @@ class PathAnalysis(BaseModel):
     most_likely_breakpoints: List[Dict[str, Any]] = Field(default_factory=list)  # [{edge, constraint, reasoning}]
     missing_evidence: List[str] = Field(default_factory=list)
     suggested_probes: List[str] = Field(default_factory=list)  # Read-only intents to fill gaps
+
+# --- Tool Selection Pipeline ---
+
+class ToolIntent(BaseModel):
+    """Short keyword query for semantic tool search."""
+    query: str          # 2-6 word search query
+    goal: str = ""      # What info this intent seeks (optional, for traceability)
+
+class ToolCandidate(BaseModel):
+    """A tool retrieved by semantic search, awaiting LLM evaluation."""
+    tool_name: str
+    description: str
+    args_schema: Dict[str, Any] = Field(default_factory=dict)
+    search_score: float = 0.0
+    source_intent: str = ""
+    catalog_context: str = ""  # page_content from Qdrant: description + param summaries
+
+class ToolEvaluation(BaseModel):
+    """LLM judgment on a single candidate tool."""
+    tool_name: str
+    relevant: bool          # Does this tool help gather the needed info?
+    reasoning: str          # Why or why not (1-2 sentences)
+    priority: int = 0       # Relative priority (1=highest) among approved tools
+
+class ToolSelection(BaseModel):
+    """Approved tool with bound arguments, ready for execution."""
+    name: str
+    args: Dict[str, Any]
+    evaluation: ToolEvaluation
+
+
+@dataclass
+class ToolSelectionContext:
+    """All context needed for tool selection decisions."""
+    ticket_text: str
+    component: Optional[Component] = None
+    components: List[Component] = dc_field(default_factory=list)
+    hypothesis: Optional[Hypothesis] = None       # For investigator mode
+    facts: Dict[str, Any] = dc_field(default_factory=dict)
+    path_context: str = ""
+    evidence_summaries: str = ""
+    mode: str = "evidence"  # "evidence" | "investigation" | "relational"
+    # Relational mode fields
+    source_component: Optional[Component] = None   # For relational mode
+    target_component: Optional[Component] = None   # For relational mode
+
 
 # --- Global State (LangGraph) ---
 
