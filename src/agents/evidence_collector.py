@@ -192,7 +192,8 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     return {
         "evidence_refs": evidence_refs + new_evidence,
         "missing_info": missing_info_list,
-        "pending_requirements": pending_requirements
+        "pending_requirements": pending_requirements,
+        "case_status": "investigating",
     }
 
 

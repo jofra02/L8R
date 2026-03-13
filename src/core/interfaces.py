@@ -91,9 +91,9 @@ class VectorStoreInterface(ABC):
         pass
         
     @abstractmethod
-    async def save_adaptive_fix(self, tool_name: str, error_msg: str, insight: str, fix_data: Dict[str, Any], customer_id: str = "global"):
+    async def save_adaptive_fix(self, tool_name: str, error_msg: str, insight: str, fix_data: Dict[str, Any], customer_id: str):
         pass
-        
+
     @abstractmethod
-    async def get_adaptive_fixes(self, tool_name: str, error_msg: str, customer_id: str = "global", limit: int = 2) -> List[Any]:
+    async def get_adaptive_fixes(self, tool_name: str, error_msg: str, customer_id: str, limit: int = 2) -> List[Any]:
         pass

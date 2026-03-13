@@ -34,16 +34,18 @@ data/             # Runtime artifacts (gitignored): paused_state.json, needs.jso
 | Classifier | `classification` (domains, confidence) |
 | Mapper | `components` (with vendor, reconciled against inventory) |
 | EvidenceCollector | `evidence_refs` (via keyword intent -> semantic tool search) |
-| Enricher | `facts` (extracted values, MITRE), `topology_nodes/edges` (dependency graph) |
-| HypothesisAgent | `hypotheses` (ranked), `path_analysis` (breakpoints, probes) |
-| Scoring | `scoring` (deterministic decision gate, no LLM) |
-| Investigator | `evidence_refs` (targeted hypothesis verification) |
-| Planner | `plan` (diagnosis, remediation, validation, rollback) |
+| Enricher | `facts`, `structured_facts` (with provenance), `topology_nodes/edges` |
+| HypothesisAgent | `hypotheses` (ranked, with `evidence_refs`), `path_analysis` |
+| InvestigationPlanner | `open_questions` (structured question-driven investigation) |
+| GoalDecomposer | `fulfillment_goals` (change/request ticket decomposition) |
+| Scoring | `scoring` (deterministic decision gate + stagnation detection, no LLM) |
+| Investigator | `evidence_refs` (targeted, consumes `open_questions`) |
+| ResolutionPlanner | `plan` (diagnosis, remediation, validation, rollback) |
 | Response | `final_answer`, `handoff` |
 
 ## Current Implementation State
 
-**Phases 1–18 complete.** Active work: **beta-0.0.5** (tenant isolation, domain-agnostic prompts, configuration-first principle).
+**Phases 1–18 complete.** Active work: **beta-0.0.8** (spec alignment, structured investigation, case lifecycle).
 
 Completed this cycle:
 - Tenant isolation audit & remediation (all runtime + schema findings)
@@ -53,6 +55,13 @@ Completed this cycle:
 - Domain bias audit & remediation across all agent prompts
 - Configuration-first principle (prefer config analysis over live traffic)
 - Safety keywords expansion (database, deployment, permission operations)
+- InvestigationPlanner agent (structured OpenQuestion-driven investigation)
+- GoalDecomposer agent (fulfillment path for change/request tickets)
+- CaseStatus lifecycle tracking across all agents
+- Structured Fact model with provenance (source_evidence_id, confidence)
+- Evidence-to-Hypothesis linking (evidence_refs on Hypothesis)
+- Stagnation detection in Scoring agent
+- Planner renamed to ResolutionPlanner (post-diagnosis)
 
 ## Design Principles
 
@@ -78,7 +87,7 @@ Completed this cycle:
 
 | File | Purpose |
 |---|---|
-| `src/core/models.py` | `Ticket`, `ClientContext`, `GlobalState`, `Hypothesis`, `TopologyNode/Edge`, etc. |
+| `src/core/models.py` | `Ticket`, `ClientContext`, `GlobalState`, `Hypothesis`, `OpenQuestion`, `Fact`, `FulfillmentGoal`, `CaseStatus`, `TopologyNode/Edge`, etc. |
 | `src/core/interfaces.py` | `PluginInterface`, `MCPToolInterface`, `IngestorInterface` |
 | `src/core/audit.py` | `AuditService` (tenant-aware) |
 | `src/core/llm.py` | `LLMFactory` |

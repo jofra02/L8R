@@ -67,11 +67,12 @@ async def test_adaptive_rag_healing():
         tool_name="test_tool", # Using the name from MockTool
         error_msg=error_msg,
         insight="Always use valid IP for target.",
-        fix_data=fix_data
+        fix_data=fix_data,
+        customer_id="test_tenant"
     )
-    
+
     # Verify save
-    fixes = await vector_store.get_adaptive_fixes("test_tool", error_msg)
+    fixes = await vector_store.get_adaptive_fixes("test_tool", error_msg, customer_id="test_tenant")
     assert len(fixes) > 0
     print("  -> Fix seeded.")
     

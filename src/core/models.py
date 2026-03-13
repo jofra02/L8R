@@ -6,6 +6,10 @@ from datetime import datetime
 # --- Enums & Literals ---
 Severity = Literal["low", "medium", "high", "critical"]
 TicketMode = Literal["incident", "change", "validation", "inquiry"]
+CaseStatus = Literal[
+    "new", "triaged", "modeled", "planned", "investigating",
+    "synthesizing", "resolved", "blocked", "needs_human"
+]
 ComponentRole = Literal[
     # Network
     "firewall", "router", "switch", "loadbalancer", "gateway", "access_point",
@@ -117,6 +121,34 @@ class EvidenceSnapshot(BaseModel):
     # The actual content is stored in Evidence Store, referenced here.
     storage_ref: str
 
+class Fact(BaseModel):
+    """A structured fact extracted from evidence with provenance."""
+    key: str
+    value: Any
+    source_evidence_id: str = Field(description="EvidenceSnapshot ID that produced this fact")
+    confidence: float = Field(default=1.0, description="0.0-1.0 confidence in the extracted value")
+    timestamp: datetime = Field(default_factory=datetime.now)
+
+class OpenQuestion(BaseModel):
+    """A structured question driving investigation."""
+    id: str
+    question: str = Field(description="The specific question to answer")
+    why: str = Field(default="", description="Why answering this matters for the case")
+    depends_on: List[str] = Field(default_factory=list, description="IDs of questions that must be answered first")
+    done_when: str = Field(default="", description="Criteria that indicate this question is answered")
+    status: str = Field(default="open", description="open, answered, blocked, irrelevant")
+    answer: str = Field(default="", description="The answer once resolved")
+    source_hypothesis_id: str = Field(default="", description="Hypothesis that motivated this question")
+
+class FulfillmentGoal(BaseModel):
+    """A structured goal for change/request ticket fulfillment."""
+    id: str
+    description: str = Field(description="What needs to be accomplished")
+    preconditions: List[str] = Field(default_factory=list, description="What must be true before this goal can be pursued")
+    validation_criteria: List[str] = Field(default_factory=list, description="How to verify goal completion")
+    status: str = Field(default="pending", description="pending, in_progress, completed, blocked")
+    sub_goals: List[str] = Field(default_factory=list, description="IDs of child goals")
+
 class Hypothesis(BaseModel):
     """A potential explanation or diagnosis."""
     id: str
@@ -124,6 +156,7 @@ class Hypothesis(BaseModel):
     required_facts: List[str] = Field(default_factory=list)
     supporting_facts: List[str] = Field(default_factory=list)
     disconfirming_facts: List[str] = Field(default_factory=list)
+    evidence_refs: List[str] = Field(default_factory=list, description="EvidenceSnapshot IDs supporting/contradicting this hypothesis")
     confidence: float = 0.0
     rank: int = Field(default=0, description="Priority rank (1 is highest)")
     status: str = Field(default="proposed", description="proposed, verified, rejected")
@@ -277,30 +310,41 @@ class GlobalState(TypedDict):
     ticket: Ticket
     customer_id: str
     client_context: ClientContext
-    
+
+    # Case lifecycle
+    case_status: CaseStatus
+
     classification: Classification
     components: List[Component]
-    
+
     # Normalized facts extracted from evidence
     facts: Dict[str, Any]
-    
+    # Structured facts with provenance (augments flat facts dict)
+    structured_facts: List[Fact]
+
     # References to raw evidence artifacts
     evidence_refs: List[EvidenceSnapshot]
-    
+
     missing_info: List[str] # Legacy string list, keep for backward compat if needed
     pending_requirements: List[PendingRequirement] # Structured blocking requirements
-    
+
+    # Investigation planning
+    open_questions: List[OpenQuestion]
+
     hypotheses: List[Hypothesis]
     scoring: ScoringResult  # Scoring/Decision Engine output
     plan: Plan
-    
+
+    # Fulfillment (change/request tickets)
+    fulfillment_goals: List[FulfillmentGoal]
+
     # Topology / Dependency Graph
     topology_nodes: List[TopologyNode]
     topology_edges: List[TopologyEdge]
     path_analysis: PathAnalysis
-    
+
     final_answer: str
     handoff: HandoffPackage
-    
+
     # Meta information for flow control
     meta: Dict[str, Any]  # iterations, tool_calls, trace_id, cost

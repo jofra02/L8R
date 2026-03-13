@@ -94,7 +94,8 @@ The agent has paused execution because it lacks critical information to proceed.
             
         return {
             "final_answer": msg,
-            "handoff": HandoffPackage(case_file_artifacts=[needs_file])
+            "handoff": HandoffPackage(case_file_artifacts=[needs_file]),
+            "case_status": "blocked",
         }
 
     llm = LLMFactory.get_model_for_agent("response") # Use smart model for final synthesis
@@ -203,5 +204,6 @@ The agent has paused execution because it lacks critical information to proceed.
     
     return {
         "final_answer": final_report,
-        "handoff": handoff
+        "handoff": handoff,
+        "case_status": "resolved",
     }

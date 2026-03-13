@@ -322,11 +322,19 @@ class VectorStore:
     @rag_telemetry(operation_name="save_adaptive_fix")
     async def save_adaptive_fix(
         self, tool_name: str, error_msg: str, insight: str, fix_data: Dict[str, Any],
-        customer_id: str = "global"
+        customer_id: str
     ):
         """Save a specific error-fix pair for self-healing. Deterministic ID for dedup."""
-        dedup_key = f"{tool_name}-{error_msg[:100]}"
-        
+        import re
+        # Normalize variable data (IPs, UUIDs) for dedup so same-class errors
+        # within a tenant collapse but different tenants stay separate.
+        normalized_err = re.sub(r'\d{1,3}(?:\.\d{1,3}){3}(?:/\d{1,2})?', '<IP>', error_msg[:100])
+        normalized_err = re.sub(
+            r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
+            '<UUID>', normalized_err
+        )
+        dedup_key = f"{customer_id}-{tool_name}-{normalized_err}"
+
         await self.add_texts(
             collection_name="adaptive_fixes",
             texts=[error_msg],
@@ -342,9 +350,9 @@ class VectorStore:
 
     @rag_telemetry(operation_name="get_adaptive_fixes")
     async def get_adaptive_fixes(
-        self, tool_name: str, error_msg: str, customer_id: str = "global", limit: int = 2
+        self, tool_name: str, error_msg: str, customer_id: str, limit: int = 2
     ) -> List[Any]:
-        """Retrieve fixes for a specific tool error."""
+        """Retrieve fixes for a specific tool error with score threshold filtering."""
         extra_filter = [
             models.FieldCondition(
                 key="tool_name",
@@ -352,7 +360,9 @@ class VectorStore:
             )
         ]
         results = await self.search(
-            "adaptive_fixes", error_msg, customer_id, limit, extra_filter=extra_filter
+            "adaptive_fixes", error_msg, customer_id, limit,
+            score_threshold=0.75,
+            extra_filter=extra_filter,
         )
         return [pt.payload for pt in results]
 

@@ -9,9 +9,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def planner_agent_node(state: GlobalState) -> Dict[str, Any]:
+async def resolution_planner_agent_node(state: GlobalState) -> Dict[str, Any]:
     """
-    LangGraph node: Generates a plan based on the ticket, hypothesis, and past cases (CBR).
+    LangGraph node (Resolution Planner): Generates a resolution plan based on
+    the ticket, hypothesis, and past cases (CBR). Runs post-scoring-gate when
+    evidence is sufficient for a confident diagnosis.
     """
     ticket = state["ticket"]
     hypotheses = state.get("hypotheses", [])
@@ -95,10 +97,14 @@ Output must be valid JSON adhering to the schema.
             "format_instructions": parser.get_format_instructions()
         })
         
-        logger.info(f"Planner: Generated plan with {len(plan.diagnosis_steps)} diagnosis steps.")
-        return {"plan": plan}
+        logger.info(f"ResolutionPlanner: Generated plan with {len(plan.diagnosis_steps)} diagnosis steps.")
+        return {"plan": plan, "case_status": "resolved"}
         
     except Exception as e:
         logger.error(f"Planner: Generation failed: {e}")
         # Return empty plan implies "Human Intervention Required" usually
         return {"plan": Plan()}
+
+
+# Backward-compatible alias
+planner_agent_node = resolution_planner_agent_node

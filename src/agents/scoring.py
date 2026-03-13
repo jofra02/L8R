@@ -38,7 +38,8 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
     evidence_refs = state.get("evidence_refs", [])
     ticket = state["ticket"]
     pending_reqs = state.get("pending_requirements", [])
-    
+    open_questions = state.get("open_questions", [])
+
     logger.info("Scoring Agent: Evaluating state for decision gate.")
     
     # 1. Find the best hypothesis
@@ -64,14 +65,21 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
     #   - Hypothesis confidence (from LLM)
     #   - Evidence coverage (from fact counting)
     #   - Fact density (non-internal facts / expected)
+    #   - Question completion (open questions answered)
     hyp_confidence = best.confidence if best else 0.0
     real_facts = {k: v for k, v in facts.items() if not k.startswith("_")}
     fact_density = min(len(real_facts) / 5.0, 1.0)  # 5+ facts → full density
-    
+
+    # Question completion factor
+    total_questions = len(open_questions)
+    answered_questions = len([q for q in open_questions if q.status == "answered"])
+    question_completion = (answered_questions / max(total_questions, 1)) if total_questions > 0 else 0.5
+
     confidence = (
-        hyp_confidence * 0.5 +
-        evidence_coverage * 0.3 +
-        fact_density * 0.2
+        hyp_confidence * 0.40 +
+        evidence_coverage * 0.25 +
+        fact_density * 0.15 +
+        question_completion * 0.20
     )
     
     # 4. Compute risk score (1-10)
@@ -80,7 +88,22 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
     risk_score = min(severity_weight * (2.0 - confidence) * 2.5, 10.0)
     risk_score = round(max(risk_score, 1.0), 1)
     
-    # 5. Decision gate
+    # 5. Stagnation detection (P7)
+    # Track if recent investigation cycles produced no new facts
+    meta = state.get("meta", {})
+    prev_fact_count = meta.get("_last_fact_count", 0)
+    current_fact_count = len(real_facts)
+    stagnant_cycles = meta.get("_stagnant_cycles", 0)
+
+    if current_fact_count <= prev_fact_count and state.get("scoring"):
+        # No new facts since last scoring pass
+        stagnant_cycles += 1
+    else:
+        stagnant_cycles = 0
+
+    is_stagnant = stagnant_cycles >= 2
+
+    # 6. Decision gate
     if pending_reqs:
         decision = "escalate_to_human"
         rationale = f"Blocked by {len(pending_reqs)} pending requirements from user."
@@ -97,6 +120,16 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
         decision = "escalate_to_human"
         rationale = f"Low confidence ({confidence:.0%}) on {ticket.severity} severity. Human review needed."
         missing_facts = best.required_facts if best else ["Initial investigation required"]
+    elif is_stagnant:
+        # Force proceed or escalate if investigation is stuck
+        if confidence >= 0.5:
+            decision = "proceed_to_plan"
+            rationale = f"Investigation stagnant ({stagnant_cycles} cycles with no new facts). Proceeding with {confidence:.0%} confidence."
+            missing_facts = []
+        else:
+            decision = "escalate_to_human"
+            rationale = f"Investigation stagnant ({stagnant_cycles} cycles) with low confidence ({confidence:.0%}). Human review needed."
+            missing_facts = best.required_facts if best else ["Investigation stalled"]
     else:
         decision = "needs_more_evidence"
         rationale = f"Confidence {confidence:.0%} below threshold ({CONFIDENCE_PROCEED:.0%}). More investigation needed."
@@ -105,7 +138,7 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
             # Find uncovered required facts
             covered_set = set(best.supporting_facts)
             missing_facts = [f for f in best.required_facts if f not in covered_set]
-    
+
     scoring = ScoringResult(
         risk_score=risk_score,
         confidence=round(confidence, 3),
@@ -120,4 +153,9 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
         f"decision={scoring.decision} — {scoring.rationale}"
     )
     
-    return {"scoring": scoring}
+    # Persist stagnation tracking in meta
+    updated_meta = dict(meta)
+    updated_meta["_last_fact_count"] = current_fact_count
+    updated_meta["_stagnant_cycles"] = stagnant_cycles
+
+    return {"scoring": scoring, "meta": updated_meta}

@@ -32,11 +32,12 @@ async def classifier_agent_node(state: GlobalState) -> Dict[str, Any]:
         })
         
         logger.info(f"Classification result: {classification.domains} ({classification.confidence})")
-        return {"classification": classification}
-        
+        return {"classification": classification, "case_status": "triaged"}
+
     except Exception as e:
         logger.error(f"Classification failed: {e}")
         # Fallback
         return {
-            "classification": Classification(domains=["unknown"], confidence=0.0, rationale="LLM failure")
+            "classification": Classification(domains=["unknown"], confidence=0.0, rationale="LLM failure"),
+            "case_status": "triaged",
         }

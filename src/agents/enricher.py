@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
-from src.core.models import GlobalState, TopologyNode, TopologyEdge
+from src.core.models import GlobalState, TopologyNode, TopologyEdge, Fact
 from src.core.llm import LLMFactory
+from datetime import datetime
 from langchain_core.messages import SystemMessage, HumanMessage
 import logging
 import json
@@ -31,7 +32,8 @@ async def enricher_agent_node(state: GlobalState) -> Dict[str, Any]:
     llm = LLMFactory.get_model_for_agent("enricher")
     
     enriched_facts = facts.copy()
-    
+    structured_facts: List[Fact] = list(state.get("structured_facts", []))
+
     # Topology accumulators (merge with existing)
     existing_nodes = state.get("topology_nodes", [])
     existing_edges = state.get("topology_edges", [])
@@ -87,8 +89,16 @@ Return ONLY a valid JSON dictionary of key-value pairs.
              extracted_facts = json.loads(extracted_json)
              
              for k, v in extracted_facts.items():
-                 enriched_facts[k] = v 
-             
+                 enriched_facts[k] = v
+                 # Also produce structured fact with provenance
+                 structured_facts.append(Fact(
+                     key=k,
+                     value=v,
+                     source_evidence_id=ref.id,
+                     confidence=1.0,
+                     timestamp=datetime.now(),
+                 ))
+
              logger.info(f"Enricher: Extracted {len(extracted_facts)} facts from evidence {ref.id[:8]}")
              
         except Exception as e:
@@ -174,8 +184,10 @@ If no relationships are found, return {{"nodes": [], "edges": []}}.
     
     return {
         "facts": enriched_facts,
+        "structured_facts": structured_facts,
         "topology_nodes": merged_nodes,
         "topology_edges": merged_edges,
+        "case_status": "synthesizing",
     }
 
 

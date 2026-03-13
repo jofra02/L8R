@@ -7,7 +7,9 @@ from src.agents.mapper import mapper_agent_node
 from src.agents.evidence_collector import evidence_collector_node
 from src.agents.enricher import enricher_agent_node
 from src.agents.hypothesis import hypothesis_agent_node
-from src.agents.planner import planner_agent_node
+from src.agents.investigation_planner import investigation_planner_node
+from src.agents.goal_decomposer import goal_decomposer_node
+from src.agents.planner import resolution_planner_agent_node
 from src.agents.response import response_agent_node
 from src.agents.investigator import investigator_agent_node
 from src.agents.scoring import scoring_agent_node
@@ -51,11 +53,13 @@ workflow.add_node("context_agent", audit_node(context_agent_node, "context_agent
 workflow.add_node("classifier_agent", audit_node(classifier_agent_node, "classifier_agent"))
 workflow.add_node("mapper_agent", audit_node(mapper_agent_node, "mapper_agent"))
 workflow.add_node("evidence_collector", audit_node(evidence_collector_node, "evidence_collector"))
-workflow.add_node("investigator_agent", audit_node(investigator_agent_node, "investigator_agent")) # New
+workflow.add_node("investigator_agent", audit_node(investigator_agent_node, "investigator_agent"))
 workflow.add_node("enricher_agent", audit_node(enricher_agent_node, "enricher_agent"))
 workflow.add_node("hypothesis_agent", audit_node(hypothesis_agent_node, "hypothesis_agent"))
+workflow.add_node("investigation_planner", audit_node(investigation_planner_node, "investigation_planner"))
+workflow.add_node("goal_decomposer", audit_node(goal_decomposer_node, "goal_decomposer"))
 workflow.add_node("scoring_agent", audit_node(scoring_agent_node, "scoring_agent"))
-workflow.add_node("planner_agent", audit_node(planner_agent_node, "planner_agent"))
+workflow.add_node("planner_agent", audit_node(resolution_planner_agent_node, "planner_agent"))
 workflow.add_node("response_agent", audit_node(response_agent_node, "response_agent"))
 
 # 2. Define Edges (Supervisor Driven)
@@ -70,9 +74,11 @@ workflow.add_conditional_edges(
         "classifier_agent": "classifier_agent",
         "mapper_agent": "mapper_agent",
         "evidence_collector": "evidence_collector",
-        "investigator_agent": "investigator_agent", # New
-        "enricher_agent": "enricher_agent", 
-        "hypothesis_agent": "hypothesis_agent", 
+        "investigator_agent": "investigator_agent",
+        "enricher_agent": "enricher_agent",
+        "hypothesis_agent": "hypothesis_agent",
+        "investigation_planner": "investigation_planner",
+        "goal_decomposer": "goal_decomposer",
         "planner_agent": "planner_agent",
         "response_agent": "response_agent",
         "end": END
@@ -89,6 +95,8 @@ workflow.add_edge("investigator_agent", "enricher_agent")    # Sub-chain: Invest
 workflow.add_edge("enricher_agent", "hypothesis_agent")      # Sub-chain: Enrich -> Hypothesis
 workflow.add_edge("hypothesis_agent", "scoring_agent")       # Sub-chain: Hypothesis -> Scoring
 workflow.add_edge("scoring_agent", "supervisor")             # Scoring gates -> Supervisor decides next
+workflow.add_edge("investigation_planner", "supervisor")     # Investigation plan -> Supervisor routes to investigator
+workflow.add_edge("goal_decomposer", "supervisor")           # Goal decomposition -> Supervisor routes next
 workflow.add_edge("planner_agent", "supervisor")
 workflow.add_edge("response_agent", END)
 

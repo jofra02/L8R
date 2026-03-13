@@ -61,11 +61,11 @@ async def mapper_agent_node(state: GlobalState) -> Dict[str, Any]:
         reconciled = _enrich_component_metadata(reconciled)
 
         logger.info(f"Mapper result: Found {len(reconciled)} components.")
-        return {"components": reconciled}
+        return {"components": reconciled, "case_status": "triaged"}
 
     except Exception as e:
         logger.error(f"Mapper failed: {e}")
-        return {"components": [], "missing_info": ["mapper_error"]}
+        return {"components": [], "missing_info": ["mapper_error"], "case_status": "triaged"}
 
 
 def _enrich_component_metadata(components: List[Component]) -> List[Component]:

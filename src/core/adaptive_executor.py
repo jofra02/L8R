@@ -103,13 +103,24 @@ class AdaptiveExecutor:
         """
         schema = tool.args_schema.model_json_schema() if tool.args_schema else {}
         
-        # RAG: Retrieve past insights for this tool/error
+        # RAG: Retrieve past insights for this tool/error (tenant-scoped, context-enriched query)
         past_insights_text = ""
         try:
-             # Use dedicated adaptive_fixes collection
-             insights = await vector_store.get_adaptive_fixes(tool.name, error_msg=error_msg, limit=2)
+             # Enrich search query with tool name + context for more scenario-specific embeddings
+             search_query = f"tool:{tool.name} {context[:200]} error:{error_msg}" if context else error_msg
+             insights = await vector_store.get_adaptive_fixes(
+                 tool.name, error_msg=search_query, customer_id=self.customer_id, limit=2
+             )
              if insights:
-                 past_insights_text = "PAST SUCCESSFUL FIXES:\n" + "\n".join([f"- {i.get('insight')}" for i in insights])
+                 fix_lines = []
+                 for i in insights:
+                     line = f"- Insight: {i.get('insight', 'N/A')}"
+                     fix = i.get('fix', {})
+                     if fix:
+                         line += f"\n  Bad args: {fix.get('bad', 'N/A')}"
+                         line += f"\n  Good args: {fix.get('good', 'N/A')}"
+                     fix_lines.append(line)
+                 past_insights_text = "PAST SUCCESSFUL FIXES (from similar errors on this tenant):\n" + "\n".join(fix_lines)
         except Exception as e:
              logger.warning(f"AdaptiveExec: RAG retrieval failed: {e}")
 
@@ -189,10 +200,14 @@ class AdaptiveExecutor:
         Task: Diagnose the error and fix the arguments OR request missing info.
         
         CRITICAL INSTRUCTIONS:
-        1. If 'PAST SUCCESSFUL FIXES' are provided above, they are likely the CORRECT solution. PRIORITIZE THEM as Source S3.
+        1. If 'PAST SUCCESSFUL FIXES' are provided above, evaluate each one:
+           - Compare the failure PATTERN (error type, parameter structure) against the current error.
+           - DO NOT copy concrete values (IPs, FQDNs, hostnames, resource names, UUIDs) from past fixes into the current fix. Those values belonged to a different case.
+           - Treat past fixes as PATTERN EXAMPLES showing which parameters to change and how, NOT as literal value sources.
+           - Only adopt a past fix's approach if the failure pattern genuinely matches.
         2. Diagnosis: Look at the Error Message. What is wrong? (Missing param, wrong type, invalid value?)
-        3. Grounding Step: Attempt to rebuild suspect parameters using ONLY Sources of Truth. 
-        4. Decision: 
+        3. Grounding Step: Attempt to rebuild suspect parameters using ONLY Sources of Truth (current case context, not past fix values).
+        4. Decision:
            - If fully grounded -> Return OPTION A.
            - If data missing -> Return OPTION B.
         

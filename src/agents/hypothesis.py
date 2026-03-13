@@ -113,8 +113,8 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         logger.info(f"Generated {len(final_hypotheses)} hypotheses.")
         
         # Path analysis: if topology exists, attempt breakpoint reasoning
-        result_dict: Dict[str, Any] = {"hypotheses": final_hypotheses}
-        
+        result_dict: Dict[str, Any] = {"hypotheses": final_hypotheses, "case_status": "modeled"}
+
         if topology_edges:
             path_analysis = await _extract_path_analysis(llm, state, topology_str, final_hypotheses)
             if path_analysis:

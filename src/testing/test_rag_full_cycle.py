@@ -45,10 +45,11 @@ async def test_rag_full_cycle():
             tool_name=tool_name,
             error_msg=error_msg,
             insight="Retry with arg2",
-            fix_data=fix_data
+            fix_data=fix_data,
+            customer_id="test_tenant"
         )
-        
-        fixes = await vector_store.get_adaptive_fixes(tool_name, error_msg)
+
+        fixes = await vector_store.get_adaptive_fixes(tool_name, error_msg, customer_id="test_tenant")
         assert len(fixes) > 0, "Failed to retrieve adaptive fix"
         assert fixes[0]['fix'] == fix_data
         print("  -> PASS: Adaptive Fix saved & retrieved.")

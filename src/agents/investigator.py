@@ -24,6 +24,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     Uses centralized ToolSelector pipeline for tool selection.
     """
     hypotheses = state.get("hypotheses", [])
+    open_questions = state.get("open_questions", [])
 
     # 1. Select Target Hypothesis
     candidates = [h for h in hypotheses if h.status in ["proposed", "verifying"]]
@@ -34,6 +35,31 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         return {}
 
     target_hypothesis = candidates[0]
+
+    # 1b. Select the next open question to drive investigation (if available)
+    active_question = None
+    for q in open_questions:
+        if q.status == "open":
+            # Prefer questions linked to the target hypothesis
+            if q.source_hypothesis_id == target_hypothesis.id:
+                active_question = q
+                break
+    # Fallback: any open question
+    if not active_question:
+        for q in open_questions:
+            if q.status == "open":
+                active_question = q
+                break
+
+    question_context = ""
+    if active_question:
+        question_context = (
+            f"\nInvestigation Question: {active_question.question}"
+            f"\nWhy: {active_question.why}"
+            f"\nDone when: {active_question.done_when}"
+        )
+        logger.info(f"Investigator: Targeting question [{active_question.id}]: {active_question.question}")
+
     logger.info(f"Investigator: Verifying Hypothesis (Rank {target_hypothesis.rank}): {target_hypothesis.summary}")
 
     llm = LLMFactory.get_model_for_agent("investigator")
@@ -55,7 +81,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     # 3. Use ToolSelector in investigation mode
     selector = ToolSelector(customer_id=customer_id)
     ctx = ToolSelectionContext(
-        ticket_text=state["ticket"].text,
+        ticket_text=state["ticket"].text + question_context,
         component=target_component,
         components=components,
         hypothesis=target_hypothesis,
@@ -132,11 +158,15 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
                 summary=f"Verification for hypothesis: {target_hypothesis.summary}"
             )
 
-            # Mark hypothesis as 'verifying'
+            # Mark hypothesis as 'verifying' and link evidence
             updated_hypotheses = []
             for h in hypotheses:
                 if h.id == target_hypothesis.id:
-                    updated_h = h.model_copy(update={"status": "verifying"})
+                    new_ev_refs = list(h.evidence_refs) + [snapshot.id]
+                    updated_h = h.model_copy(update={
+                        "status": "verifying",
+                        "evidence_refs": new_ev_refs,
+                    })
                     updated_hypotheses.append(updated_h)
                 else:
                     updated_hypotheses.append(h)
@@ -144,10 +174,23 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
             current_evidence = state.get("evidence_refs", [])
             updated_evidence = current_evidence + [snapshot]
 
-            return {
+            # Mark the active question as answered if one was targeted
+            updated_questions = list(open_questions)
+            if active_question:
+                updated_questions = [
+                    q.model_copy(update={"status": "answered", "answer": snapshot.summary})
+                    if q.id == active_question.id else q
+                    for q in updated_questions
+                ]
+
+            result: Dict[str, Any] = {
                 "hypotheses": updated_hypotheses,
-                "evidence_refs": updated_evidence
+                "evidence_refs": updated_evidence,
+                "case_status": "investigating",
             }
+            if active_question:
+                result["open_questions"] = updated_questions
+            return result
 
         except MissingDependencyError as e:
             deps_str = "\n- ".join(e.dependencies)

@@ -69,6 +69,9 @@ task.md
 # ─── Research / Scratch ───
 docs/research/
 
+# ─── Internal Guidelines / Review Specs ───
+docs/guidelines/
+
 # ─── Local Artifacts & Debug Debris ───
 *.docx
 audit_logs.json
