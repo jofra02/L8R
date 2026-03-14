@@ -22,28 +22,54 @@ workflow = StateGraph(GlobalState)
 from src.core.audit import AuditService
 import asyncio
 
+from src.core.langfuse_integration import langfuse_manager, get_current_trace, set_current_span
+
 def audit_node(node_func, node_name: str):
     """
-    Wraps a node function to log execution events.
+    Wraps a node function to log execution events and create Langfuse spans.
     """
     async def wrapped(state: GlobalState) -> Dict[str, Any]:
         run_id = state.get("meta", {}).get("run_id")
-        
+        customer_id = state.get("customer_id")
+
+        # Create Langfuse span for this agent node
+        trace = get_current_trace()
+        span = None
+        if trace:
+            span = langfuse_manager.create_span(
+                parent=trace, name=f"agent:{node_name}",
+                metadata={"run_id": run_id, "customer_id": customer_id,
+                          "iteration": state.get("meta", {}).get("iterations", 0)},
+            )
+            set_current_span(span)
+
         # Execute the actual node
         try:
             result = await node_func(state)
         except Exception as e:
             # Log failure
             await AuditService().log_event(run_id, node_name, state, {"error": str(e)})
+            if span:
+                try:
+                    span.end(status_message=str(e), level="ERROR")
+                except Exception:
+                    pass
             raise e
-        
+
+        # Close Langfuse span on success
+        if span:
+            try:
+                span.end(status_message="ok")
+            except Exception:
+                pass
+
         # Audit Log (Fire and Forget)
         if run_id:
-            # We use ensure_future to not block the main flow, 
-            # OR await it if we want strict consistency. 
+            # We use ensure_future to not block the main flow,
+            # OR await it if we want strict consistency.
             # For now, let's await to be safe against event loop closing.
             await AuditService().log_event(run_id, node_name, state, result)
-            
+
         return result
     return wrapped
 

@@ -10,6 +10,7 @@ from src.core.qdrant import vector_store
 from src.core.models import ToolKnowledge
 from langchain_core.messages import SystemMessage, HumanMessage
 from src.config import settings
+from src.core.langfuse_integration import langfuse_manager, get_current_span
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,14 @@ class AdaptiveExecutor:
         current_args = args.copy()
         attempts = 0
         last_error = None
-        
+
+        # Create Langfuse span for this tool execution
+        parent_span = get_current_span()
+        tool_span = langfuse_manager.create_span(
+            parent=parent_span, name=f"tool:{tool_name}",
+            input={"args": args}, metadata={"customer_id": self.customer_id},
+        ) if parent_span else None
+
         # 1. Execution Loop
         while attempts <= self.max_retries:
             try:
@@ -66,7 +74,13 @@ class AdaptiveExecutor:
                 if attempts > 0:
                     # If we succeeded after retries, we LEARN.
                     await self._learn_from_recovery(tool_name, args, current_args, last_error, str(last_error))
-                
+
+                if tool_span:
+                    try:
+                        tool_span.end(output={"result_length": len(str(result))}, status_message="ok")
+                    except Exception:
+                        pass
+
                 return result
 
             except Exception as e:
@@ -76,6 +90,11 @@ class AdaptiveExecutor:
                 
                 if attempts > self.max_retries:
                     logger.error(f"AdaptiveExec: Max retries reached for {tool_name}")
+                    if tool_span:
+                        try:
+                            tool_span.end(output={"error": str(e)}, level="ERROR", status_message=str(e)[:200])
+                        except Exception:
+                            pass
                     raise e # Re-raise final exception
                 
                 # 2. Heal / Diagnose

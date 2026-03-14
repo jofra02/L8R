@@ -66,6 +66,15 @@ class Settings(BaseSettings):
         "deploy", "push", "publish", "migrate", "alter ", "grant ", "revoke "
     ]
 
+    # Langfuse Observability
+    LANGFUSE_ENABLED: bool = False
+    LANGFUSE_PUBLIC_KEY: Optional[str] = None
+    LANGFUSE_SECRET_KEY: Optional[str] = None
+    LANGFUSE_HOST: str = "http://localhost:3000"
+    LANGFUSE_SAMPLE_RATE: float = 1.0
+    LANGFUSE_FLUSH_AT: int = 15
+    LANGFUSE_FLUSH_INTERVAL: int = 5
+
     # Global API Keys
     OPENAI_API_KEY: Optional[str] = None
 

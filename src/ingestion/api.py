@@ -21,8 +21,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to load external MCP tools during startup: {e}")
     yield
-    # Shutdown logic
-    pass
+    # Shutdown: flush Langfuse
+    from src.core.langfuse_integration import langfuse_manager
+    langfuse_manager.flush()
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0", lifespan=lifespan)
 

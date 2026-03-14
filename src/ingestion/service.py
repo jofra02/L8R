@@ -7,6 +7,7 @@ from src.core.audit import AuditService
 from src.agent_graph import app
 from langchain_core.messages import HumanMessage
 from typing import Dict, Any, Type, Tuple, Optional, List
+from src.core.langfuse_integration import langfuse_manager, set_current_trace
 import logging
 import uuid
 import datetime
@@ -64,6 +65,14 @@ class IngestionService:
             timestamps={"created_at": datetime.datetime.now().isoformat()}
         )
         
+        # Create Langfuse root trace for this pipeline execution
+        trace = langfuse_manager.create_trace(
+            run_id=run_id, ticket_id=ticket_id,
+            customer_id=customer_id, thread_id=f"thread_{ticket_id}",
+        )
+        if trace:
+            set_current_trace(trace)
+
         initial_state = {
             "ticket": mock_ticket,
             "customer_id": customer_id,
@@ -87,7 +96,7 @@ class IngestionService:
             "meta": {
                 "iterations": 0,
                 "run_id": run_id,
-                "trace_id": "async_trace"
+                "trace_id": run_id
             }
         }
         
@@ -122,6 +131,8 @@ class IngestionService:
         except Exception as e:
             logger.error(f"Background execution failed for Run {run_id}: {e}")
             await self.audit.complete_run(run_id, "failed")
+        finally:
+            langfuse_manager.flush()
 
     async def get_job_status(self, job_id: str, customer_id: str = None) -> Optional[Dict[str, Any]]:
         """Fetch the status of an agent run (tenant-scoped)."""

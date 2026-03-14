@@ -34,5 +34,15 @@ class LLMFactory:
         # Apply reasoning_effort if it's a reasoning model (o1, o3, gpt-5...)
         if any(token in model_name for token in ["o1", "o3", "gpt-5"]):
             kwargs["reasoning_effort"] = settings.LLM_REASONING_EFFORT
-            
-        return ChatOpenAI(**kwargs)
+
+        llm = ChatOpenAI(**kwargs)
+
+        # Attach Langfuse callback if a span is active in context
+        from src.core.langfuse_integration import langfuse_manager, get_current_span
+        handler = langfuse_manager.get_callback_handler_for_span(
+            get_current_span(), metadata={"agent": agent_name}
+        )
+        if handler:
+            llm = llm.with_config(callbacks=[handler])
+
+        return llm
