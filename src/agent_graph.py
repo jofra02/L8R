@@ -49,19 +49,11 @@ def audit_node(node_func, node_name: str):
         except Exception as e:
             # Log failure
             await AuditService().log_event(run_id, node_name, state, {"error": str(e)})
-            if span:
-                try:
-                    span.end(status_message=str(e), level="ERROR")
-                except Exception:
-                    pass
+            langfuse_manager.end_span(span, level="ERROR", status_message=str(e))
             raise e
 
         # Close Langfuse span on success
-        if span:
-            try:
-                span.end(status_message="ok")
-            except Exception:
-                pass
+        langfuse_manager.end_span(span)
 
         # Audit Log (Fire and Forget)
         if run_id:

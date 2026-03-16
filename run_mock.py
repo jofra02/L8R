@@ -130,26 +130,38 @@ def main():
         initial_state["meta"]["run_id"] = run_id
         initial_state["meta"]["trace_id"] = trace_id
 
-        print("\n[>] Starting LangGraph Execution...")
-        
-        final_state = await app.ainvoke(
-            initial_state,
-            config={"configurable": {"thread_id": "mock_thread"}}
+        # Langfuse trace setup for CLI runs
+        from src.core.langfuse_integration import langfuse_manager, set_current_trace
+        trace = langfuse_manager.create_trace(
+            run_id=run_id, ticket_id=mock_ticket.id,
+            customer_id="fake_client", thread_id="mock_thread",
         )
-        
-        print("\n" + "="*80)
-        print("FINAL REPORT GENERATED")
-        print("="*80)
-        print(final_state.get("final_answer", "No report generated."))
-        print("="*80)
-        
-        # Save output to audit history
+        if trace:
+            set_current_trace(trace)
+
+        print("\n[>] Starting LangGraph Execution...")
+
         try:
-            serializable_state = audit._sanitize(final_state)
-            await audit.update_run_context(run_id, "fake_client", serializable_state)
-            await audit.complete_run(run_id, status="completed")
-        except Exception as e:
-            logger.error(f"Failed to save final state to database in mock: {e}")
+            final_state = await app.ainvoke(
+                initial_state,
+                config={"configurable": {"thread_id": "mock_thread"}}
+            )
+
+            print("\n" + "="*80)
+            print("FINAL REPORT GENERATED")
+            print("="*80)
+            print(final_state.get("final_answer", "No report generated."))
+            print("="*80)
+
+            # Save output to audit history
+            try:
+                serializable_state = audit._sanitize(final_state)
+                await audit.update_run_context(run_id, "fake_client", serializable_state)
+                await audit.complete_run(run_id, status="completed")
+            except Exception as e:
+                logger.error(f"Failed to save final state to database in mock: {e}")
+        finally:
+            langfuse_manager.flush()
 
     asyncio.run(seed_and_run())
 

@@ -4,6 +4,8 @@ Langfuse observability integration — single source of truth.
 Provides:
 - LangfuseManager: lazy singleton for client, traces, spans, callback handlers
 - ContextVar helpers for async-safe trace/span propagation across the pipeline
+
+SDK target: langfuse >= 2.44.0 (OTel-based API).
 """
 
 import logging
@@ -39,6 +41,20 @@ def set_current_span(span: Any) -> None:
 
 def get_current_span() -> Optional[Any]:
     return _current_span.get()
+
+
+class TraceRef:
+    """Lightweight reference to a Langfuse trace (trace_id + client).
+
+    The OTel-based Langfuse SDK has no explicit 'trace' object.
+    A trace is defined by its trace_id; spans reference it via trace_context.
+    This object carries the trace_id so callers can create top-level spans.
+    """
+
+    def __init__(self, trace_id: str, client: Any):
+        self.trace_id = trace_id
+        self.id = trace_id
+        self._client = client
 
 
 class LangfuseManager:
@@ -80,8 +96,8 @@ class LangfuseManager:
         ticket_id: str,
         customer_id: str,
         thread_id: str,
-    ) -> Optional[Any]:
-        """Create a root trace for a pipeline execution. Returns None if disabled or sampled out."""
+    ) -> Optional["TraceRef"]:
+        """Create a trace reference for a pipeline execution. Returns None if disabled or sampled out."""
         client = self.get_client()
         if not client:
             return None
@@ -91,41 +107,23 @@ class LangfuseManager:
             logger.debug(f"Langfuse trace sampled out for run_id={run_id}")
             return None
 
-        try:
-            trace = client.trace(
-                id=run_id,
-                session_id=thread_id,
-                user_id=customer_id,
-                metadata={"ticket_id": ticket_id},
-                tags=[settings.APP_ENV],
-            )
-            logger.debug(f"Langfuse trace created: run_id={run_id}")
-            return trace
-        except Exception as e:
-            logger.warning(f"Langfuse trace creation failed: {e}")
-            return None
+        # OTel requires trace_id as 32-char lowercase hex (no dashes)
+        trace_id = run_id.replace("-", "")
+        logger.debug(f"Langfuse trace created: run_id={run_id}, trace_id={trace_id}")
+        return TraceRef(trace_id=trace_id, client=client)
 
     def get_callback_handler_for_span(
         self, span: Any, metadata: Optional[Dict[str, Any]] = None
     ) -> Optional[Any]:
-        """Return a LangChain CallbackHandler bound to the given span. None if unavailable."""
-        if not span:
+        """Return a LangChain CallbackHandler nested under the given span. None if unavailable."""
+        if not span or not hasattr(span, "trace_id") or not hasattr(span, "id"):
             return None
 
         try:
-            from langfuse.callback import CallbackHandler
-
-            trace = get_current_trace()
-            if not trace:
-                return None
+            from langfuse.langchain import CallbackHandler
 
             handler = CallbackHandler(
-                public_key=settings.LANGFUSE_PUBLIC_KEY,
-                secret_key=settings.LANGFUSE_SECRET_KEY,
-                host=settings.LANGFUSE_HOST,
-                trace_id=trace.id,
-                parent_observation_id=span.id,
-                metadata=metadata or {},
+                trace_context={"trace_id": span.trace_id, "parent_span_id": span.id},
             )
             return handler
         except Exception as e:
@@ -139,20 +137,57 @@ class LangfuseManager:
         input: Optional[Any] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Optional[Any]:
-        """Create a child span under a trace or parent span."""
+        """Create a child span under a TraceRef or parent span."""
         if not parent:
             return None
 
         try:
-            span = parent.span(
-                name=name,
-                input=input,
-                metadata=metadata or {},
-            )
-            return span
+            if isinstance(parent, TraceRef):
+                # Top-level span under a trace — use the client directly
+                return parent._client.start_observation(
+                    name=name,
+                    input=input,
+                    metadata=metadata or {},
+                    trace_context={"trace_id": parent.trace_id},
+                )
+            else:
+                # Child span under an existing observation
+                return parent.start_observation(
+                    name=name,
+                    input=input,
+                    metadata=metadata or {},
+                )
         except Exception as e:
             logger.warning(f"Langfuse span creation failed ({name}): {e}")
             return None
+
+    @staticmethod
+    def end_span(
+        span: Any,
+        output: Optional[Any] = None,
+        level: Optional[str] = None,
+        status_message: Optional[str] = None,
+    ) -> None:
+        """End a span, optionally setting output/level/status_message via update() first.
+
+        The OTel-based SDK's span.end() only accepts end_time.
+        Use span.update() to set output, level, and status_message before ending.
+        """
+        if not span:
+            return
+        try:
+            if output is not None or level is not None or status_message is not None:
+                kwargs: Dict[str, Any] = {}
+                if output is not None:
+                    kwargs["output"] = output
+                if level is not None:
+                    kwargs["level"] = level
+                if status_message is not None:
+                    kwargs["status_message"] = status_message
+                span.update(**kwargs)
+            span.end()
+        except Exception:
+            pass
 
     def flush(self) -> None:
         """Graceful flush — call on shutdown."""
