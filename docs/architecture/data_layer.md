@@ -1,4 +1,6 @@
-# Data Layer & Architecture Reference
+# Data Layer
+
+> PostgreSQL + Qdrant schema, tenant isolation, and data flow.
 
 ## Overview
 
@@ -6,6 +8,47 @@ The platform uses a **two-plane architecture** with strict tenant isolation:
 
 - **Control Plane** (global): tenant registry, tool governance, infrastructure pointers
 - **Data Plane** (per-tenant): tickets, evidence, audit trail, client context
+
+## Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    platform_tenants ||--o| tenant_endpoints : "1:1"
+    platform_tenants ||--o{ capability_scopes : "1:N"
+    platform_tenants ||--o{ tickets : "1:N"
+    platform_tenants ||--o{ client_contexts : "1:N"
+    tickets ||--o{ agent_runs : "1:N"
+    tickets ||--o{ evidence_refs : "1:N"
+    agent_runs ||--o{ agent_events : "1:N"
+    agent_runs ||--o{ tool_calls_audit : "1:N"
+    agent_runs ||--o{ audit_logs : "1:N"
+
+    platform_tenants {
+        string customer_id PK
+        string name
+        string status
+        string plan
+    }
+    tickets {
+        string id PK
+        string customer_id FK
+        string mode
+        string severity
+        text text
+    }
+    agent_runs {
+        string id PK
+        string ticket_id FK
+        string status
+        json state_json
+    }
+    evidence_refs {
+        string id PK
+        string ticket_id FK
+        string tool_name
+        string content_hash
+    }
+```
 
 **Storage backends:**
 
@@ -299,3 +342,10 @@ main.py → Loads state, injects user facts
 | `src/agent_graph.py` | LangGraph workflow definition |
 | `data/tenants/<id>/tenant.yaml` | Tenant definition |
 | `data/tenants/<id>/context.yaml` | Client context (inventory, deps, baselines) |
+
+## See Also
+
+- [Architecture Overview](overview.md) - System-level design
+- [Configuration Reference](../setup/configuration.md) - Database env vars
+- [Quickstart](../setup/quickstart.md) - Database initialization steps
+- [Adaptive Execution](adaptive_execution.md) - Qdrant collections for self-healing

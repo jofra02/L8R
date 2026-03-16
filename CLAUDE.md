@@ -97,6 +97,9 @@ Completed this cycle:
 | `src/config.py` | Pydantic Settings, LLM profiles, MCP server config, safety keywords |
 | `src/ingestion/api.py` | FastAPI webhook endpoint |
 | `src/ingestion/service.py` | Ingestion service logic |
-| `docs/agents/` | Per-agent documentation |
+| `docs/README.md` | Master documentation index |
+| `docs/agents/` | Per-agent documentation (with Mermaid diagrams) |
 | `docs/architecture/` | Architecture design documents |
-| `docs/planning/multiagent_framework_v2.md` | Detailed framework spec (architecture bible) |
+| `docs/setup/` | Quickstart, configuration, deployment guides |
+| `docs/integrations/` | API reference, MCP tools, webhooks |
+| `docs/planning/framework_spec.md` | Detailed framework spec (architecture bible) |

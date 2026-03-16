@@ -1,56 +1,80 @@
 # Response Agent
 
-## Description
-The Response Agent is the final node in the graph. It compiles all the work done (hypotheses, evidence, plan) into a coherent Technical Report and a "Handoff Package" for the human operator or external system. It also handles HITL pause scenarios when pending requirements exist.
+> Final synthesis node that compiles a structured technical report and handoff package, terminating the graph.
 
-## Role in Graph
-- **Node Name:** `response_agent`
-- **Upstream:** `supervisor` (when finishing) or `planner_agent`.
-- **Downstream:** `END` (Terminates the graph execution).
+## Overview
 
-## Inputs
-- `state["ticket"]`: Ticket details.
-- `state["hypotheses"]`: Final list of hypotheses.
-- `state["plan"]`: Generated plan.
-- `state["evidence_refs"]`: All collected evidence.
-- `state["facts"]`: Collected facts.
-- `state["pending_requirements"]`: (optional) Blocking requirements for HITL pause.
+The Response Agent is the terminal node of the pipeline. It reads the entire accumulated state and produces a professional engineering report in markdown format, along with a `HandoffPackage` for downstream systems or L2 teams.
 
-## Outputs
-- `state["final_answer"]`: A markdown report string.
-- `state["handoff"]`: A `HandoffPackage` containing artifact paths and escalation recommendations.
+The agent operates in two modes depending on the presence of pending requirements. In normal mode (plan exists, no blockers), it invokes the LLM to synthesize a complete technical report with diagnosis, evidence, and next steps. In HITL pause mode (pending requirements exist), it dumps the requirements and full state to disk for external resolution, then returns a partial report explaining what is blocked.
 
-## HITL Pause Handling
-When `pending_requirements` exist, the agent:
-1. Dumps user-friendly requirements to `data/needs.json`.
-2. Saves full state checkpoint to `data/paused_state.json` for resume capability.
-3. Returns a structured "Action Required" message with instructions for the operator.
-4. Skips LLM synthesis entirely.
+The report enforces strict language guardrails: evidence-backed conclusions only, no speculation, definitive statements over probabilistic hedging. Mode-specific rules apply for validation tickets (table format with Confirmed/Not confirmed/Inconclusive) and inquiry tickets (direct factual answers with citations).
 
-## Prompts
+## Flow Diagram
 
-### Final Report Generation
-**System:** "IT Support / Incident & Change Engineer"
-**Mission:** Resolve problems, validate configurations, and assess IT system states objectively and verifiably.
+```mermaid
+flowchart TD
+    A[Entire Pipeline State] --> B{pending_requirements?}
 
-**Contract:**
-1. Conclusion (validation result or root cause diagnosis).
-2. Evidence (supporting data, what was checked).
-3. Plan / Remediation / Blockers (only if applicable).
+    B -->|Yes: HITL Pause| C[Dump needs.json]
+    C --> D[Dump paused_state.json]
+    D --> E[Generate partial report with blockers]
+    E --> F["case_status = 'blocked'"]
 
-**Rules:**
-- Evidence-only: do not invent anything or assume something is broken if the ticket only asks for validation.
-- Be concise and direct.
-- Prioritize the directly useful conclusion.
+    B -->|No: Normal| G[Build context: evidence, hypotheses, facts, plan]
+    G --> H[Apply mode-specific guardrails]
+    H --> I[LLM synthesizes final report]
+    I --> J["case_status = 'resolved'"]
 
-**Output Format (Markdown):**
-1. **Conclusion / Primary Diagnosis** — confirmed root cause or validated state.
-2. **Brief Context** — ticket objective + scope (1-2 lines).
-3. **Key Evidence and Tools Executed** — concise grouped list.
-4. **Next Steps (Action / Remediation / Blockers)** — what to do next or "No action required."
+    F --> K[Return final_answer + handoff]
+    J --> K
+    K --> L[END]
+```
 
-## Key Logic & Interactions
-- **LLM Model:** Uses `LLM_MODEL_RESPONSE` (e.g., `gpt-5-mini`) — synthesis and formatting, no deep reasoning needed.
-- **Domain-Agnostic:** The report prompt is technology-neutral — no bias toward any specific IT domain.
-- **Handoff Package:** Includes evidence artifact paths and recommended escalation team/reason.
-- **State Serialization:** Custom `StateEncoder` handles datetime, UUID, and Pydantic model serialization for checkpoint dumps.
+## Input / Output Contract
+
+### Input
+
+| Field | Type | Source |
+|---|---|---|
+| `ticket` | `Ticket` | Ingestion |
+| `plan` | `Plan` (optional) | ResolutionPlanner |
+| `hypotheses` | `List[Hypothesis]` | HypothesisAgent |
+| `evidence_refs` | `List[EvidenceSnapshot]` | EvidenceCollector / Investigator |
+| `facts` | `Dict` | Enricher |
+| `pending_requirements` | `List[PendingRequirement]` | Any agent |
+| `client_context` | `str` | ContextAgent |
+| `classification` | `Classification` | Classifier |
+| `components` | `List[Component]` | Mapper |
+
+### Output
+
+| Field | Type | Description |
+|---|---|---|
+| `final_answer` | `str` | Markdown technical report |
+| `handoff` | `HandoffPackage` | `case_file_artifacts` (evidence/report refs), `recommended_escalation` (team, reason, priority) |
+| `case_status` | `str` | `"resolved"` (normal) or `"blocked"` (HITL pause) |
+
+## Configuration
+
+| Variable | Purpose |
+|---|---|
+| `LLM_MODEL_RESPONSE` | Model used for report synthesis (e.g., `gpt-5-mini`) |
+
+## Key Implementation Details
+
+- **Normal mode**: LLM receives a system prompt defining the IT Support Engineer role with a strict four-section output format (Conclusion, Context, Evidence, Next Steps) plus language guardrails. User message contains ticket text, mode, client context, facts, evidence log, hypothesis history, and current plan.
+- **HITL pause mode**: writes `data/needs.json` (user-friendly format with `"value": null` fields for the operator to fill) and `data/paused_state.json` (full serialized state for resume). Returns instructions for resuming execution via CLI command.
+- **Mode-specific guardrails**:
+  - *Validation*: prohibits hedging language ("probably", "likely", "might"); requires table format with Confirmed/Not confirmed/Inconclusive status per check item; inconclusive items must specify the exact next probe (tool name + arguments).
+  - *Inquiry*: requires direct factual answers; every statement must cite an evidence snapshot; uses "Inconclusive" instead of speculation.
+- **General guardrails**: prefer definitive statements over probabilistic hedging; every conclusion must cite at least one evidence snapshot; use "Inconclusive" instead of "probably", "likely", "might", "could be", "appears to", "seems like".
+- **HandoffPackage**: in normal mode, artifacts are `storage_ref` values from evidence snapshots with recommended escalation to L2_Ops; in HITL mode, artifact is the `needs.json` file path.
+- **State serialization**: uses a custom `StateEncoder` that handles `datetime`, `UUID`, and Pydantic V2 models (`model_dump(mode='json')`) for the paused state checkpoint.
+- **Fallback**: on LLM failure, returns `"Error generating report. Please check logs."` as `final_answer`.
+
+## See Also
+
+- [agents/supervisor.md](supervisor.md) -- routes to response as the terminal node
+- [integrations/api_reference.md](../integrations/api_reference.md) -- external API that consumes the handoff package
+- [agents/scoring.md](scoring.md) -- gates whether response receives a plan or pending requirements

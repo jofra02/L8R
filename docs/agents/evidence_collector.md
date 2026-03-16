@@ -1,61 +1,99 @@
 # Evidence Collector Agent
 
-## Description
-The Evidence Collector Agent gathers the initial diagnostic evidence about the environment. It uses a **multi-intent approach**: the LLM generates 1-3 short keyword-style search queries per component, each searched independently via Qdrant semantic search for tool catalog matching. When topology/path analysis exists, it prioritizes filling identified evidence gaps.
+> Discovers and executes read-only tools to gather evidence for each component, using a centralized ToolSelector pipeline with keyword-intent semantic search.
 
-## Role in Graph
-- **Node Name:** `evidence_collector`
-- **Upstream:** `supervisor` (when evidence is needed)
-- **Downstream:** `enricher_agent` (to parse and analyze the raw outputs)
+## Overview
 
-## Inputs
-- `state["ticket"]`: Ticket text to understand the issue.
-- `state["components"]`: List of identified components to target.
-- `state["evidence_refs"]`: Existing evidence (appends to this list).
-- `state["path_analysis"]`: (optional) Path analysis with suggested probes and missing evidence.
+The evidence collector is the primary data-gathering agent. For each component in the ticket scope, it runs a multi-step pipeline: generate keyword intents, search the tool catalog via semantic vector search (Qdrant), evaluate candidate tools for relevance, bind arguments, and execute selected tools through the `AdaptiveExecutor`.
 
-## Outputs
-- `state["evidence_refs"]`: List of new `EvidenceSnapshot` objects pointing to the collected data.
+Before the per-component loop, a relational pre-loop checks whether the ticket involves cross-component concerns (connectivity, routing, NAT, etc.). If so, it pairs source (executor) and target components and runs relational tool queries to collect path-level evidence.
 
-## Tool Selection Pipeline
+All tool executions are subject to safety checks (`SAFETY_BLOCKED_KEYWORDS`), tenant governance (`CapabilityScope`), and argument sanitization. Evidence is stored as immutable `EvidenceSnapshot` records via the `EvidenceStore`, namespaced by `customer_id` and `run_id`.
 
-### Step A: Keyword Intent Generation
-**System:** "You are a tool-search specialist. Output short keyword queries for finding IT diagnostic tools."
+When the `AdaptiveExecutor` raises a `MissingDependencyError`, the agent attempts in-flight resolution by selecting a different tool to fetch the missing data. If resolution fails, the dependency becomes a `PendingRequirement` that triggers a human-in-the-loop gate via the supervisor.
 
-For each component, the LLM generates 1-3 SHORT keyword-style search queries (2-6 words) optimized for semantic similarity against tool descriptions. Cross-device context is provided so the LLM understands the full scenario.
+## Flow Diagram
 
-**Rules:**
-- Each query is 2-6 words — like a search engine query, NOT a sentence.
-- Include vendor or technology name when known (e.g., "fortigate", "vcenter", "cisco").
-- Focus on the CATEGORY of tool needed (routing, policy, interface, performance, logs, database, deployment, container, api, authentication, storage, backup, etc.).
-- No IPs, subnets, or ticket-specific details — those go into tool arguments, not search.
-- **Configuration-first**: Prefer tools that read existing configuration over live traffic tools.
+```mermaid
+flowchart TD
+    START([evidence_collector_node]) --> REL{Relational ticket?}
+    REL -- Yes --> PAIRS[Pair source/target components]
+    PAIRS --> REL_SELECT[ToolSelector relational mode]
+    REL_SELECT --> REL_EXEC[Execute relational tools]
+    REL_EXEC --> LOOP
+    REL -- No --> LOOP
 
-When `path_analysis.suggested_probes` or `missing_evidence` exist, they are injected as priority context.
+    LOOP[For each component] --> SELECT[ToolSelector.select_tools]
+    SELECT --> TOOLS{Tools found?}
+    TOOLS -- No --> SKIP[Skip component]
+    TOOLS -- Yes --> EACH[For each selected tool]
 
-### Step B: Semantic Search (per intent)
-Each intent is searched individually in Qdrant's `tool_catalog` collection with tenant isolation. Results are merged and deduplicated to maximize tool diversity.
+    EACH --> SAFE{Safety + governance check?}
+    SAFE -- Fail --> SKIP_TOOL[Skip tool]
+    SAFE -- Pass --> SANITIZE[Sanitize arguments]
+    SANITIZE --> EXEC[AdaptiveExecutor.execute]
 
-### Step C: Tool Selection & Argument Configuration
-**System:** "You are an expert IT Systems Engineer. Select comprehensive diagnostic tools."
+    EXEC --> OK{Success?}
+    OK -- Yes --> SAVE[EvidenceStore.save_evidence]
+    OK -- MissingDependencyError --> RESOLVE[Attempt in-flight resolution]
+    RESOLVE --> RES_OK{Resolved?}
+    RES_OK -- Yes --> SAVE
+    RES_OK -- No --> PENDING[Create PendingRequirement]
+    OK -- Other error --> FAIL_SNAP[Save failure snapshot]
 
-The LLM selects tools from the search results and configures arguments with:
-- **Role-Based Sanitization**: Executor devices (firewalls, routers, servers, hypervisors, databases, etc.) get `device` argument. Targets (subnets, IPs, services, containers, VMs) get `target` argument.
-- **Placeholder Injection**: Arguments are only auto-injected when the LLM left placeholder values (`<device>`, `DEVICE`, `""`).
-- **Anti-Hallucination**: Missing mandatory params -> skip tool.
-- **Safety**: Read-only tools only.
+    SAVE & PENDING & FAIL_SNAP --> NEXT[Next tool / component]
+    NEXT --> RETURN[Return evidence_refs + pending_requirements + case_status=investigating]
+```
 
-### Step D: Brute Force Fallback
-If Smart Selection yields no tools:
-- Iterates all registered tools.
-- Filters for read-only prefixes: `get`, `check`, `monitor`, `list`, `show`, `describe`, `fetch`.
-- Matches vendor keyword if known.
-- Selects general health/status/info/system/summary/overview tools.
-- Limited to top 5 to prevent overload.
+## Input / Output Contract
 
-## Key Logic & Interactions
-- **LLM Model:** Uses `LLM_MODEL_EVIDENCE_COLLECTOR` (e.g., `gpt-4.1-mini`) — optimized for tool calling speed.
-- **Tool Governance**: Every tool checked against `CapabilityScope` allowlists and safety blocklists.
-- **Adaptive Execution**: Tools executed via `AdaptiveExecutor` with self-healing on failures. `customer_id` is passed for tenant-scoped learning.
-- **Evidence Storage**: Raw outputs saved to `EvidenceStore` (disk, namespaced by `customer_id`), references appended to state.
-- **Configuration-First Principle**: Prefers tools that inspect existing configuration (routes, policies, rules, definitions) over live traffic tools (debug flows, captures, sniffers, sessions).
+### Input (read from `GlobalState`)
+
+| Field | Type | Source |
+|---|---|---|
+| `components` | `List[Component]` | Mapper agent |
+| `ticket` | `Ticket` | Ingestion layer (specifically `ticket.text`) |
+| `path_analysis` | `PathAnalysis` (optional) | Hypothesis agent |
+| `client_context` | `ClientContext` | Context agent |
+| `customer_id` | `str` | Ingestion layer |
+| `classification` | `Classification` | Classifier agent (used for relational detection) |
+| `facts` | `Dict` | Enricher agent (prior cycle) |
+| `evidence_refs` | `List[EvidenceSnapshot]` | Previous evidence (accumulated) |
+| `meta` | `Dict` | Pipeline metadata (run_id) |
+
+### Output (written to `GlobalState`)
+
+| Field | Type | Description |
+|---|---|---|
+| `evidence_refs` | `List[EvidenceSnapshot]` | Accumulated evidence (previous + new snapshots) |
+| `pending_requirements` | `List[PendingRequirement]` | Unresolved missing dependencies requiring human input |
+| `missing_info` | `List[str]` | Human-readable descriptions of missing dependencies |
+| `case_status` | `CaseStatus` | Set to `"investigating"` |
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `LLM_MODEL_EVIDENCE_COLLECTOR` | `gpt-4.1-mini` | Model used for intent generation and tool evaluation |
+| `MCP_SERVER_TIMEOUT` | varies | Timeout for MCP tool execution |
+| `SAFETY_BLOCKED_KEYWORDS` | (list) | Keywords that block tool execution (e.g., delete, drop, shutdown) |
+
+## Key Implementation Details
+
+- Uses the centralized `ToolSelector` pipeline (keyword intents, semantic search, LLM evaluation) rather than direct tool matching.
+- Relational pre-loop detects cross-component tickets via keyword regex and domain classification; pairs executor-role components with target-role components.
+- Relational evidence is capped at 10 snapshots to bound execution time.
+- Per-component tool selection is capped at 5 tools via `max_tools=5`.
+- Argument sanitizer (`sanitize_tool_args`) maps component data to tool parameters based on role (executor vs. target).
+- `AdaptiveExecutor` provides self-healing execution with retry logic and learning from failures.
+- In-flight resolution on `MissingDependencyError`: searches for `status`/`info`/`get` tools in the registry, executes one to fetch missing data.
+- Failed tool executions still produce an `EvidenceSnapshot` with error content, ensuring no evidence gaps.
+- Evidence snapshots are immutable once stored; `tool_call_id` is set to `"auto"` for per-component and `"relational"` for cross-component evidence.
+- New evidence is appended to existing `evidence_refs`, preserving evidence from prior pipeline iterations.
+
+## See Also
+
+- [agents/enricher.md](enricher.md)
+- [architecture/adaptive_execution.md](../architecture/adaptive_execution.md)
+- [integrations/mcp_tools.md](../integrations/mcp_tools.md)
+- [agents/mapper.md](mapper.md)

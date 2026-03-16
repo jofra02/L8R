@@ -1,32 +1,64 @@
 # Context Agent
 
-## Description
-The Context Agent is the first specialist node to run. It hydrates the global state with client-specific information (inventory, baselines, known changes) and **seeds the topology graph** from known infrastructure dependencies.
+> Loads tenant context from the PostgreSQL-backed ContextStore and seeds the initial topology graph from inventory and dependencies.
 
-## Role in Graph
-- **Node Name:** `context_agent`
-- **Upstream:** `supervisor` (typically the first step)
-- **Downstream:** `supervisor` (returns to router)
+## Overview
 
-## Inputs
-- `state["customer_id"]`: The ID of the customer to look up.
+The context agent is the first data-fetching node in the pipeline. It reads the `customer_id` from state, queries the `ContextStore` for the active `ClientContext` record, and returns it along with seeded topology data.
 
-## Outputs
-- `state["client_context"]`: A `ClientContext` object containing inventory, dependencies, baselines, known changes.
-- `state["topology_nodes"]`: Seeded from `client_context.inventory` — each inventory component becomes a topology node.
-- `state["topology_edges"]`: Seeded from `client_context.dependencies` — known relationships between components (confidence=1.0).
-- `state["missing_info"]`: Populated if context cannot be found.
+Topology seeding converts inventory items into `TopologyNode` entries and known dependencies into `TopologyEdge` entries. These pre-populated graph elements provide downstream agents (mapper, enricher, hypothesis) with a structural baseline before any tool execution occurs.
 
-## Key Logic
-1. Connects to the `ContextStore` (backed by PostgreSQL/ORM via `ClientContextORM`).
-2. Queries for the latest active context associated with `customer_id`.
-3. If found, seeds the topology graph:
-   - **Inventory → Nodes**: Each `Component` becomes a `TopologyNode` with `node_type=role`, `label=ref`.
-   - **Dependencies → Edges**: Each `InventoryDependency` becomes a `TopologyEdge` with `confidence=1.0` and `evidence_ref="inventory"`.
-4. If **not found**, returns a default/empty context with a warning flag.
+If no context is found for the tenant, the agent returns a default empty `ClientContext` and flags `missing_info` with `"client_context_not_found"`. This allows the pipeline to continue with degraded information rather than halting.
 
-## Interactions
-This agent does not use an LLM. It is a deterministic data retrieval node. Its output is critical for:
-- **Mapper**: Links ticket entities to inventory assets.
-- **Hypothesis**: Baselines and known changes provide context for root cause analysis.
-- **Enricher/Hypothesis**: The seeded topology graph provides initial entity relationships.
+## Flow Diagram
+
+```mermaid
+flowchart TD
+    START([context_agent_node]) --> CID{customer_id present?}
+    CID -- No --> ERR[Return missing_info: customer_id]
+    CID -- Yes --> QUERY[Query ContextStore.get_active_context]
+    QUERY --> FOUND{Context found?}
+    FOUND -- Yes --> SEED[Seed topology from inventory + dependencies]
+    SEED --> NODES[Inventory items -> TopologyNode entries]
+    SEED --> EDGES[Dependencies -> TopologyEdge entries]
+    NODES --> RETURN[Return client_context + topology_nodes + topology_edges]
+    EDGES --> RETURN
+    FOUND -- No --> DEFAULT[Return default empty ClientContext + missing_info]
+```
+
+## Input / Output Contract
+
+### Input (read from `GlobalState`)
+
+| Field | Type | Source |
+|---|---|---|
+| `customer_id` | `str` | Ingestion layer / ticket metadata |
+
+### Output (written to `GlobalState`)
+
+| Field | Type | Description |
+|---|---|---|
+| `client_context` | `ClientContext` | Tenant context with inventory, dependencies, baselines, known_changes |
+| `topology_nodes` | `List[TopologyNode]` | One node per inventory item (id, role, ref, metadata) |
+| `topology_edges` | `List[TopologyEdge]` | One edge per dependency (source_id, target_id, relation); confidence=1.0 |
+| `missing_info` | `List[str]` | Set when customer_id is absent or context not found |
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `LLM_MODEL_CONTEXT` | `gpt-5-nano` | Configured but not currently used by this agent (no LLM calls) |
+
+## Key Implementation Details
+
+- Uses `async_session_factory` for database access; all queries are tenant-scoped by `customer_id`.
+- Topology nodes inherit `id`, `role` (as `node_type`), `ref` (as `label`), and `metadata` from inventory items.
+- Topology edges set `confidence=1.0` and `evidence_ref="inventory"` since they come from known inventory data.
+- Edge direction is always `"uni"` (unidirectional) for dependency-sourced edges.
+- Does not set `case_status`; the classifier sets it to `"triaged"` in the next step.
+
+## See Also
+
+- [architecture/data_layer.md](../architecture/data_layer.md)
+- [agents/mapper.md](mapper.md)
+- [agents/classifier.md](classifier.md)

@@ -1,66 +1,72 @@
 # Hypothesis Agent
 
-## Description
-The Hypothesis Agent is the reasoning engine of the system. It consumes the ticket, collected facts, topology graph, baselines, and known changes to generate a ranked list of potential explanations (hypotheses). It also performs **path analysis** when topology data exists, identifying candidate flow paths, breakpoints, and evidence gaps.
+> Generates ranked root cause hypotheses and performs path analysis on the topology graph.
 
-## Role in Graph
-- **Node Name:** `hypothesis_agent`
-- **Upstream:** `enricher_agent`
-- **Downstream:** `scoring_agent` -> `supervisor`
+## Overview
 
-## Inputs
-- `state["ticket"]`: Ticket text.
-- `state["facts"]`: Structured facts extracted by the Enricher.
-- `state["hypotheses"]`: Existing hypotheses (if any).
-- `state["topology_nodes"]`, `state["topology_edges"]`: Entity relationship graph.
-- `state["client_context"]`: For baselines and known changes.
+The Hypothesis agent (`src/agents/hypothesis.py`) is the core reasoning engine of the pipeline. It takes enriched facts, topology, and ticket context to produce ranked hypotheses about root cause (for incidents) or system state (for validation inquiries).
 
-## Outputs
-- `state["hypotheses"]`: A list of `Hypothesis` objects, ranked by probability.
-- `state["path_analysis"]`: (when topology exists) `PathAnalysis` with candidate paths, breakpoints, and suggested probes.
+The agent makes two LLM calls. The first generates or updates a ranked list of `Hypothesis` objects, each with supporting/disconfirming facts, evidence references, confidence scores, and suggested next playbooks. The second call performs path analysis over the topology graph, identifying candidate flow paths, likely breakpoints, missing evidence, and suggested read-only diagnostic probes.
 
-## Prompts
+The agent operates iteratively. On subsequent passes it receives its own prior hypotheses and updates their status based on new facts: `proposed` to `verifying`, `verifying` to `verified` or `rejected`. It preserves hypothesis IDs across iterations for traceability.
 
-### Hypothesis Generation & Ranking
-**Context injected into prompt:**
-- Ticket text
-- Collected facts
-- Topology graph (formatted as `src --[relation]--> tgt (confidence)`)
-- Baselines (normal values per component)
-- Known changes (recent modifications)
-- Existing hypotheses
+A dual-role adaptation mechanism inspects ticket intent. For validation/inquiry tickets, the agent formulates neutral verification hypotheses. For incident/problem tickets, it formulates troubleshooting hypotheses targeting root cause. The configuration-first principle is enforced: hypotheses must be verifiable via existing configuration rather than live traffic analysis.
 
-**Dual-Role Adaptation:**
-1. **VALIDATION/INQUIRY** tickets -> Act as investigator/analyst, formulate neutral verification hypotheses.
-2. **INCIDENT/PROBLEM** tickets -> Act as troubleshooter, focus on root cause.
+## Flow Diagram
 
-**Advanced Troubleshooting Mindset:**
-- Analyze systems layer by layer (physical -> logical -> application).
-- Consider configuration drift, resource constraints, access control policies, protocol-level issues, service dependencies, application errors, and data integrity.
-- Ground reasoning in vendor-specific architecture when identifiable.
-- Cross-domain scenarios (e.g., infrastructure + application) should consider interactions between layers.
-- **Configuration-First**: Always verify hypotheses by analyzing existing configuration (routes, policies, rules, service definitions, resource bindings) rather than relying on live traffic captures, debug flows, or session data. Configuration is deterministic and always available; live traffic is not.
+```mermaid
+flowchart TD
+    A[ticket + facts + topology + client_context] --> B{enricher_skipped?}
+    B -- Yes --> C[Return existing hypotheses unchanged]
+    B -- No --> D[Call 1: Hypothesis Generation - LLM]
+    D --> E[Ranked List of Hypothesis objects]
+    E --> F{Topology edges exist?}
+    F -- No --> G[Return hypotheses + case_status=modeled]
+    F -- Yes --> H[Call 2: Path Analysis - LLM]
+    H --> I[PathAnalysis: candidate_paths + breakpoints]
+    I --> J[Return hypotheses + path_analysis + case_status=modeled]
+```
 
-### Path Analysis (when topology exists)
-After hypothesis generation, a second LLM call performs:
-1. **Path Synthesis**: Identify candidate paths between source and destination implied by the ticket.
-2. **Constraint Evaluation**: For each hop, evaluate constraints (reachability, access control, configuration, dependency).
-3. **Breakpoint Detection**: Identify edges where constraints failed or are unknown.
-4. **Verification Suggestions**: Propose read-only diagnostic probes to fill evidence gaps.
+## Input / Output Contract
 
-**Configuration-First Principle for Probes:**
-- Always suggest probes that inspect existing configuration (routing tables, policies, rules, ACLs, service definitions, resource bindings).
-- Never suggest packet captures, debug flows, sniffers, session tables, or traffic analysis as probes.
-- Only suggest non-intrusive status/health checks when configuration analysis is provably insufficient.
+| Field | Type | Source |
+|---|---|---|
+| **Input** | | |
+| `ticket` | `Ticket` | Ingestion |
+| `facts` | `Dict` | Enricher agent |
+| `structured_facts` | `List[Fact]` | Enricher agent |
+| `topology_nodes` | `List[TopologyNode]` | Enricher agent |
+| `topology_edges` | `List[TopologyEdge]` | Enricher agent |
+| `client_context` | `ClientContext` | Context agent (baselines, known_changes) |
+| `hypotheses` | `List[Hypothesis]` | Previous iteration (for refinement) |
+| `meta` | `Dict` | Enricher skip flag |
+| **Output** | | |
+| `hypotheses` | `List[Hypothesis]` | Ranked hypotheses with status, evidence_refs, confidence |
+| `path_analysis` | `PathAnalysis` | Candidate paths, breakpoints, missing evidence, probes |
+| `case_status` | `str` | Set to `"modeled"` |
 
-**Output Contract:**
-- `CandidatePath[]` with hops, constraints (passed/failed/unknown), confidence, status (viable/blocked/incomplete).
-- `MostLikelyBreakpoints[]` with edge, constraint type (reachability/access_control/configuration), and reasoning.
-- `MissingEvidence[]` + `SuggestedProbes[]`.
+## Configuration
 
-## Key Logic & Interactions
-- **LLM Model:** Uses `LLM_MODEL_HYPOTHESIS` (e.g., `gpt-5.2`) — requires strong reasoning capabilities.
-- **Iterative**: Runs in a loop. First pass guesses from ticket context. Subsequent passes refine based on new evidence.
-- **Status Management**: Hypotheses start as `proposed`, move to `verifying` (investigator), then `verified` or `rejected`.
-- **Fast Mode**: When `TEST_MODE_FAST` is enabled, returns exactly 1 hypothesis.
-- **Domain-Agnostic**: Operates across all IT domains — not biased toward any specific technology or infrastructure type.
+| Variable | Default | Purpose |
+|---|---|---|
+| `LLM_MODEL_HYPOTHESIS` | `gpt-5.2` | LLM profile for both hypothesis generation and path analysis |
+| `TEST_MODE_FAST` | `false` | When true, limits output to exactly 1 hypothesis |
+
+## Key Implementation Details
+
+- Skips entirely when `meta.enricher_skipped` is true (no new data to reason about).
+- Uses `PydanticOutputParser` with `HypothesisList` schema for structured output from Call 1.
+- Call 2 (path analysis) uses raw JSON output with `response_format={"type": "json_object"}`.
+- Hypothesis fields: `id`, `summary`, `required_facts`, `supporting_facts`, `disconfirming_facts`, `evidence_refs`, `confidence`, `rank`, `status`, `next_playbooks`, `rationale`.
+- Hypothesis statuses: `proposed`, `verifying`, `verified`, `rejected`.
+- PathAnalysis contains: `candidate_paths` (each with hops, constraints, confidence, status), `most_likely_breakpoints`, `missing_evidence`, `suggested_probes`.
+- Path constraint types: `reachability`, `access_control`, `configuration`, `dependency`.
+- Path status values: `viable`, `blocked`, `incomplete`.
+- Configuration-first principle enforced in path analysis prompts: never suggests packet captures, debug flows, or sniffers.
+- State formatters (`format_topology_edges`, `format_baselines`, `format_known_changes`, `format_facts`, `format_hypotheses`) handle truncation for prompt size management.
+
+## See Also
+
+- [Scoring Agent](scoring.md) -- consumes hypotheses for decision gating
+- [Investigation Planner](investigation_planner.md) -- generates questions from hypotheses
+- [Enricher Agent](enricher.md) -- produces the facts and topology consumed here

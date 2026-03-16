@@ -1,51 +1,71 @@
 # Mapper Agent
 
-## Description
-The Mapper Agent parses the ticket text to identify specific technical components involved in the issue. It matches against the customer's inventory when available and infers the vendor from context. A deterministic reconciliation step corrects LLM-generated IDs against the real inventory.
+> Identifies technical components from the ticket and reconciles them against the tenant's inventory using a 4-strategy deterministic post-processing pipeline.
 
-## Role in Graph
-- **Node Name:** `mapper_agent`
-- **Upstream:** `supervisor`
-- **Downstream:** `supervisor`
+## Overview
 
-## Inputs
-- `state["ticket"]`: Ticket text.
-- `state["client_context"]`: Inventory data (used for matching).
+The mapper agent extracts components (devices, IPs, URLs, services, users, applications, databases, clusters, containers, APIs, storage, endpoints) from the ticket text using an LLM call. It receives the tenant's inventory summary as context so the LLM can attempt to match components to known assets.
 
-## Outputs
-- `state["components"]`: A list of `Component` objects representing the entities gathered from the ticket.
+After LLM extraction, a deterministic reconciliation pipeline corrects component IDs against the real inventory. This is necessary because LLMs frequently hallucinate or reformat identifiers. The 4-strategy reconciliation runs in priority order: exact ID match, prefix strip, substring match, and ref-based match. When a component matches an inventory item, it inherits the canonical `id`, `vendor`, and `ref` from inventory.
 
-## Prompts
+Finally, each reconciled component passes through a metadata enrichment step (`derive_component_metadata`) that computes tool-ready metadata from raw identifiers (e.g., deriving subnet masks, protocol hints).
 
-### Component Scoping
-**System:**
-```text
-You are an expert IT Support / Incident Engineer. Analyze the ticket and identify technical components (devices, IPs, URLs, services, users, applications, databases, clusters, containers, APIs, storage, endpoints). When a component matches an inventory item, use that item's exact `id` value as the component `id`. Only generate a new id for components not present in the inventory. Infer the 'vendor' if explicitly mentioned or implied by the context.
+## Flow Diagram
+
+```mermaid
+flowchart TD
+    START([mapper_agent_node]) --> INV[Build inventory summary from client_context]
+    INV --> LLM[LLM extract components via PydanticOutputParser]
+    LLM --> RECON[Reconcile against inventory]
+    RECON --> S1{1. Exact ID match?}
+    S1 -- Yes --> APPLY1[Apply inventory values]
+    S1 -- No --> S2{2. Prefix strip match?}
+    S2 -- Yes --> APPLY2[Apply inventory values]
+    S2 -- No --> S3{3. Substring match?}
+    S3 -- Yes --> APPLY3[Apply inventory values]
+    S3 -- No --> S4{4. Ref-based match?}
+    S4 -- Yes --> APPLY4[Apply inventory values]
+    S4 -- No --> KEEP[Keep as-is, unknown component]
+    APPLY1 & APPLY2 & APPLY3 & APPLY4 & KEEP --> ENRICH[Enrich component metadata]
+    ENRICH --> RETURN[Return components + case_status=triaged]
 ```
 
-**User:**
-```text
-Inventory: {inventory_summary}
+## Input / Output Contract
 
-Ticket: {text}
+### Input (read from `GlobalState`)
 
-{format_instructions}
-```
+| Field | Type | Source |
+|---|---|---|
+| `ticket` | `Ticket` | Ingestion layer (specifically `ticket.text`) |
+| `client_context` | `ClientContext` | Context agent (specifically `inventory`) |
 
-## Post-Processing: Inventory Reconciliation
+### Output (written to `GlobalState`)
 
-After the LLM generates components, a deterministic `_reconcile_with_inventory()` function corrects IDs against the real inventory using 4 strategies (in order):
+| Field | Type | Description |
+|---|---|---|
+| `components` | `List[Component]` | Reconciled components with id, ref, role, vendor, priority, metadata |
+| `case_status` | `CaseStatus` | Set to `"triaged"` |
+| `missing_info` | `List[str]` | Set to `["mapper_error"]` on failure |
 
-1. **Exact ID match** — normalize casing against canonical inventory ID.
-2. **Prefix strip** — remove common LLM-generated prefixes (`comp_`, `component_`, `asset_`, `device_`, `host_`) and re-check.
-3. **Substring match** — check if the generated ID contains (or is contained by) an inventory ID.
-4. **Ref-based match** — check if the LLM used the human-readable `ref` name as the `id`.
+## Configuration
 
-If no match is found, the component is kept as-is (unknown asset not in inventory).
+| Variable | Default | Description |
+|---|---|---|
+| `LLM_MODEL_MAPPER` | `gpt-5-nano` | Model used for component extraction |
 
-## Key Logic & Interactions
-- **LLM Model:** Uses `LLM_MODEL_MAPPER` (e.g., `gpt-5-nano`) — fast, cheap NLP task.
-- **Inventory Summary:** To avoid overflowing the context window, large inventories (>50 items) are summarized.
-- **Vendor Inference:** The prompt asks to infer vendors from context (e.g., "FortiGate" -> "Fortinet"), which is critical for tool selection.
-- **Domain-Agnostic:** Supports components across all IT domains — networking, infrastructure, cloud, application, database, storage, etc.
-- **Output Parsing:** Uses `PydanticOutputParser` to generate strictly typed `Component` objects.
+## Key Implementation Details
+
+- Inventory summaries are capped: items listed individually when <= 50, otherwise only the count is shown.
+- Reconciliation is case-insensitive; all comparisons use `.lower()`.
+- Prefix strip handles common LLM-generated prefixes: `comp_`, `component_`, `asset_`, `device_`, `host_`.
+- Substring match checks both directions: inventory ID within generated ID, and generated ID within inventory ID.
+- Ref-based match catches cases where the LLM used the human-readable name as the component ID.
+- `_apply_inventory` overwrites `id` with canonical value, sets `ref` only if the component had none, and merges `vendor`.
+- `derive_component_metadata` (from `src/utils/arg_sanitizer.py`) adds derived fields to component metadata for downstream tool argument binding.
+- On LLM failure, returns an empty component list with `missing_info` flag.
+
+## See Also
+
+- [agents/evidence_collector.md](evidence_collector.md)
+- [agents/context_agent.md](context_agent.md)
+- [agents/classifier.md](classifier.md)

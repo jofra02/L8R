@@ -2,6 +2,8 @@
 
 A production-grade, multi-agent system that automates **L1/L2 technical support** for IT infrastructure, cloud, and application environments. Built on **LangGraph** for stateful orchestration, **MCP (Model Context Protocol)** for secure tool execution, and a strict **multi-tenant** architecture with per-tenant data isolation. Features **graph-based topology reasoning** for path analysis and breakpoint detection.
 
+**[Full Documentation](docs/README.md)** | **[Quickstart](docs/setup/quickstart.md)** | **[API Reference](docs/integrations/api_reference.md)**
+
 ---
 
 ## Architecture
@@ -59,7 +61,7 @@ graph TD
 | 7 | **Hypothesis Agent** | `facts`, `ticket`, `topology_*`, `baselines`, `known_changes` | `hypotheses`, `path_analysis` | [docs/agents/hypothesis.md](docs/agents/hypothesis.md) |
 | 8 | **Scoring Engine** | `hypotheses`, `evidence_refs`, `facts`, `ticket.severity` | `scoring` (risk, confidence, decision gate) | [docs/agents/scoring.md](docs/agents/scoring.md) |
 | 9 | **Investigator** | `hypotheses`, `components` | `evidence_refs`, `hypotheses.status` | [docs/agents/investigator.md](docs/agents/investigator.md) |
-| 10 | **Planner** | `ticket`, `hypotheses`, `facts`, `evidence_refs` | `plan` (diagnosis, remediation, rollback) | [docs/agents/planner.md](docs/agents/planner.md) |
+| 10 | **Resolution Planner** | `ticket`, `hypotheses`, `facts`, `evidence_refs` | `plan` (diagnosis, remediation, rollback) | [docs/agents/resolution_planner.md](docs/agents/resolution_planner.md) |
 | 11 | **Response Agent** | entire state | `final_answer`, `handoff` | [docs/agents/response.md](docs/agents/response.md) |
 
 ### Sub-chains
@@ -93,7 +95,7 @@ The scoring agent runs after every hypothesis update and produces a **determinis
 
 - **Path & Dependency Reasoning:** Builds a graph-based topology model from evidence. Identifies candidate flow paths, breakpoints, and missing evidence. Proposes read-only verification probes. See [Hypothesis Agent](docs/agents/hypothesis.md).
 - **Case-Based Reasoning (CBR):** The planner queries Qdrant for past resolved tickets to learn from historical fixes before generating a new plan.
-- **Adaptive Tool Execution:** If a tool fails, the `AdaptiveExecutor` queries the vector DB for documented fixes and auto-recovers. Learned fixes are persisted for future use. See [Adaptive Execution & Learning](docs/architecture/002_adaptive_execution_learning.md).
+- **Adaptive Tool Execution:** If a tool fails, the `AdaptiveExecutor` queries the vector DB for documented fixes and auto-recovers. Learned fixes are persisted for future use. See [Adaptive Execution & Learning](docs/architecture/adaptive_execution.md).
 - **Multi-Intent Tool Discovery:** Evidence collector generates 3-5 diagnostic intents per component, each searched independently via Qdrant for comprehensive tool coverage.
 - **Smart Device Targeting:** Distinguishes between executor devices and targets across 30+ roles to prevent argument mismatches.
 - **Tool Governance:** Two-layer safety: keyword blocklist (`is_safe_tool`) + per-tenant `CapabilityScope` ORM allowlists (`is_tool_allowed_for_tenant`).
@@ -262,6 +264,7 @@ docs/
 ### Agents
 | Agent | Doc |
 |:---|:---|
+| Agent Index | [docs/agents/README.md](docs/agents/README.md) |
 | Supervisor | [docs/agents/supervisor.md](docs/agents/supervisor.md) |
 | Context Agent | [docs/agents/context_agent.md](docs/agents/context_agent.md) |
 | Classifier | [docs/agents/classifier.md](docs/agents/classifier.md) |
@@ -269,18 +272,19 @@ docs/
 | Evidence Collector | [docs/agents/evidence_collector.md](docs/agents/evidence_collector.md) |
 | Enricher | [docs/agents/enricher.md](docs/agents/enricher.md) |
 | Hypothesis | [docs/agents/hypothesis.md](docs/agents/hypothesis.md) |
+| Investigation Planner | [docs/agents/investigation_planner.md](docs/agents/investigation_planner.md) |
+| Goal Decomposer | [docs/agents/goal_decomposer.md](docs/agents/goal_decomposer.md) |
 | Investigator | [docs/agents/investigator.md](docs/agents/investigator.md) |
-| Planner | [docs/agents/planner.md](docs/agents/planner.md) |
+| Scoring | [docs/agents/scoring.md](docs/agents/scoring.md) |
+| Resolution Planner | [docs/agents/resolution_planner.md](docs/agents/resolution_planner.md) |
 | Response | [docs/agents/response.md](docs/agents/response.md) |
 
 ### Architecture & Design
 | Topic | Doc |
 |:---|:---|
-| Adaptive Execution & Learning | [docs/architecture/002_adaptive_execution_learning.md](docs/architecture/002_adaptive_execution_learning.md) |
-| Investigator Flow | [docs/architecture/003_adaptive_investigator_flow.md](docs/architecture/003_adaptive_investigator_flow.md) |
-| Agent Communication Analysis | [docs/architecture/004_agent_communication_analysis.md](docs/architecture/004_agent_communication_analysis.md) |
-| SOCi Compliance | [docs/architecture/soci_compliance_analysis.md](docs/architecture/soci_compliance_analysis.md) |
-| Tool Governance | [docs/architecture/tool_governance.md](docs/architecture/tool_governance.md) |
+| Adaptive Execution & Learning | [docs/architecture/adaptive_execution.md](docs/architecture/adaptive_execution.md) |
+| Observability | [docs/architecture/observability.md](docs/architecture/observability.md) |
+| Safety & Governance | [docs/architecture/safety_and_governance.md](docs/architecture/safety_and_governance.md) |
 | Data Layer Reference | [docs/architecture/data_layer.md](docs/architecture/data_layer.md) |
 | Data Layer Blueprint | [docs/planning/data_layer_blueprint.md](docs/planning/data_layer_blueprint.md) |
 | Model Governance | [docs/planning/model_governance.md](docs/planning/model_governance.md) |
@@ -288,6 +292,6 @@ docs/
 ### Integration
 | Topic | Doc |
 |:---|:---|
-| API (Async Jobs) | [docs/api_integration.md](docs/api_integration.md) |
-| MCP Tools | [docs/mcp_integration.md](docs/mcp_integration.md) |
-| Evidence Collector Technical | [docs/evidence_collector_technical.md](docs/evidence_collector_technical.md) |
+| API (Async Jobs) | [docs/integrations/api_reference.md](docs/integrations/api_reference.md) |
+| MCP Tools | [docs/integrations/mcp_tools.md](docs/integrations/mcp_tools.md) |
+| Webhooks | [docs/integrations/webhooks.md](docs/integrations/webhooks.md) |
