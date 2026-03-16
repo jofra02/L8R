@@ -10,6 +10,17 @@ The agent is domain-agnostic by design. The prompt does not bias toward any spec
 
 Structured output is enforced via `PydanticOutputParser` with the `Classification` model. If LLM output fails to parse, a fallback classification with `domains=["unknown"]` and `confidence=0.0` is returned, ensuring the pipeline always progresses.
 
+## When Called
+
+Routed by the supervisor when `classification` is missing or has empty `domains` (priority 3).
+
+```python
+if not state.get("classification") or not state.get("classification").domains:
+    return "classifier_agent"
+```
+
+Return: Fixed edge to supervisor.
+
 ## Flow Diagram
 
 ```mermaid
@@ -36,6 +47,37 @@ flowchart TD
 |---|---|---|
 | `classification` | `Classification` | Contains `domains: List[str]`, `confidence: float`, `rationale: str` |
 | `case_status` | `CaseStatus` | Set to `"triaged"` |
+
+### Input Example
+
+```json
+{
+  "ticket": {
+    "id": "INC-4012",
+    "mode": "incident",
+    "text": "Users in Building-7 cannot authenticate to file shares since 08:00. Kerberos errors in event logs.",
+    "severity": "high",
+    "source": "webhook:servicenow"
+  }
+}
+```
+
+### Output Example
+
+```json
+{
+  "classification": {
+    "domains": ["auth", "infrastructure"],
+    "confidence": 0.88,
+    "rationale": "Kerberos authentication failures indicate an auth-domain issue; NTP/domain-controller involvement points to infrastructure."
+  },
+  "case_status": "triaged"
+}
+```
+
+### Where Output Goes
+
+`classification` is consumed by the [Mapper](mapper.md) (domain context for component extraction), [Evidence Collector](evidence_collector.md) (relational detection uses domain list), and [Response Agent](response.md) (report metadata).
 
 ## Configuration
 

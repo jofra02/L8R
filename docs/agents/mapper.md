@@ -10,6 +10,17 @@ After LLM extraction, a deterministic reconciliation pipeline corrects component
 
 Finally, each reconciled component passes through a metadata enrichment step (`derive_component_metadata`) that computes tool-ready metadata from raw identifiers (e.g., deriving subnet masks, protocol hints).
 
+## When Called
+
+Routed by the supervisor when the `components` list is absent (priority 4).
+
+```python
+if not state.get("components"):
+    return "mapper_agent"
+```
+
+Return: Fixed edge to supervisor.
+
 ## Flow Diagram
 
 ```mermaid
@@ -46,6 +57,41 @@ flowchart TD
 | `components` | `List[Component]` | Reconciled components with id, ref, role, vendor, priority, metadata |
 | `case_status` | `CaseStatus` | Set to `"triaged"` |
 | `missing_info` | `List[str]` | Set to `["mapper_error"]` on failure |
+
+### Input Example
+
+```json
+{
+  "ticket": {
+    "id": "INC-4012",
+    "text": "Users in Building-7 cannot authenticate to file shares since 08:00. Kerberos errors in event logs. Domain controller DC-NORTH, NTP source ntp-pool.corp.local."
+  },
+  "client_context": {
+    "customer_id": "tenant_acme",
+    "inventory": [
+      { "id": "dc-north", "ref": "DC-NORTH", "role": "server", "vendor": "microsoft" },
+      { "id": "ntp-pool", "ref": "ntp-pool.corp.local", "role": "service" }
+    ]
+  }
+}
+```
+
+### Output Example
+
+```json
+{
+  "components": [
+    { "id": "dc-north", "ref": "DC-NORTH", "role": "server", "vendor": "microsoft", "priority": 1, "metadata": {} },
+    { "id": "ntp-pool", "ref": "ntp-pool.corp.local", "role": "service", "vendor": null, "priority": 2, "metadata": {} },
+    { "id": "file-share-01", "ref": "file-share-01", "role": "service", "vendor": null, "priority": 3, "metadata": {} }
+  ],
+  "case_status": "triaged"
+}
+```
+
+### Where Output Goes
+
+`components` is consumed by the [Evidence Collector](evidence_collector.md) (per-component tool selection), [Investigator](investigator.md) (investigation tool context), [Enricher](enricher.md) (topology context), and [Response Agent](response.md) (report metadata).
 
 ## Configuration
 

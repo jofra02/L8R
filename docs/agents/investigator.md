@@ -12,6 +12,23 @@ Tool execution uses the `AdaptiveExecutor` for self-healing capabilities. When a
 
 Evidence produced by each tool call is stored as an immutable snapshot via `EvidenceStore`, and the active open question (if any) is marked as answered with the evidence summary.
 
+## When Called
+
+Routed by supervisor when scoring returns `needs_more_evidence`, active hypotheses exist, and open questions are available (priority 11).
+
+```python
+if scoring and decision == "needs_more_evidence":
+    active = [h for h in hypotheses if h.status in ("proposed", "verifying")]
+    if active:
+        open_count = len([q for q in open_questions if q.status == "open"])
+        if open_count > 0:
+            return "investigator_agent"
+```
+
+Also reached via fallback (priority 15) when active hypotheses and open questions exist but no scoring result yet.
+
+Return: Fixed edge --> [Enricher](enricher.md) (sub-chain entry).
+
 ## Flow Diagram
 
 ```mermaid
@@ -60,6 +77,55 @@ flowchart TD
 | `open_questions` | `List[OpenQuestion]` | Active question marked `answered` |
 | `pending_requirements` | `List[PendingRequirement]` | Created on unrecoverable missing dependencies |
 | `case_status` | `str` | Set to `"investigating"` |
+
+### Input Example
+
+```json
+{
+  "hypotheses": [
+    { "id": "h1", "summary": "NTP time skew exceeds Kerberos tolerance", "status": "verifying", "rank": 1, "evidence_refs": ["ev-001"] }
+  ],
+  "open_questions": [
+    { "id": "q1", "question": "Is W32Time service running on DC-NORTH?", "status": "open", "source_hypothesis_id": "h1" }
+  ],
+  "components": [
+    { "id": "dc-north", "ref": "DC-NORTH", "role": "server", "vendor": "microsoft" }
+  ],
+  "ticket": { "id": "INC-4012", "text": "Kerberos errors. DC-NORTH, ntp-pool.corp.local." },
+  "facts": { "ntp_offset_dc_north": "+347 seconds" },
+  "customer_id": "tenant_acme"
+}
+```
+
+### Output Example
+
+```json
+{
+  "evidence_refs": [
+    {
+      "id": "ev-002",
+      "tool_call_id": "auto",
+      "tool_name": "get_service_status",
+      "tool_args": { "device": "dc-north", "service": "W32Time" },
+      "timestamp": "2026-03-16T08:22:00Z",
+      "content_hash": "sha256:d4e5f6...",
+      "summary": "W32Time service is running but configured with wrong NTP peer (local CMOS clock)",
+      "storage_ref": "evidence/tenant_acme/ev-002.json"
+    }
+  ],
+  "hypotheses": [
+    { "id": "h1", "status": "verifying", "evidence_refs": ["ev-001", "ev-002"] }
+  ],
+  "open_questions": [
+    { "id": "q1", "status": "answered", "answer": "W32Time is running but misconfigured — using local CMOS clock instead of ntp-pool.corp.local" }
+  ],
+  "case_status": "investigating"
+}
+```
+
+### Where Output Goes
+
+`evidence_refs` (appended) flow directly to the [Enricher](enricher.md) via the fixed sub-chain edge for fact and topology extraction. `open_questions` (with updated status) are read by the [Scoring Agent](scoring.md) for question completion ratio and by the [Investigation Planner](investigation_planner.md) to decide whether to generate new questions.
 
 ## Configuration
 

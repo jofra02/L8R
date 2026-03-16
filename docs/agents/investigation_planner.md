@@ -10,6 +10,23 @@ Each question is linked to a source hypothesis via `source_hypothesis_id` and in
 
 The agent is re-entrant. If open questions from a prior iteration remain unanswered, it skips re-planning to avoid discarding in-progress work. When all prior questions have been answered, it generates a fresh batch incorporating the new knowledge. Previously answered questions are preserved in state for audit and context.
 
+## When Called
+
+Routed by supervisor when scoring returns `needs_more_evidence`, active hypotheses exist, but no open questions remain (priority 10).
+
+```python
+if scoring and decision == "needs_more_evidence":
+    active = [h for h in hypotheses if h.status in ("proposed", "verifying")]
+    if active:
+        open_count = len([q for q in open_questions if q.status == "open"])
+        if open_count == 0:
+            return "investigation_planner"
+```
+
+Also reached via fallback (priority 14) when active hypotheses exist but no open questions and no scoring yet.
+
+Return: Fixed edge → supervisor.
+
 ## Flow Diagram
 
 ```mermaid
@@ -39,6 +56,53 @@ flowchart TD
 | **Output** | | |
 | `open_questions` | `List[OpenQuestion]` | Merged list (answered preserved + new open) |
 | `case_status` | `str` | Set to `"planned"` |
+
+### Input Example
+
+```json
+{
+  "hypotheses": [
+    { "id": "h1", "summary": "NTP time skew on DC-NORTH exceeds Kerberos tolerance", "status": "proposed", "rank": 1 }
+  ],
+  "facts": { "ntp_offset_dc_north": "+347 seconds" },
+  "evidence_refs": [
+    { "id": "ev-001", "tool_name": "get_ntp_status", "summary": "NTP offset +347s on DC-NORTH" }
+  ],
+  "ticket": { "id": "INC-4012", "mode": "incident" }
+}
+```
+
+### Output Example
+
+```json
+{
+  "open_questions": [
+    {
+      "id": "q1",
+      "question": "Is the Windows Time (W32Time) service running and configured correctly on DC-NORTH?",
+      "why": "A misconfigured or stopped time service would explain the 347-second drift from the NTP source",
+      "depends_on": [],
+      "done_when": "W32Time service status and NTP peer configuration retrieved from DC-NORTH",
+      "status": "open",
+      "source_hypothesis_id": "h1"
+    },
+    {
+      "id": "q2",
+      "question": "What is the current Kerberos maximum clock skew tolerance configured on the domain?",
+      "why": "Confirms whether the observed 347-second offset exceeds the policy threshold",
+      "depends_on": [],
+      "done_when": "Kerberos policy MaxClockSkew value retrieved",
+      "status": "open",
+      "source_hypothesis_id": "h1"
+    }
+  ],
+  "case_status": "planned"
+}
+```
+
+### Where Output Goes
+
+`open_questions` are consumed by the [Investigator](investigator.md) (selects questions to drive tool execution), [Scoring Agent](scoring.md) (question completion ratio in confidence calculation), and the [Supervisor](supervisor.md) (routes to investigator when open questions exist, or back to investigation_planner when all are answered).
 
 ## Configuration
 

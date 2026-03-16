@@ -10,6 +10,17 @@ Because it makes no LLM calls, the node is fast, reproducible, and free of hallu
 
 The agent also implements stagnation detection: it tracks whether investigation cycles are producing new facts. After two consecutive cycles with no new facts, it forces the pipeline forward (proceed or escalate) to prevent infinite loops.
 
+## When Called
+
+Invoked via fixed sub-chain edge from the [Hypothesis Agent](hypothesis.md), not by the supervisor directly. Runs after every enricher --> hypothesis cycle.
+
+```python
+# Fixed edge — not supervisor-routed
+workflow.add_edge("hypothesis_agent", "scoring_agent")
+```
+
+Return: Fixed edge --> supervisor.
+
 ## Flow Diagram
 
 ```mermaid
@@ -57,6 +68,41 @@ flowchart TD
 |---|---|---|
 | `scoring` | `ScoringResult` | Contains `risk_score`, `confidence`, `evidence_coverage`, `decision`, `rationale`, `missing_facts` |
 | `meta` | `Dict` | Updated with `_last_fact_count` and `_stagnant_cycles` |
+
+### Input Example
+
+```json
+{
+  "hypotheses": [
+    { "id": "h1", "summary": "NTP time skew exceeds Kerberos tolerance", "status": "proposed", "rank": 1, "confidence": 0.75, "required_facts": ["ntp_offset_dc_north", "kerberos_max_tolerance"], "supporting_facts": ["ntp_offset_dc_north"] }
+  ],
+  "evidence_refs": [{ "id": "ev-001" }],
+  "facts": { "ntp_offset_dc_north": "+347 seconds" },
+  "ticket": { "id": "INC-4012", "severity": "high" },
+  "open_questions": [],
+  "meta": {}
+}
+```
+
+### Output Example
+
+```json
+{
+  "scoring": {
+    "risk_score": 5.8,
+    "confidence": 0.52,
+    "evidence_coverage": 0.5,
+    "decision": "needs_more_evidence",
+    "rationale": "1 of 2 required facts covered (50%). Confidence 52% below 70% threshold. No open questions — investigation planning needed.",
+    "missing_facts": ["kerberos_max_tolerance"]
+  },
+  "meta": { "_last_fact_count": 1, "_stagnant_cycles": 0 }
+}
+```
+
+### Where Output Goes
+
+`scoring` is the primary routing signal consumed by the [Supervisor](supervisor.md) -- its `decision` field determines whether the pipeline proceeds to planning, gathers more evidence, or escalates. `meta._last_fact_count` and `meta._stagnant_cycles` are consumed by the [Scoring Agent](scoring.md) itself on subsequent passes for stagnation detection.
 
 ## Configuration
 

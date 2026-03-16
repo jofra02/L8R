@@ -12,6 +12,18 @@ Every proposed change is flagged for human approval (HITL gate). Rollback steps 
 
 The source file is `src/agents/planner.py`; the node function is `resolution_planner_agent_node`. A backward-compatible alias `planner_agent_node` is also exported.
 
+## When Called
+
+Routed by supervisor when scoring returns `proceed_to_plan` and no plan exists yet (priority 9).
+
+```python
+if scoring and decision == "proceed_to_plan":
+    if not state.get("plan"):
+        return "planner_agent"
+```
+
+Return: Fixed edge --> supervisor.
+
 ## Flow Diagram
 
 ```mermaid
@@ -53,6 +65,48 @@ flowchart TD
 | `case_status` | `str` | Set to `"resolved"` on success |
 
 Each `PlanStep` contains: `step_id`, `description`, `tool`, `args`, `expected_outcome`, and risk level.
+
+### Input Example
+
+```json
+{
+  "ticket": { "id": "INC-4012", "mode": "incident", "text": "Kerberos errors. DC-NORTH, ntp-pool.corp.local.", "severity": "high" },
+  "hypotheses": [
+    { "id": "h1", "summary": "NTP time skew exceeds Kerberos tolerance", "status": "verified", "rank": 1, "rationale": "347-second offset exceeds 300-second default Kerberos tolerance" }
+  ],
+  "facts": { "ntp_offset_dc_north": "+347 seconds", "kerberos_max_tolerance": "300 seconds", "w32time_ntp_peer": "local CMOS clock" },
+  "evidence_refs": [{ "id": "ev-001" }, { "id": "ev-002" }, { "id": "ev-003" }],
+  "customer_id": "tenant_acme"
+}
+```
+
+### Output Example
+
+```json
+{
+  "plan": {
+    "diagnosis_steps": [
+      { "step_id": "d1", "description": "Verify current NTP offset on DC-NORTH", "tool": "get_ntp_status", "args": { "device": "dc-north" }, "expected_outcome": "Offset > 300 seconds confirmed", "risk": "low" }
+    ],
+    "proposed_changes": [
+      { "step_id": "c1", "description": "Reconfigure W32Time to use ntp-pool.corp.local as primary NTP peer", "tool": "set_ntp_peer", "args": { "device": "dc-north", "peer": "ntp-pool.corp.local" }, "expected_outcome": "NTP peer updated and time sync initiated", "risk": "medium" },
+      { "step_id": "c2", "description": "Force NTP resynchronization", "tool": "force_ntp_sync", "args": { "device": "dc-north" }, "expected_outcome": "NTP offset reduced to < 5 seconds", "risk": "low" }
+    ],
+    "validation": [
+      { "step_id": "v1", "description": "Verify NTP offset is within Kerberos tolerance", "tool": "get_ntp_status", "args": { "device": "dc-north" }, "expected_outcome": "Offset < 300 seconds", "risk": "low" },
+      { "step_id": "v2", "description": "Test Kerberos authentication from Building-7 workstation", "tool": "test_kerberos_auth", "args": { "target": "dc-north" }, "expected_outcome": "Authentication succeeds", "risk": "low" }
+    ],
+    "rollback": [
+      { "step_id": "r1", "description": "Revert NTP peer configuration to previous setting", "tool": "set_ntp_peer", "args": { "device": "dc-north", "peer": "local_cmos" }, "expected_outcome": "NTP peer reverted", "risk": "low" }
+    ]
+  },
+  "case_status": "resolved"
+}
+```
+
+### Where Output Goes
+
+`plan` is consumed by the [Supervisor](supervisor.md) (checks plan existence to route to response) and by the [Response Agent](response.md) (includes the full plan in the final technical report).
 
 ## Configuration
 

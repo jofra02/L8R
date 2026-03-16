@@ -10,6 +10,33 @@ The agent operates in two modes depending on the presence of pending requirement
 
 The report enforces strict language guardrails: evidence-backed conclusions only, no speculation, definitive statements over probabilistic hedging. Mode-specific rules apply for validation tickets (table format with Confirmed/Not confirmed/Inconclusive) and inquiry tickets (direct factual answers with citations).
 
+## When Called
+
+Terminal node -- 5 distinct routing conditions lead here:
+
+```python
+# 1. Safety break: max iterations reached (priority 0)
+if state.get("meta", {}).get("iterations", 0) >= MAX_ITERATIONS:
+    return "response_agent"
+
+# 2. HITL pause: pending requirements exist (priority 6)
+if pending_reqs:
+    return "response_agent"
+
+# 3. Plan ready: scoring says proceed_to_plan and plan exists (priority 8)
+if scoring and decision == "proceed_to_plan" and state.get("plan"):
+    return "response_agent"
+
+# 4. Escalation: scoring says escalate_to_human (priority 13)
+if scoring and decision == "escalate_to_human":
+    return "response_agent"
+
+# 5. Default fallback (priority 16)
+return "response_agent"
+```
+
+Return: Fixed edge --> END.
+
 ## Flow Diagram
 
 ```mermaid
@@ -54,6 +81,42 @@ flowchart TD
 | `final_answer` | `str` | Markdown technical report |
 | `handoff` | `HandoffPackage` | `case_file_artifacts` (evidence/report refs), `recommended_escalation` (team, reason, priority) |
 | `case_status` | `str` | `"resolved"` (normal) or `"blocked"` (HITL pause) |
+
+### Input Example
+
+```json
+{
+  "ticket": { "id": "INC-4012", "mode": "incident", "text": "Kerberos errors. DC-NORTH.", "severity": "high" },
+  "plan": {
+    "diagnosis_steps": [{ "step_id": "d1", "tool": "get_ntp_status" }],
+    "proposed_changes": [{ "step_id": "c1", "tool": "set_ntp_peer" }],
+    "validation": [{ "step_id": "v1", "tool": "get_ntp_status" }],
+    "rollback": [{ "step_id": "r1", "tool": "set_ntp_peer" }]
+  },
+  "hypotheses": [{ "id": "h1", "summary": "NTP time skew exceeds Kerberos tolerance", "status": "verified" }],
+  "evidence_refs": [{ "id": "ev-001", "summary": "NTP offset +347s" }, { "id": "ev-002", "summary": "W32Time misconfigured" }],
+  "facts": { "ntp_offset_dc_north": "+347 seconds", "w32time_ntp_peer": "local CMOS clock" },
+  "classification": { "domains": ["auth", "infrastructure"] },
+  "components": [{ "id": "dc-north", "ref": "DC-NORTH", "role": "server" }]
+}
+```
+
+### Output Example
+
+```json
+{
+  "final_answer": "## Conclusion\nKerberos authentication failures in Building-7 are caused by a 347-second NTP time skew on DC-NORTH, exceeding the default 300-second Kerberos clock tolerance.\n\n## Context\nDC-NORTH W32Time service was configured to use the local CMOS clock instead of ntp-pool.corp.local.\n\n## Evidence\n- ev-001: NTP offset +347 seconds on DC-NORTH\n- ev-002: W32Time configured with local CMOS clock peer\n\n## Next Steps\n1. Reconfigure W32Time on DC-NORTH to use ntp-pool.corp.local (requires approval)\n2. Force NTP resynchronization\n3. Validate Kerberos authentication from Building-7",
+  "handoff": {
+    "case_file_artifacts": ["evidence/tenant_acme/ev-001.json", "evidence/tenant_acme/ev-002.json"],
+    "recommended_escalation": { "team": "L2_Ops", "reason": "Proposed NTP configuration change requires approval", "priority": "high" }
+  },
+  "case_status": "resolved"
+}
+```
+
+### Where Output Goes
+
+`final_answer` and `handoff` are terminal outputs consumed by the external API caller and stored in PostgreSQL. No downstream agent reads these fields.
 
 ## Configuration
 

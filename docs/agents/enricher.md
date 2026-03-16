@@ -12,6 +12,18 @@ Pass 1 (Fact Extraction) produces both a flat dictionary of key-value facts and 
 
 Pass 2 (Topology Extraction) identifies entities and their relationships from the evidence content. Extracted nodes and edges are deduplicated against existing topology before merging. Edges are deduplicated by `(source_id, target_id, relation)` with higher-confidence entries winning.
 
+## When Called
+
+Invoked via fixed sub-chain edge, not by the supervisor directly. Triggered after the [Evidence Collector](evidence_collector.md) or [Investigator](investigator.md) completes.
+
+```python
+# Fixed edges — not supervisor-routed
+workflow.add_edge("evidence_collector", "enricher_agent")
+workflow.add_edge("investigator_agent", "enricher_agent")
+```
+
+Return: Fixed edge → [Hypothesis Agent](hypothesis.md).
+
 ## Flow Diagram
 
 ```mermaid
@@ -44,6 +56,59 @@ flowchart TD
 | `topology_nodes` | `List[TopologyNode]` | Merged and deduplicated by node ID |
 | `topology_edges` | `List[TopologyEdge]` | Merged and deduplicated by (source, target, relation) |
 | `case_status` | `str` | Set to `"synthesizing"` |
+
+### Input Example
+
+```json
+{
+  "evidence_refs": [
+    {
+      "id": "ev-001",
+      "tool_name": "get_ntp_status",
+      "summary": "NTP offset on DC-NORTH is +347 seconds against ntp-pool.corp.local",
+      "storage_ref": "evidence/tenant_acme/ev-001.json"
+    }
+  ],
+  "facts": {},
+  "structured_facts": [],
+  "topology_nodes": [
+    { "id": "dc-north", "node_type": "server", "label": "DC-NORTH" }
+  ],
+  "topology_edges": []
+}
+```
+
+### Output Example
+
+```json
+{
+  "facts": {
+    "ntp_offset_dc_north": "+347 seconds",
+    "ntp_source": "ntp-pool.corp.local",
+    "_processed_evidence_ids": ["ev-001"]
+  },
+  "structured_facts": [
+    {
+      "key": "ntp_offset_dc_north",
+      "value": "+347 seconds",
+      "source_evidence_id": "ev-001",
+      "confidence": 1.0
+    }
+  ],
+  "topology_nodes": [
+    { "id": "dc-north", "node_type": "server", "label": "DC-NORTH" },
+    { "id": "ntp-pool", "node_type": "service", "label": "ntp-pool.corp.local" }
+  ],
+  "topology_edges": [
+    { "source_id": "dc-north", "target_id": "ntp-pool", "relation": "depends_on", "confidence": 0.9, "evidence_ref": "ev-001" }
+  ],
+  "case_status": "synthesizing"
+}
+```
+
+### Where Output Goes
+
+`facts` and `structured_facts` are consumed by the [Hypothesis Agent](hypothesis.md) (reasoning input), [Scoring Agent](scoring.md) (fact density, stagnation detection), [Investigation Planner](investigation_planner.md) (question context), [Investigator](investigator.md) (investigation context), [Resolution Planner](resolution_planner.md) (plan generation), and [Response Agent](response.md) (report content). `topology_nodes` and `topology_edges` feed into the [Hypothesis Agent](hypothesis.md) for path analysis and back into the [Enricher](enricher.md) itself on subsequent passes for deduplication merging.
 
 ## Configuration
 

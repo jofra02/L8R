@@ -12,6 +12,17 @@ The agent operates iteratively. On subsequent passes it receives its own prior h
 
 A dual-role adaptation mechanism inspects ticket intent. For validation/inquiry tickets, the agent formulates neutral verification hypotheses. For incident/problem tickets, it formulates troubleshooting hypotheses targeting root cause. The configuration-first principle is enforced: hypotheses must be verifiable via existing configuration rather than live traffic analysis.
 
+## When Called
+
+Invoked via fixed sub-chain edge from the [Enricher](enricher.md), not by the supervisor directly.
+
+```python
+# Fixed edge — not supervisor-routed
+workflow.add_edge("enricher_agent", "hypothesis_agent")
+```
+
+Return: Fixed edge → [Scoring Agent](scoring.md).
+
 ## Flow Diagram
 
 ```mermaid
@@ -44,6 +55,59 @@ flowchart TD
 | `hypotheses` | `List[Hypothesis]` | Ranked hypotheses with status, evidence_refs, confidence |
 | `path_analysis` | `PathAnalysis` | Candidate paths, breakpoints, missing evidence, probes |
 | `case_status` | `str` | Set to `"modeled"` |
+
+### Input Example
+
+```json
+{
+  "ticket": { "id": "INC-4012", "mode": "incident", "text": "Kerberos errors in event logs. DC-NORTH, ntp-pool.corp.local." },
+  "facts": { "ntp_offset_dc_north": "+347 seconds", "ntp_source": "ntp-pool.corp.local" },
+  "structured_facts": [
+    { "key": "ntp_offset_dc_north", "value": "+347 seconds", "source_evidence_id": "ev-001", "confidence": 1.0 }
+  ],
+  "topology_nodes": [
+    { "id": "dc-north", "node_type": "server", "label": "DC-NORTH" },
+    { "id": "ntp-pool", "node_type": "service", "label": "ntp-pool.corp.local" }
+  ],
+  "topology_edges": [
+    { "source_id": "dc-north", "target_id": "ntp-pool", "relation": "depends_on", "confidence": 0.9 }
+  ],
+  "client_context": { "customer_id": "tenant_acme", "baselines": [{ "component_id": "dc-north", "metric": "ntp_offset", "normal_value": "< 5 seconds" }] }
+}
+```
+
+### Output Example
+
+```json
+{
+  "hypotheses": [
+    {
+      "id": "h1",
+      "summary": "NTP time skew on DC-NORTH exceeds Kerberos tolerance (5 min), causing authentication failures",
+      "required_facts": ["ntp_offset_dc_north", "kerberos_max_tolerance"],
+      "supporting_facts": ["ntp_offset_dc_north"],
+      "evidence_refs": ["ev-001"],
+      "confidence": 0.75,
+      "rank": 1,
+      "status": "proposed",
+      "next_playbooks": ["check_w32time_config", "check_kerberos_policy"],
+      "rationale": "347-second NTP offset exceeds the default Kerberos 5-minute tolerance. Baseline shows normal offset < 5 seconds."
+    }
+  ],
+  "path_analysis": {
+    "candidate_paths": [
+      { "path_id": "p1", "source": "client-workstation", "destination": "dc-north", "hops": ["client-workstation->dc-north"], "status": "incomplete" }
+    ],
+    "most_likely_breakpoints": [{ "edge": "dc-north->ntp-pool", "constraint": "ntp_sync", "reasoning": "Time source dependency broken" }],
+    "suggested_probes": ["check_w32time_service_status", "query_kerberos_ticket_lifetime"]
+  },
+  "case_status": "modeled"
+}
+```
+
+### Where Output Goes
+
+`hypotheses` are consumed by the [Scoring Agent](scoring.md) (confidence and decision gating), [Investigation Planner](investigation_planner.md) (question generation from active hypotheses), [Investigator](investigator.md) (targeted verification), [Resolution Planner](resolution_planner.md) (plan based on verified hypothesis), and [Response Agent](response.md) (report hypothesis history). `path_analysis` is consumed by the [Evidence Collector](evidence_collector.md) (suggested probes for re-collection), [Investigation Planner](investigation_planner.md) (context for questions), and [Investigator](investigator.md) (investigation context).
 
 ## Configuration
 

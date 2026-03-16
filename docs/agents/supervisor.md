@@ -10,6 +10,16 @@ The router (`supervisor_router`) is a pure conditional-edge function. It inspect
 
 The safety break ensures the pipeline terminates after `MAX_ITERATIONS` (15 in normal mode, 8 when `TEST_MODE_FAST` is enabled), preventing infinite loops regardless of downstream agent behavior.
 
+## When Called
+
+Entry point — always the first node executed. The supervisor is not conditionally routed to; it is the graph's `set_entry_point`. Every iteration of the pipeline starts here.
+
+```python
+workflow.set_entry_point("supervisor")
+```
+
+Return: Conditional edges to all 12 agents + END.
+
 ## Flow Diagram
 
 ```mermaid
@@ -61,12 +71,38 @@ flowchart TD
 | `open_questions` | `List[OpenQuestion]` | Investigation planner |
 | `plan` | `ResolutionPlan` | Resolution planner |
 
+### Input Example
+
+```json
+{
+  "meta": { "iterations": 3 },
+  "scoring": { "decision": "needs_more_evidence", "confidence": 0.45 },
+  "hypotheses": [{ "id": "h1", "status": "verifying", "rank": 1 }],
+  "open_questions": [{ "id": "q1", "status": "open" }]
+}
+```
+
 ### Output (written to `GlobalState`)
 
 | Field | Type | Description |
 |---|---|---|
 | `meta.iterations` | `int` | Incremented iteration counter |
 | `case_status` | `CaseStatus` | Set to `"new"` on first pass only |
+
+### Output Example
+
+```json
+{
+  "meta": { "iterations": 4 },
+  "case_status": "new"
+}
+```
+
+Note: `case_status` is only set on the first iteration.
+
+### Where Output Goes
+
+`meta.iterations` is consumed by the [Supervisor](supervisor.md) itself on subsequent passes for safety-break evaluation. `case_status` initializes the lifecycle and is read by all downstream agents.
 
 ## Configuration
 

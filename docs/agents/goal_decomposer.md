@@ -10,6 +10,18 @@ Rather than diagnosing what went wrong, the agent produces a set of `Fulfillment
 
 The agent is re-entrant. If goals from a prior decomposition are still pending or in progress, it skips re-decomposition. Completed goals from prior runs are preserved and merged with newly generated goals.
 
+## When Called
+
+Routed by supervisor when the ticket mode is `"change"`, no fulfillment goals exist yet, and no hypotheses have been generated (priority 7).
+
+```python
+ticket_mode = ticket.mode if ticket else "incident"
+if ticket_mode == "change" and not state.get("fulfillment_goals") and not state.get("hypotheses"):
+    return "goal_decomposer"
+```
+
+Return: Fixed edge → supervisor.
+
 ## Flow Diagram
 
 ```mermaid
@@ -35,6 +47,63 @@ flowchart TD
 | **Output** | | |
 | `fulfillment_goals` | `List[FulfillmentGoal]` | Merged list (completed preserved + new pending) |
 | `case_status` | `str` | Set to `"modeled"` |
+
+### Input Example
+
+```json
+{
+  "ticket": {
+    "id": "CHG-0891",
+    "mode": "change",
+    "text": "Add new site-to-site VPN tunnel between FW-MAIN and FW-BRANCH-07. Use IKEv2 with AES-256-GCM.",
+    "severity": "medium"
+  },
+  "components": [
+    { "id": "fw-main", "ref": "FW-MAIN", "role": "firewall", "vendor": "fortinet" },
+    { "id": "fw-branch-07", "ref": "FW-BRANCH-07", "role": "firewall", "vendor": "fortinet" }
+  ],
+  "facts": {},
+  "evidence_refs": []
+}
+```
+
+### Output Example
+
+```json
+{
+  "fulfillment_goals": [
+    {
+      "id": "g1",
+      "description": "Configure IKEv2 Phase 1 proposal on both FW-MAIN and FW-BRANCH-07 with AES-256-GCM and matching PSK or certificate authentication",
+      "preconditions": ["Both firewalls are reachable and have management access", "WAN IP addresses for both endpoints are known"],
+      "validation_criteria": ["IKE SA established between both peers", "Phase 1 status shows ESTABLISHED"],
+      "status": "pending",
+      "sub_goals": []
+    },
+    {
+      "id": "g2",
+      "description": "Configure IPsec Phase 2 selectors with the required subnet pairs and AES-256-GCM encryption",
+      "preconditions": ["Phase 1 proposal configured (g1)"],
+      "validation_criteria": ["IPsec SA established", "Traffic selectors match required subnets"],
+      "status": "pending",
+      "sub_goals": []
+    },
+    {
+      "id": "g3",
+      "description": "Add firewall policies on both ends permitting VPN traffic for the specified subnets",
+      "preconditions": ["VPN tunnel established (g2)"],
+      "validation_criteria": ["Policy hit counters incrementing", "Bidirectional traffic passes through tunnel"],
+      "status": "pending",
+      "sub_goals": []
+    }
+  ],
+  "case_status": "modeled"
+}
+```
+
+### Where Output Goes
+
+`fulfillment_goals` are consumed by the [Supervisor](supervisor.md) (presence triggers routing to resolution planner instead of hypothesis path), [Resolution Planner](resolution_planner.md) (generates execution plan from goals), and [Response Agent](response.md) (includes goals in the final report).
 
 ## Configuration
 

@@ -12,6 +12,27 @@ All tool executions are subject to safety checks (`SAFETY_BLOCKED_KEYWORDS`), te
 
 When the `AdaptiveExecutor` raises a `MissingDependencyError`, the agent attempts in-flight resolution by selecting a different tool to fetch the missing data. If resolution fails, the dependency becomes a `PendingRequirement` that triggers a human-in-the-loop gate via the supervisor.
 
+## When Called
+
+Two routing paths from the supervisor:
+
+1. **First pass** (priority 5): routed when no evidence exists yet.
+2. **Re-collection** (scoring-driven): scoring returns `needs_more_evidence` and no active hypotheses remain, sending the pipeline back for broader evidence gathering.
+
+```python
+# First pass (priority 5)
+if not state.get("evidence_refs"):
+    return "evidence_collector"
+
+# Re-collection (scoring-driven)
+if scoring and decision == "needs_more_evidence":
+    active = [h for h in hypotheses if h.status in ("proposed", "verifying")]
+    if not active:
+        return "evidence_collector"
+```
+
+Return: Fixed edge to [Enricher](enricher.md) (sub-chain entry).
+
 ## Flow Diagram
 
 ```mermaid
@@ -69,6 +90,45 @@ flowchart TD
 | `pending_requirements` | `List[PendingRequirement]` | Unresolved missing dependencies requiring human input |
 | `missing_info` | `List[str]` | Human-readable descriptions of missing dependencies |
 | `case_status` | `CaseStatus` | Set to `"investigating"` |
+
+### Input Example
+
+```json
+{
+  "components": [
+    { "id": "dc-north", "ref": "DC-NORTH", "role": "server", "vendor": "microsoft", "priority": 1 },
+    { "id": "ntp-pool", "ref": "ntp-pool.corp.local", "role": "service", "priority": 2 }
+  ],
+  "ticket": { "id": "INC-4012", "text": "Kerberos errors in event logs. Domain controller DC-NORTH." },
+  "customer_id": "tenant_acme",
+  "classification": { "domains": ["auth", "infrastructure"] }
+}
+```
+
+### Output Example
+
+```json
+{
+  "evidence_refs": [
+    {
+      "id": "ev-001",
+      "tool_call_id": "auto",
+      "tool_name": "get_ntp_status",
+      "tool_args": { "device": "dc-north" },
+      "timestamp": "2026-03-16T08:15:00Z",
+      "content_hash": "sha256:a1b2c3...",
+      "summary": "NTP offset on DC-NORTH is +347 seconds against ntp-pool.corp.local",
+      "storage_ref": "evidence/tenant_acme/ev-001.json"
+    }
+  ],
+  "pending_requirements": [],
+  "case_status": "investigating"
+}
+```
+
+### Where Output Goes
+
+`evidence_refs` flows into the [Enricher](enricher.md) (fact and topology extraction), [Hypothesis Agent](hypothesis.md) (hypothesis evidence linking), [Scoring Agent](scoring.md) (evidence coverage calculation), [Investigation Planner](investigation_planner.md) (context for question generation), [Investigator](investigator.md) (accumulated evidence), [Resolution Planner](resolution_planner.md) (plan generation context), and [Response Agent](response.md) (report evidence log). `pending_requirements` is read by the [Supervisor](supervisor.md) for HITL routing and by the [Response Agent](response.md) to generate the HITL pause report.
 
 ## Configuration
 

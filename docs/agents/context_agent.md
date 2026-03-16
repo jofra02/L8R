@@ -10,6 +10,17 @@ Topology seeding converts inventory items into `TopologyNode` entries and known 
 
 If no context is found for the tenant, the agent returns a default empty `ClientContext` and flags `missing_info` with `"client_context_not_found"`. This allows the pipeline to continue with degraded information rather than halting.
 
+## When Called
+
+Routed by the supervisor when `client_context` is absent (priority 2, first data-fetching step).
+
+```python
+if not state.get("client_context"):
+    return "context_agent"
+```
+
+Return: Fixed edge to supervisor.
+
 ## Flow Diagram
 
 ```mermaid
@@ -42,6 +53,43 @@ flowchart TD
 | `topology_nodes` | `List[TopologyNode]` | One node per inventory item (id, role, ref, metadata) |
 | `topology_edges` | `List[TopologyEdge]` | One edge per dependency (source_id, target_id, relation); confidence=1.0 |
 | `missing_info` | `List[str]` | Set when customer_id is absent or context not found |
+
+### Input Example
+
+```json
+{
+  "customer_id": "tenant_acme"
+}
+```
+
+### Output Example
+
+```json
+{
+  "client_context": {
+    "customer_id": "tenant_acme",
+    "version": "2.1",
+    "inventory": [
+      { "id": "dc-north", "ref": "DC-NORTH", "role": "server", "vendor": "microsoft" },
+      { "id": "ntp-pool", "ref": "ntp-pool.corp.local", "role": "service" }
+    ],
+    "dependencies": [
+      { "source_id": "dc-north", "target_id": "ntp-pool", "relation": "depends_on" }
+    ]
+  },
+  "topology_nodes": [
+    { "id": "dc-north", "node_type": "server", "label": "DC-NORTH" },
+    { "id": "ntp-pool", "node_type": "service", "label": "ntp-pool.corp.local" }
+  ],
+  "topology_edges": [
+    { "source_id": "dc-north", "target_id": "ntp-pool", "relation": "depends_on", "confidence": 1.0, "evidence_ref": "inventory" }
+  ]
+}
+```
+
+### Where Output Goes
+
+`client_context` is consumed by the [Mapper](mapper.md) (inventory for reconciliation), [Evidence Collector](evidence_collector.md) (component context), [Hypothesis Agent](hypothesis.md) (baselines, known changes), [Investigator](investigator.md) (baselines, topology context), [Goal Decomposer](goal_decomposer.md) (component context), and [Response Agent](response.md) (report context). `topology_nodes` and `topology_edges` are merged by the [Enricher](enricher.md) and used by the [Hypothesis Agent](hypothesis.md) for path analysis.
 
 ## Configuration
 
