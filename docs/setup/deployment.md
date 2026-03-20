@@ -1,98 +1,301 @@
 # Deployment Guide
 
-> Docker, production, and scaling considerations.
+> Docker Compose deployment, service configuration, and production hardening.
 
-## Overview
+## Architecture
 
-The support AI agent consists of three runtime components:
-1. **FastAPI server** - Webhook ingestion + REST API
-2. **PostgreSQL** - Relational state, audit logs, checkpoints
-3. **Qdrant** - Vector store for KB, evidence, tool knowledge, CBR
+The full stack consists of five services:
 
-Plus external MCP servers that provide read-only tool access.
+```
+    Browser
+      |
+      v
++---------------------+
+| frontend (:3001)    |
+| nginx (SPA + proxy) |
++----------+----------+
+           |  /api, /health
+           v
++---------------------+
+|    app (:8000)      |    .env
+|  FastAPI + Agent    |<----------
++---+-------------+---+
+    |             |
++---v--------+  +-v--------------+
+| postgres   |  | qdrant         |
+| (:5432)    |  | (:6333/:6334)  |
++------------+  +----------------+
 
-## Docker Compose (Development)
-
-A minimal `docker-compose.yml` for local development:
-
-```yaml
-version: "3.9"
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: change_me
-      POSTGRES_DB: support_agent_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant_data:/qdrant/storage
-
-volumes:
-  pgdata:
-  qdrant_data:
+    Optional:
++------------+
+| langfuse   |  (--profile observability)
+| (:3000)    |
++------------+
 ```
 
-## Production Considerations
+| Service | Port | Purpose |
+|---|---|---|
+| `frontend` | 3001 | React dashboard (nginx: SPA fallback + API proxy) |
+| `app` | 8000 | Platform API + LangGraph pipeline |
+| `postgres` | 5432 | Case state, audit logs, checkpoints |
+| `qdrant` | 6333 (HTTP), 6334 (gRPC) | Vector KB, evidence, tool catalog, CBR |
+| `langfuse` | 3000 | Observability traces (optional) |
 
-### Database
+External dependencies (not containerized):
+- **MCP servers** -- read-only tool providers, deployed near target infrastructure
+- **OpenAI-compatible API** -- LLM inference endpoint
 
-- Use managed PostgreSQL (e.g., AWS RDS, Azure Database, Cloud SQL)
-- Enable SSL connections (`DB_HOST` with SSL params)
-- Run `uv run alembic upgrade head` as part of deployment pipeline
-- Regular backups — audit logs and case state are business-critical
+## Quick Deploy (Docker Compose)
+
+### Prerequisites
+
+- Docker Engine 24+ with Compose V2
+- An OpenAI-compatible API key
+
+### Steps
+
+```bash
+# 1. Clone and enter the project
+git clone <repo-url>
+cd support_ai_agent
+
+# 2. Create .env from template
+cp .env.example .env
+# Edit .env: set OPENAI_API_KEY, POSTGRES_PASSWORD, DB_PASS
+
+# 3. Start all services
+docker compose up -d
+
+# 4. Verify
+docker compose ps          # All services "healthy"
+curl http://localhost:8000/health   # {"status": "ok"}
+```
+
+The entrypoint script automatically runs:
+1. `alembic upgrade head` -- database migrations
+2. `python -m src.utils.init_qdrant` -- Qdrant collection initialization (idempotent)
+3. `uvicorn` -- application server
+
+### With Langfuse (Optional)
+
+```bash
+docker compose --profile observability up -d
+```
+
+Langfuse will be available at `http://localhost:3000`. Set `LANGFUSE_ENABLED=true` in `.env` and configure the Langfuse keys after initial setup.
+
+## Service Configuration
+
+### PostgreSQL
+
+The compose file uses `postgres:16-alpine`. Connection settings:
+
+| Variable | Docker Default | Description |
+|---|---|---|
+| `POSTGRES_USER` | `postgres` | Superuser name (used by compose + app) |
+| `POSTGRES_PASSWORD` | `change_me` | Superuser password |
+| `POSTGRES_DB` | `support_agent_db` | Default database |
+| `DB_HOST` | `postgres` (overridden in compose) | Hostname |
+
+**Managed database alternative**: Set `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` to point at your managed instance (RDS, Cloud SQL, Azure Database). Remove or stop the `postgres` service in compose.
+
+**SSL**: For managed databases requiring SSL, configure via SQLAlchemy connect args in `src/core/orm.py`.
 
 ### Qdrant
 
-- Use Qdrant Cloud or a dedicated instance with API key auth
-- Set `QDRANT_API_KEY` for authenticated access
-- Collections are auto-created by `init_qdrant` with proper indexes
-- Back up snapshots for `resolved_tickets` and `tool_knowledge` collections
+The compose file uses `qdrant/qdrant:latest` with persistent storage.
 
-### API Server
+| Variable | Docker Default | Description |
+|---|---|---|
+| `QDRANT_URL` | `http://qdrant:6333` (overridden in compose) | HTTP API URL |
+| `QDRANT_API_KEY` | `None` | API key (required for Qdrant Cloud) |
+| `QDRANT_TIMEOUT` | `60` | Operation timeout in seconds |
 
-- Run behind a reverse proxy (nginx, Caddy, or cloud LB)
-- Use `gunicorn` with `uvicorn` workers for production:
-  ```bash
-  gunicorn src.ingestion.api:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
-  ```
-- Set `APP_ENV=production` and `LOG_LEVEL=WARNING`
-- Ensure `X-Customer-ID` header is validated/injected by your API gateway
+**Qdrant Cloud alternative**: Set `QDRANT_URL` and `QDRANT_API_KEY` to your cloud cluster. Remove or stop the `qdrant` service.
+
+**Backups**: Use Qdrant's snapshot API for `resolved_tickets` and `tool_knowledge` collections.
+
+### Application
+
+| Variable | Default | Description |
+|---|---|---|
+| `APP_ENV` | `development` | Set to `production` for gunicorn with uvicorn workers |
+| `UVICORN_WORKERS` | `1` (dev), `2` (prod) | Number of worker processes |
+| `APP_PORT` | `8000` | Host port mapping |
+
+The entrypoint (`scripts/entrypoint.sh`) selects the server based on `APP_ENV`:
+- **development**: `uvicorn` with configurable workers
+- **production**: `gunicorn` with `UvicornWorker` class
+
+### Frontend
+
+The compose file includes a `frontend` service that builds from `./frontend`.
+
+- **Multi-stage Dockerfile**: `node:22-alpine` builds the React app, then copies the `dist/` output into `nginx:alpine`
+- **nginx.conf**: SPA fallback (`try_files $uri $uri/ /index.html`) + reverse proxy for `/api/` and `/health` to `app:8000`
+- **Port**: `FRONTEND_PORT` env var (default `3001`), maps to nginx port 80 inside the container
+- **Dependency**: `depends_on: app` with `condition: service_healthy` — the frontend starts only after the API is healthy
 
 ### MCP Servers
 
-- Deploy MCP servers close to the target infrastructure (low latency)
-- Use SSE transport for remote servers, stdio for local
-- Set appropriate `MCP_SERVER_TIMEOUT` for your network conditions
+MCP servers are external processes that provide read-only tool access. They are **not** containerized in this compose stack because they must be deployed near the target infrastructure.
 
-### Observability
+Configure via `MCP_SERVERS` (JSON) in `.env`:
 
-- Deploy Langfuse (self-hosted or cloud) for trace visibility
-- Set `LANGFUSE_ENABLED=true` with appropriate keys
-- Adjust `LANGFUSE_SAMPLE_RATE` in high-volume environments (e.g., `0.1` for 10%)
+```json
+MCP_SERVERS={"remote-server": {"transport": "sse", "url": "http://mcp-host:8000/sse"}}
+```
+
+**Docker networking note**: If MCP servers run on the Docker host, use `host.docker.internal` (Docker Desktop) or the host's IP address as the hostname. `localhost` inside the container refers to the container itself.
+
+### Langfuse
+
+Langfuse runs under the `observability` profile and shares the PostgreSQL instance (separate database).
+
+| Variable | Default | Description |
+|---|---|---|
+| `LANGFUSE_DB` | `langfuse` | Langfuse database name |
+| `LANGFUSE_NEXTAUTH_SECRET` | (must change) | NextAuth session secret |
+| `LANGFUSE_SALT` | (must change) | Encryption salt |
+| `LANGFUSE_PORT` | `3000` | Host port mapping |
+
+**Langfuse Cloud alternative**: Set `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, and `LANGFUSE_SECRET_KEY` to your cloud project values. Do not start the `langfuse` profile.
+
+## Initialization and Data
+
+### Database Migrations
+
+Handled automatically by the entrypoint. To run manually:
+
+```bash
+docker compose exec app python -m alembic upgrade head
+```
+
+### Qdrant Collections
+
+Handled automatically by the entrypoint (`init_qdrant` is idempotent). To run manually:
+
+```bash
+docker compose exec app python -m src.utils.init_qdrant
+```
+
+### Tenant Registration
+
+After services are running, register tenants:
+
+```bash
+docker compose exec app python src/main.py register-tenant --file data/tenants/<tenant>/tenant.yaml
+docker compose exec app python src/main.py seed-context --file data/tenants/<tenant>/context.yaml
+```
+
+### Knowledge Base Seeding
+
+Populate KB collections via the API or CLI tooling as documented in the tenant setup.
+
+## Health Checks
+
+All services define Docker health checks:
+
+| Service | Check | Interval |
+|---|---|---|
+| `postgres` | `pg_isready` | 5s |
+| `qdrant` | `GET /readyz` | 5s |
+| `app` | `GET /health` | 10s (30s start period) |
+| `frontend` | (depends on `app` healthy) | — |
+
+The `app` service uses `depends_on` with `condition: service_healthy` for `postgres` and `qdrant`, ensuring migrations only run after dependencies are ready.
+
+### Manual Verification
+
+```bash
+# Service status
+docker compose ps
+
+# Application health
+curl http://localhost:8000/health
+
+# PostgreSQL
+docker compose exec postgres pg_isready
+
+# Qdrant
+curl http://localhost:6333/readyz
+```
+
+## Production Hardening
+
+### Reverse Proxy
+
+Place nginx, Caddy, or a cloud load balancer in front of the `app` service. The proxy should:
+- Terminate TLS
+- Validate/inject `X-Customer-ID` header (tenant isolation)
+- Rate-limit incoming webhook requests
+
+### Secrets Management
+
+- Never commit `.env` to version control
+- Use Docker secrets, Vault, or cloud secret managers for `OPENAI_API_KEY`, `DB_PASS`, and Langfuse keys
+- Generate strong values for `LANGFUSE_NEXTAUTH_SECRET` and `LANGFUSE_SALT`
+
+### Resource Limits
+
+Add resource constraints in `docker-compose.yml` or your orchestrator:
+
+```yaml
+services:
+  app:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+```
+
+### Logging
+
+- Set `LOG_LEVEL=WARNING` in production
+- Use Docker's logging drivers to ship logs to your aggregation platform
+- Langfuse captures LLM traces separately from application logs
 
 ### Security
 
-- Never expose the API server directly to the internet without authentication
 - All tool execution is read-only; write actions require HITL approval via LangGraph interrupt
-- Tenant isolation is enforced at the query level — every DB and Qdrant query filters by `customer_id`
-- Rotate `OPENAI_API_KEY` and `LANGFUSE_SECRET_KEY` regularly
+- Tenant isolation is enforced at the query level -- every DB and Qdrant query filters by `customer_id`
+- Rotate API keys regularly (`OPENAI_API_KEY`, `LANGFUSE_SECRET_KEY`, `QDRANT_API_KEY`)
 
-## Scaling Notes
+## Scaling
 
-- The pipeline is CPU-bound on LLM calls (external API). Horizontal scaling of the API server works well.
-- Each pipeline execution is independent per ticket — no shared in-memory state between requests.
-- Qdrant and PostgreSQL can be scaled independently based on load patterns.
-- Background task execution (via FastAPI `BackgroundTasks`) is single-process. For high throughput, consider Celery or a task queue.
+### Horizontal API Scaling
+
+Each pipeline execution is independent per ticket -- no shared in-memory state between requests. Scale the `app` service:
+
+```bash
+docker compose up -d --scale app=3
+```
+
+Place a load balancer in front of the scaled instances.
+
+### Database Scaling
+
+- PostgreSQL: use a managed service with read replicas for audit log queries
+- Qdrant: scale independently based on collection size and query volume
+
+### Task Queue
+
+Background task execution uses FastAPI `BackgroundTasks` (single-process). For high throughput, consider Celery or a dedicated task queue.
+
+## Configurable Parameters
+
+See [Configuration Reference](configuration.md) for the full environment variable table. Production-critical variables:
+
+| Variable | Why |
+|---|---|
+| `APP_ENV=production` | Switches to gunicorn |
+| `UVICORN_WORKERS` | Match to available CPU cores |
+| `LOG_LEVEL=WARNING` | Reduce log noise |
+| `OPENAI_API_KEY` | Required for LLM inference |
+| `POSTGRES_PASSWORD` / `DB_PASS` | Must be strong, must match |
+| `QDRANT_API_KEY` | Required if using Qdrant Cloud |
+| `LANGFUSE_ENABLED` | Enable trace collection |
 
 ## See Also
 

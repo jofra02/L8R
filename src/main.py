@@ -76,9 +76,12 @@ async def main():
 
             await resume_execution(needs_path, state_path)
 
+        elif cmd == "create-admin-key":
+            await create_admin_key()
+
         else:
             logger.info("Unknown command.")
-            logger.info("Available: test, init-db, register-tenant, seed-context, seed-kb, resume")
+            logger.info("Available: test, init-db, register-tenant, seed-context, seed-kb, resume, create-admin-key")
     else:
         logger.info("Usage: python src/main.py [command]")
         # In future: uvicorn.run(app)
@@ -298,6 +301,49 @@ async def resume_execution(needs_path: str, state_path: str):
     print("\n" + "="*50)
     print(f"FINAL ANSWER (RESUMED):\n{output.get('final_answer')}")
     print("="*50)
+
+async def create_admin_key():
+    """Bootstrap the first platform_admin API key."""
+    from src.core.database import async_session_factory
+    from src.core.orm import PlatformTenant
+    from src.api.services.auth_service import AuthService
+
+    async with async_session_factory() as session:
+        # Ensure __platform__ tenant exists
+        tenant = await session.get(PlatformTenant, "__platform__")
+        if not tenant:
+            session.add(PlatformTenant(
+                customer_id="__platform__",
+                name="Platform Admin",
+                status="active",
+                plan="platform",
+            ))
+            await session.commit()
+            logger.info("Created __platform__ tenant.")
+
+        service = AuthService(session)
+
+        name = "bootstrap-admin"
+        if len(sys.argv) > 2:
+            name = sys.argv[2]
+
+        raw_key, key_orm = await service.create_key(
+            customer_id="__platform__",
+            name=name,
+            role="platform_admin",
+        )
+
+    print("\n" + "=" * 60)
+    print("Platform Admin API Key Created")
+    print("=" * 60)
+    print(f"  Key ID:   {key_orm.id}")
+    print(f"  Name:     {key_orm.name}")
+    print(f"  Role:     {key_orm.role}")
+    print(f"  Raw Key:  {raw_key}")
+    print("=" * 60)
+    print("SAVE THIS KEY — it will not be shown again.")
+    print("=" * 60 + "\n")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

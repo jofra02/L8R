@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0d1117;
+  --color-card: #161b22;
+  --color-elevated: #21262d;
+  --color-border: #30363d;
+  --color-border-subtle: #21262d;
+
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #8b949e;
+  --color-text-muted: #484f58;
+
+  --color-accent: #2f81f7;
+  --color-accent-hover: #388bfd;
+
+  --color-severity-critical: #f85149;
+  --color-severity-high: #f0883e;
+  --color-severity-medium: #d29922;
+  --color-severity-low: #3fb950;
+
+  --color-status-running: #2f81f7;
+  --color-status-completed: #3fb950;
+  --color-status-failed: #f85149;
+  --color-status-pending: #d29922;
+
+  --color-sidebar: #0f1117;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #30363d transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* shadcn/ui CSS variable overrides for dark theme */
+:root {
+  --radius: 0.5rem;
+  --background: 220 14% 7%;
+  --foreground: 210 17% 93%;
+  --card: 215 19% 11%;
+  --card-foreground: 210 17% 93%;
+  --popover: 215 19% 11%;
+  --popover-foreground: 210 17% 93%;
+  --primary: 213 94% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 14% 15%;
+  --secondary-foreground: 210 17% 93%;
+  --muted: 215 14% 15%;
+  --muted-foreground: 215 9% 55%;
+  --accent: 215 14% 15%;
+  --accent-foreground: 210 17% 93%;
+  --destructive: 356 72% 63%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 215 14% 21%;
+  --input: 215 14% 21%;
+  --ring: 213 94% 58%;
+  --chart-1: 213 94% 58%;
+  --chart-2: 140 55% 48%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 356 72% 63%;
+  --chart-5: 262 60% 60%;
+}

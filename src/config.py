@@ -53,17 +53,13 @@ class Settings(BaseSettings):
         # --- Examples ---
         # "filesystem": {
         #     "transport": "stdio",
-        #     "command": "npx", 
+        #     "command": "npx",
         #     "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
         # },
         # "remote-server": {
         #     "transport": "sse",
         #     "url": "http://localhost:8000/sse"
         # }
-         "remote-server": {
-             "transport": "sse",
-             "url": "http://100.112.130.105:8000/sse"
-         }
     }
     
     # --- LLM Profiles (Governance) ---

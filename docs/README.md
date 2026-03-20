@@ -48,6 +48,7 @@ graph TD
 | [Quickstart](setup/quickstart.md) | Clone, configure, migrate, run |
 | [Configuration](setup/configuration.md) | Full env var reference from `src/config.py` |
 | [Deployment](setup/deployment.md) | Docker, production, scaling |
+| [Frontend Setup](setup/quickstart.md#7-frontend-dashboard) | Dashboard dev/prod setup |
 
 ### Architecture
 | Doc | Description |

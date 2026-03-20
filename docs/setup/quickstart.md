@@ -10,6 +10,7 @@
 | uv | latest | Package manager |
 | Docker / Docker Compose | latest | PostgreSQL + Qdrant |
 | Node.js / npx | 18+ | MCP stdio servers (optional) |
+| Node.js / npm | 20+ | Frontend dashboard (optional) |
 
 ## 1. Clone and Install
 
@@ -22,12 +23,14 @@ uv sync
 ## 2. Start Infrastructure
 
 ```bash
-docker compose up -d   # PostgreSQL + Qdrant
+docker compose up -d postgres qdrant   # PostgreSQL + Qdrant only
 ```
 
 If not using Docker Compose, ensure:
 - PostgreSQL running on `localhost:5432`
 - Qdrant running on `localhost:6333`
+
+For full-stack Docker deployment (including the app container), see [Deployment Guide](deployment.md).
 
 ## 3. Configure Environment
 
@@ -103,6 +106,35 @@ curl -X POST http://localhost:8000/api/v1/webhook/servicenow \
 ```
 
 Returns HTTP 202 with `ticket_id` and `job_id` for polling.
+
+## 7. Frontend Dashboard
+
+The React dashboard provides a web UI for ticket management, run monitoring, and audit logs.
+
+### Dev Mode
+
+Requires the backend running on `:8000` (Vite proxies `/api` and `/health` automatically).
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
+### Production Mode (Docker)
+
+```bash
+docker compose up -d    # Starts postgres, qdrant, app, frontend
+```
+
+- Frontend at `http://localhost:3001` (configurable via `FRONTEND_PORT` in `.env`)
+- nginx proxies API requests to the `app` service internally
+
+### First Login
+
+1. Navigate to the frontend URL (`http://localhost:5173` dev, `http://localhost:3001` production)
+2. Enter an API key on the login screen (create one via `register-tenant` or the auth API)
+3. Dashboard loads with stats, charts, and recent tickets/runs
 
 ## See Also
 

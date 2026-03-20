@@ -199,6 +199,29 @@ class ClientContextORM(Base, TenantMixin):
         ),
     )
 
+class ApiKeyORM(Base):
+    """API keys for authentication. Platform keys use customer_id='__platform__'."""
+    __tablename__ = "api_keys"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("platform_tenants.customer_id"), index=True, nullable=False,
+    )
+    key_hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    key_prefix: Mapped[str] = mapped_column(String(12), nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    role: Mapped[str] = mapped_column(String, nullable=False)  # platform_admin | tenant_admin | operator | viewer
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    __table_args__ = (
+        Index("ix_api_keys_customer_active", "customer_id", "is_active"),
+    )
+
+
 class CheckpointORM(Base, TenantMixin):
     """Persistence for LangGraph state."""
     __tablename__ = "checkpoints"
