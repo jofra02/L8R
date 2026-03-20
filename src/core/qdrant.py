@@ -53,6 +53,10 @@ COLLECTION_INDEXES: Dict[str, List[tuple]] = {
         ("customer_id", models.PayloadSchemaType.KEYWORD),
         ("tool_name", models.PayloadSchemaType.KEYWORD),
         ("server_name", models.PayloadSchemaType.KEYWORD),
+        ("vendor", models.PayloadSchemaType.KEYWORD),
+        ("method", models.PayloadSchemaType.KEYWORD),
+        ("read_only", models.PayloadSchemaType.KEYWORD),
+        ("category", models.PayloadSchemaType.KEYWORD),
         ("source_type", models.PayloadSchemaType.KEYWORD),
     ],
 }
@@ -64,11 +68,12 @@ class VectorStore:
     def __init__(self):
         self.client = AsyncQdrantClient(
             url=settings.QDRANT_URL,
-            api_key=settings.QDRANT_API_KEY
+            api_key=settings.QDRANT_API_KEY,
+            timeout=settings.QDRANT_TIMEOUT,
         )
         self.embeddings = OpenAIEmbeddings(
             api_key=settings.OPENAI_API_KEY,
-            model="text-embedding-3-small"
+            model=settings.EMBEDDING_MODEL,
         )
         self._initialized_collections: set = set()
 
@@ -81,10 +86,27 @@ class VectorStore:
         
         if not await self.client.collection_exists(collection_name):
             logger.info(f"Creating collection '{collection_name}'...")
-            await self.client.create_collection(
-                collection_name=collection_name,
-                vectors_config=models.VectorParams(size=vector_size, distance=models.Distance.COSINE),
-            )
+            if self._is_hybrid(collection_name):
+                await self.client.create_collection(
+                    collection_name=collection_name,
+                    vectors_config={
+                        "dense": models.VectorParams(
+                            size=settings.EMBEDDING_DIMENSIONS,
+                            distance=models.Distance.COSINE,
+                        ),
+                    },
+                    sparse_vectors_config={
+                        "bm25": models.SparseVectorParams(
+                            modifier=models.Modifier.IDF,
+                        ),
+                    },
+                    on_disk_payload=settings.QDRANT_ON_DISK_PAYLOAD,
+                )
+            else:
+                await self.client.create_collection(
+                    collection_name=collection_name,
+                    vectors_config=models.VectorParams(size=vector_size, distance=models.Distance.COSINE),
+                )
 
         # Create payload indexes (idempotent — Qdrant ignores if exists)
         indexes = COLLECTION_INDEXES.get(collection_name, [
@@ -94,11 +116,21 @@ class VectorStore:
         ])
         for field_name, field_schema in indexes:
             try:
-                await self.client.create_payload_index(
-                    collection_name=collection_name,
-                    field_name=field_name,
-                    field_schema=field_schema,
-                )
+                if field_name == "customer_id":
+                    await self.client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name=field_name,
+                        field_schema=models.KeywordIndexParams(
+                            type=models.KeywordIndexType.KEYWORD,
+                            is_tenant=True,
+                        ),
+                    )
+                else:
+                    await self.client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name=field_name,
+                        field_schema=field_schema,
+                    )
             except Exception:
                 pass  # Index already exists or not applicable
 
@@ -112,8 +144,18 @@ class VectorStore:
     # ─── Internal Helpers ──────────────────────────────────────────
 
     async def _get_embedding(self, text: str) -> List[float]:
-        """Generate embedding for text."""
+        """Generate embedding for a single query text."""
         return await self.embeddings.aembed_query(text)
+
+    async def _batch_embed(self, texts: List[str]) -> List[List[float]]:
+        """Batch-embed texts, respecting batch size limits."""
+        batch_size = settings.EMBEDDING_BATCH_SIZE
+        all_vectors = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            vectors = await self.embeddings.aembed_documents(batch)
+            all_vectors.extend(vectors)
+        return all_vectors
 
     @staticmethod
     def _generate_id(key: str) -> str:
@@ -131,6 +173,44 @@ class VectorStore:
             json.dumps(metadata, default=str)
         except Exception as e:
             raise ValueError(f"Payload validation failed: {e}")
+
+    # ─── Hybrid / Sparse Helpers ─────────────────────────────────
+
+    def _is_hybrid(self, collection_name: str) -> bool:
+        return (
+            settings.QDRANT_HYBRID_ENABLED
+            and collection_name in settings.QDRANT_HYBRID_COLLECTIONS
+        )
+
+    def _get_sparse_model(self):
+        """Lazy-init fastembed BM25 model."""
+        if not hasattr(self, '_sparse_model'):
+            from fastembed import SparseTextEmbedding
+            self._sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
+        return self._sparse_model
+
+    def _sparse_embed_query(self, text: str) -> models.SparseVector:
+        """Generate BM25 sparse vector for a single query."""
+        model = self._get_sparse_model()
+        results = list(model.query_embed(text))
+        if results:
+            return models.SparseVector(
+                indices=results[0].indices.tolist(),
+                values=results[0].values.tolist(),
+            )
+        return models.SparseVector(indices=[], values=[])
+
+    def _sparse_embed_documents(self, texts: List[str]) -> List[models.SparseVector]:
+        """Generate BM25 sparse vectors for multiple documents."""
+        model = self._get_sparse_model()
+        results = list(model.passage_embed(texts))
+        return [
+            models.SparseVector(
+                indices=r.indices.tolist(),
+                values=r.values.tolist(),
+            )
+            for r in results
+        ]
 
     def _build_tenant_filter(self, customer_id: str, extra_must: list = None) -> models.Filter:
         """Build a Qdrant filter with mandatory tenant isolation."""
@@ -168,24 +248,33 @@ class VectorStore:
         await self.ensure_collection(collection_name)
 
         now = self._now_iso()
+        vectors = await self._batch_embed(texts)
+        hybrid = self._is_hybrid(collection_name)
+        sparse_vectors = self._sparse_embed_documents(texts) if hybrid else None
+
         points = []
         for i, text in enumerate(texts):
-            vector = await self._get_embedding(text)
-            
             payload = metadatas[i] if i < len(metadatas) else {}
-            # Inject standard fields
             payload["page_content"] = text
             payload["customer_id"] = customer_id
             payload["source_type"] = source_type
             payload["created_at"] = now
             if run_id:
                 payload["run_id"] = run_id
-            
+
             point_id = ids[i] if i < len(ids) else str(uuid.uuid4())
-            
+
+            if hybrid:
+                vector_data = {
+                    "dense": vectors[i],
+                    "bm25": sparse_vectors[i],
+                }
+            else:
+                vector_data = vectors[i]
+
             points.append(models.PointStruct(
                 id=point_id,
-                vector=vector,
+                vector=vector_data,
                 payload=payload
             ))
             
@@ -209,17 +298,47 @@ class VectorStore:
     ) -> List[models.ScoredPoint]:
         """Search with MANDATORY customer_id filter and optional extra filters."""
         await self.ensure_collection(collection_name)
-        vector = await self._get_embedding(query_text)
         tenant_filter = self._build_tenant_filter(customer_id, extra_must=extra_filter)
-        
+        threshold = score_threshold if score_threshold > 0 else None
+        search_params = models.SearchParams(
+            hnsw_ef=settings.QDRANT_HNSW_EF,
+            indexed_only=settings.QDRANT_INDEXED_ONLY,
+        )
+
         try:
-            response = await self.client.query_points(
-                collection_name=collection_name,
-                query=vector,
-                query_filter=tenant_filter,
-                limit=limit,
-                score_threshold=score_threshold if score_threshold > 0 else None,
-            )
+            if self._is_hybrid(collection_name):
+                dense_vector = await self._get_embedding(query_text)
+                sparse_vector = self._sparse_embed_query(query_text)
+                response = await self.client.query_points(
+                    collection_name=collection_name,
+                    prefetch=[
+                        models.Prefetch(
+                            query=dense_vector,
+                            using="dense",
+                            limit=limit * 3,
+                        ),
+                        models.Prefetch(
+                            query=sparse_vector,
+                            using="bm25",
+                            limit=limit * 3,
+                        ),
+                    ],
+                    query=models.FusionQuery(fusion=models.Fusion.RRF),
+                    query_filter=tenant_filter,
+                    limit=limit,
+                    score_threshold=threshold,
+                    search_params=search_params,
+                )
+            else:
+                vector = await self._get_embedding(query_text)
+                response = await self.client.query_points(
+                    collection_name=collection_name,
+                    query=vector,
+                    query_filter=tenant_filter,
+                    limit=limit,
+                    score_threshold=threshold,
+                    search_params=search_params,
+                )
             return response.points
         except Exception as e:
             if "Not found" in str(e) or "doesn't exist" in str(e):
@@ -249,11 +368,27 @@ class VectorStore:
 
     @rag_telemetry(operation_name="get_similar_evidence")
     async def get_similar_evidence(
-        self, query: str, customer_id: str, limit: int = 5, score_threshold: float = 0.7
+        self, query: str, customer_id: str, limit: int = 5,
+        score_threshold: float = None,
     ) -> List[Any]:
         """Search evidence collection with tenant isolation."""
+        threshold = score_threshold if score_threshold is not None else settings.QDRANT_SCORE_EVIDENCE
         results = await self.search(
-            "evidence", query, customer_id, limit, score_threshold
+            "evidence", query, customer_id, limit, threshold
+        )
+        return [pt.payload for pt in results]
+
+    # ─── Domain Methods: Knowledge Base ──────────────────────────
+
+    @rag_telemetry(operation_name="search_knowledge_base")
+    async def search_knowledge_base(
+        self, query: str, customer_id: str, limit: int = 3,
+        score_threshold: float = None,
+    ) -> List[Dict[str, Any]]:
+        """Search knowledge base for relevant articles with tenant isolation."""
+        threshold = score_threshold or settings.QDRANT_SCORE_KNOWLEDGE_BASE
+        results = await self.search(
+            "knowledge_base", query, customer_id, limit, threshold
         )
         return [pt.payload for pt in results]
 
@@ -361,28 +496,10 @@ class VectorStore:
         ]
         results = await self.search(
             "adaptive_fixes", error_msg, customer_id, limit,
-            score_threshold=0.75,
+            score_threshold=settings.QDRANT_SCORE_ADAPTIVE_FIXES,
             extra_filter=extra_filter,
         )
         return [pt.payload for pt in results]
-
-    # ─── Legacy Compat: Direct Upsert ──────────────────────────────
-
-    async def upsert_raw(self, collection_name: str, points: List[models.PointStruct], customer_id: str):
-        """Direct upsert for pre-built points (e.g., seed_kb). Injects customer_id."""
-        await self.ensure_collection(collection_name)
-        for point in points:
-            if point.payload is None:
-                point.payload = {}
-            point.payload["customer_id"] = customer_id
-            point.payload.setdefault("created_at", self._now_iso())
-            point.payload.setdefault("source_type", "kb_chunk")
-        
-        return await self.client.upsert(
-            collection_name=collection_name,
-            points=points,
-            wait=True 
-        )
 
     async def delete_point(self, collection_name: str, point_id: str):
         """Delete a point by ID."""
@@ -398,6 +515,8 @@ class VectorStore:
     async def index_tool(
         self, tool_name: str, description: str, args_schema_json: dict,
         server_name: str, customer_id: str,
+        vendor: str = "", method: str = "", read_only: bool = True,
+        category: str = "", param_count: int = 0,
     ):
         """
         Index a tool by its DESCRIPTION (semantic content), not its name.
@@ -428,11 +547,38 @@ class VectorStore:
                 "description": description,
                 "server_name": server_name,
                 "args_schema": args_schema_json,
+                "vendor": vendor,
+                "method": method,
+                "read_only": "true" if read_only else "false",
+                "category": category,
+                "param_count": param_count,
             }],
             ids=[self._generate_id(dedup_key)],
             customer_id=customer_id,
             source_type="tool_catalog",
         )
+
+    @rag_telemetry(operation_name="batch_index_tools")
+    async def batch_index_tools(
+        self,
+        texts: List[str],
+        metadatas: List[Dict[str, Any]],
+        ids: List[str],
+        customer_id: str,
+        chunk_size: int = 200,
+    ):
+        """Batch-index tool catalog entries via add_texts. Embeddings are batched
+        internally by EMBEDDING_BATCH_SIZE; upserts are chunked to stay under
+        Qdrant's payload size limit."""
+        for i in range(0, len(texts), chunk_size):
+            await self.add_texts(
+                collection_name="tool_catalog",
+                texts=texts[i:i + chunk_size],
+                metadatas=metadatas[i:i + chunk_size],
+                ids=ids[i:i + chunk_size],
+                customer_id=customer_id,
+                source_type="tool_catalog",
+            )
 
     async def get_indexed_tool_names(self, customer_id: str) -> set:
         """
@@ -468,17 +614,58 @@ class VectorStore:
     @rag_telemetry(operation_name="search_tool_catalog")
     async def search_tool_catalog(
         self, intent: str, customer_id: str, limit: int = 8,
-        score_threshold: float = 0.3,
+        score_threshold: float = None,
+        vendor: str = None,
+        method: str = None,
+        read_only: bool = None,
+        category: str = None,
     ) -> List[Dict[str, Any]]:
         """
         Semantic search for tools by INTENT description.
         Returns tool payloads sorted by relevance.
+        Optional keyword filters narrow results before vector scoring.
         """
+        threshold = score_threshold if score_threshold is not None else settings.QDRANT_SCORE_TOOL_CATALOG
+
+        extra_filter = []
+        if vendor:
+            extra_filter.append(models.FieldCondition(
+                key="vendor", match=models.MatchValue(value=vendor.lower())
+            ))
+        if method:
+            extra_filter.append(models.FieldCondition(
+                key="method", match=models.MatchValue(value=method.lower())
+            ))
+        if read_only is not None:
+            extra_filter.append(models.FieldCondition(
+                key="read_only", match=models.MatchValue(value="true" if read_only else "false")
+            ))
+        if category:
+            extra_filter.append(models.FieldCondition(
+                key="category", match=models.MatchValue(value=category.lower())
+            ))
+
         results = await self.search(
             "tool_catalog", intent, customer_id, limit,
-            score_threshold=score_threshold,
+            score_threshold=threshold,
+            extra_filter=extra_filter if extra_filter else None,
         )
         return [pt.payload for pt in results]
+
+    async def _check_catalog_needs_migration(self, customer_id: str) -> bool:
+        """Check if tool_catalog points have the vendor field (metadata enrichment migration)."""
+        await self.ensure_collection("tool_catalog")
+        tenant_filter = self._build_tenant_filter(customer_id)
+        results, _ = await self.client.scroll(
+            collection_name="tool_catalog",
+            scroll_filter=tenant_filter,
+            limit=1,
+            with_payload=["vendor"],
+            with_vectors=False,
+        )
+        if not results:
+            return False
+        return "vendor" not in results[0].payload or results[0].payload.get("vendor") == ""
 
 
 vector_store = VectorStore()

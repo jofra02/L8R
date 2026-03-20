@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
+
 from src.core.models import GlobalState, Component, ClientContext
 from src.core.llm import LLMFactory
-from src.utils.arg_sanitizer import derive_component_metadata
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
@@ -57,9 +57,6 @@ async def mapper_agent_node(state: GlobalState) -> Dict[str, Any]:
         # Reconcile LLM-generated IDs against the real inventory
         reconciled = _reconcile_with_inventory(result.components, context)
 
-        # Apply derivation rules to compute tool-ready metadata from raw identifiers
-        reconciled = _enrich_component_metadata(reconciled)
-
         logger.info(f"Mapper result: Found {len(reconciled)} components.")
         return {"components": reconciled, "case_status": "triaged"}
 
@@ -67,18 +64,6 @@ async def mapper_agent_node(state: GlobalState) -> Dict[str, Any]:
         logger.error(f"Mapper failed: {e}")
         return {"components": [], "missing_info": ["mapper_error"], "case_status": "triaged"}
 
-
-def _enrich_component_metadata(components: List[Component]) -> List[Component]:
-    """Apply derivation rules to compute tool-ready metadata from raw identifiers."""
-    enriched = []
-    for comp in components:
-        derived = derive_component_metadata(comp)
-        if derived:
-            meta = {**comp.metadata, **derived}
-            comp = comp.model_copy(update={"metadata": meta})
-            logger.info(f"Mapper derivation: {comp.id} -> derived keys {list(derived.keys())}")
-        enriched.append(comp)
-    return enriched
 
 
 def _reconcile_with_inventory(

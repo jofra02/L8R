@@ -13,7 +13,7 @@ from src.core.llm import LLMFactory
 from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
 from src.core.tool_selector import ToolSelector
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
-from src.utils.arg_sanitizer import sanitize_tool_args, is_executor_role, is_target_role
+from src.core.models import is_executor_role, is_target_role
 import logging
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                 path_context=path_context,
                 mode="evidence",
             )
-            selections = await selector.select_tools(ctx, max_tools=5)
+            selections = await selector.select_tools(ctx, max_tools=8)
 
             if not selections:
                 logger.warning(f"No tools selected for {comp.id}.")
@@ -100,16 +100,19 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                     logger.warning(f"Skipping tool {tool_name}: not allowed for tenant {customer_id}")
                     continue
 
-                # Type-aware argument injection (shared sanitizer)
-                tool_args = sanitize_tool_args(tool_args, comp)
-
                 logger.info(f"Evidence Collector: Executing {tool_name} with {tool_args}")
                 try:
                     executor = AdaptiveExecutor(customer_id=customer_id)
                     facts_str = json.dumps(state.get("facts", {}), default=str)
-                    context = f"Ticket: {ticket_text}\nComponent: {comp.id} ({comp.role})\nFacts: {facts_str}\nGoal: Collect evidence."
+                    meta_str = json.dumps(comp.metadata, default=str) if comp.metadata else "{}"
+                    context = (
+                        f"Ticket: {ticket_text}\n"
+                        f"Component: {comp.id} (role={comp.role}, vendor={comp.vendor or 'unknown'})\n"
+                        f"Component metadata: {meta_str}\n"
+                        f"Facts: {facts_str}\nGoal: Collect evidence."
+                    )
 
-                    output = await executor.execute(tool, tool_args, context)
+                    output = await executor.execute(tool, tool_args, context, intent=sel.evaluation.reasoning)
 
                     snapshot = await store.save_evidence(
                         tool_name=tool_name,
@@ -267,7 +270,7 @@ async def _collect_relational_evidence(
             components=components,
             mode="relational",
         )
-        selections = await selector.select_tools(ctx, max_intents=2, max_tools=3)
+        selections = await selector.select_tools(ctx, max_intents=3, max_tools=5)
 
         for sel in selections:
             t_name = sel.name
@@ -282,22 +285,18 @@ async def _collect_relational_evidence(
             if not await is_tool_allowed_for_tenant(t_name, customer_id):
                 continue
 
-            # Sanitize with source (executor) for device-type args
-            tool_args = sanitize_tool_args(tool_args, src_comp)
-            # Sanitize with destination (target) for target-type args
-            tool_args = sanitize_tool_args(tool_args, dst_comp)
-
             logger.info(f"[Relational] Executing {t_name} with {tool_args}")
             try:
                 executor = AdaptiveExecutor(customer_id=customer_id)
-                facts_str = json.dumps(state.get("facts", {}), default=str)
+                src_meta = json.dumps(src_comp.metadata, default=str) if src_comp.metadata else "{}"
+                dst_meta = json.dumps(dst_comp.metadata, default=str) if dst_comp.metadata else "{}"
                 context = (
                     f"Ticket: {ticket_text}\n"
-                    f"Source: {src_comp.id} ({src_comp.role})\n"
-                    f"Destination: {dst_comp.id} ({dst_comp.role})\n"
+                    f"Source: {src_comp.id} (role={src_comp.role}, metadata={src_meta})\n"
+                    f"Destination: {dst_comp.id} (role={dst_comp.role}, metadata={dst_meta})\n"
                     f"Goal: Relational evidence collection."
                 )
-                output = await executor.execute(tool, tool_args, context)
+                output = await executor.execute(tool, tool_args, context, intent=sel.evaluation.reasoning)
 
                 snapshot = await store.save_evidence(
                     tool_name=t_name,

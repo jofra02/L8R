@@ -46,6 +46,19 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
     baselines_str = format_baselines(client_context)
     changes_str = format_known_changes(client_context)
     
+    # Retrieve KB context for grounding hypotheses
+    kb_context = ""
+    try:
+        from src.core.qdrant import vector_store
+        kb_articles = await vector_store.search_knowledge_base(
+            query=ticket.text, customer_id=state.get("customer_id", "unknown"), limit=3
+        )
+        if kb_articles:
+            kb_lines = [f"- [{a.get('source', '?')}]: {(a.get('page_content') or a.get('text', ''))[:500]}" for a in kb_articles]
+            kb_context = "Knowledge Base References:\n" + "\n".join(kb_lines)
+    except Exception as e:
+        logger.warning(f"Hypothesis: KB retrieval failed: {e}")
+
     system_prompt_text = """You are an elite, top-tier IT Support and Incident Response Engineer (SME Level) operating across multiple disciplines (Networking, Infrastructure, Cloud, Security, Development, Database, Server OS).
 
         Based on the provided ticket, collected facts, and EXISTING HYPOTHESES, your task is to comprehend the entire scenario, map out all involved components structurally, and generate an updated, strictly-ranked list of logical hypotheses.
@@ -83,6 +96,7 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         3. Introduce NEW hypotheses with status 'proposed' when facts suggest a completely new angle or underlying cause.
         4. Rank ALL (active) hypotheses mathematically: Most likely (1) to least likely.
         5. IMPORTANT: Preserve the 'id' of existing hypotheses when updating their status or summary.
+        6. If Knowledge Base References are provided, use them to ground hypotheses in documented known issues and standard procedures.
         """
         
     if settings.TEST_MODE_FAST:
@@ -90,7 +104,7 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
         
     prompt = ChatPromptTemplate.from_messages([
         ("system", system_prompt_text),
-        ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\nTopology Graph:\n{topology}\n\nBaselines (normal values):\n{baselines}\n\nRecent Changes:\n{known_changes}\n\nCurrent Hypotheses:\n{hypotheses}\n\n{format_instructions}")
+        ("user", "Ticket: {text}\n\nFacts:\n{facts}\n\nTopology Graph:\n{topology}\n\nBaselines (normal values):\n{baselines}\n\nRecent Changes:\n{known_changes}\n\n{kb_context}\n\nCurrent Hypotheses:\n{hypotheses}\n\n{format_instructions}")
     ])
     
     chain = prompt | llm | parser
@@ -102,6 +116,7 @@ async def hypothesis_agent_node(state: GlobalState) -> Dict[str, Any]:
             "topology": topology_str,
             "baselines": baselines_str,
             "known_changes": changes_str,
+            "kb_context": kb_context,
             "hypotheses": hypotheses_str,
             "format_instructions": parser.get_format_instructions()
         })

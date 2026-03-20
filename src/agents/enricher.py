@@ -44,6 +44,19 @@ async def enricher_agent_node(state: GlobalState) -> Dict[str, Any]:
     components = state.get("components", [])
     components_str = ", ".join([f"{c.id} ({c.role})" for c in components]) if components else "none"
     
+    # Retrieve similar past evidence for cross-reference context
+    similar_evidence_context = ""
+    try:
+        from src.core.qdrant import vector_store
+        similar = await vector_store.get_similar_evidence(
+            query=state["ticket"].text, customer_id=state.get("customer_id", "unknown"), limit=3
+        )
+        if similar:
+            lines = [f"- [{s.get('tool_name')}]: {s.get('summary', '')[:200]}" for s in similar]
+            similar_evidence_context = "\n".join(lines)
+    except Exception:
+        pass
+
     for ref in new_evidence:
         # Load raw evidence content
         try:
@@ -62,6 +75,10 @@ async def enricher_agent_node(state: GlobalState) -> Dict[str, Any]:
         evidence_str = json.dumps(compressed_evidence, indent=2)
         
         # ─── Pass 1: Fact Extraction ──────────────────────────────
+        similar_ctx_block = ""
+        if similar_evidence_context:
+            similar_ctx_block = f"\nSimilar past evidence from this tenant:\n{similar_evidence_context}\n"
+
         fact_prompt = f"""
 Extract key technical facts from the following evidence snippet gathered during an IT investigation.
 
@@ -73,7 +90,7 @@ Evidence Tool: {ref.tool_name}
 Evidence Summary: {ref.summary}
 Evidence Content (Compressed):
 {evidence_str}
-
+{similar_ctx_block}
 Return ONLY a valid JSON dictionary of key-value pairs.
 """
         

@@ -20,7 +20,33 @@ class Settings(BaseSettings):
     # Vector Store (Qdrant)
     QDRANT_URL: str = "http://localhost:6333"
     QDRANT_API_KEY: Optional[str] = None
+    QDRANT_TIMEOUT: int = 60
+
+    # Embedding
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_DIMENSIONS: int = 1536
+    EMBEDDING_BATCH_SIZE: int = 64
+
+    # Qdrant Search Tuning
+    QDRANT_HNSW_EF: int = 128
+    QDRANT_INDEXED_ONLY: bool = False
+    QDRANT_ON_DISK_PAYLOAD: bool = True
+
+    # Per-collection score thresholds
+    QDRANT_SCORE_TOOL_CATALOG: float = 0.15
+    QDRANT_SCORE_ADAPTIVE_FIXES: float = 0.75
+    QDRANT_SCORE_EVIDENCE: float = 0.7
+    QDRANT_SCORE_KNOWLEDGE_BASE: float = 0.5
+    QDRANT_SCORE_RESOLVED_TICKETS: float = 0.0
+    QDRANT_SCORE_TOOL_KNOWLEDGE: float = 0.0
+
+    # Hybrid Search
+    QDRANT_HYBRID_ENABLED: bool = False
+    QDRANT_HYBRID_COLLECTIONS: List[str] = ["tool_catalog", "adaptive_fixes", "knowledge_base"]
     
+    # MCP Server → Vendor mapping (config-driven, primary vendor extraction)
+    MCP_SERVER_VENDOR_MAP: Dict[str, str] = {}
+
     # MCP
     MCP_SERVER_TIMEOUT: int = 30
     MCP_SERVERS: Dict[str, Dict[str, Any]] = {
@@ -43,16 +69,17 @@ class Settings(BaseSettings):
     # --- LLM Profiles (Governance) ---
     
     # Per-Agent Models (Cost/Speed Optimization)
-    LLM_MODEL_CLASSIFIER: str = "gpt-5-nano"
-    LLM_MODEL_CONTEXT: str = "gpt-5-nano"
-    LLM_MODEL_MAPPER: str = "gpt-5-nano"
-    LLM_MODEL_SUPERVISOR: str = "gpt-5-mini" 
-    LLM_MODEL_EVIDENCE_COLLECTOR: str = "gpt-4.1-mini"
-    LLM_MODEL_ENRICHER: str = "gpt-5-mini"
-    LLM_MODEL_HYPOTHESIS: str = "gpt-5.2"
-    LLM_MODEL_INVESTIGATOR: str = "gpt-5.2"
-    LLM_MODEL_PLANNER: str = "gpt-5.2"
-    LLM_MODEL_RESPONSE: str = "gpt-5-mini"
+    LLM_MODEL_CLASSIFIER: str = "gpt-5.4-nano"
+    LLM_MODEL_CONTEXT: str = "gpt-5.4-nano"
+    LLM_MODEL_MAPPER: str = "gpt-5.4-nano"
+    LLM_MODEL_SUPERVISOR: str = "gpt-5.4-mini" 
+    LLM_MODEL_EVIDENCE_COLLECTOR: str = "gpt-5.4-mini"
+    LLM_MODEL_ENRICHER: str = "gpt-5.4-mini"
+    LLM_MODEL_HYPOTHESIS: str = "gpt-5.4"
+    LLM_MODEL_INVESTIGATOR: str = "gpt-5.4"
+    LLM_MODEL_PLANNER: str = "gpt-5.4"
+    LLM_MODEL_RESPONSE: str = "gpt-5.4-nano"
+    LLM_MODEL_ADAPTIVE_FIX: str = "gpt-5-nano"
     
     # Global Tuning
     LLM_REASONING_EFFORT: str = "low" # Can be injected into reasoning models to speed up tasks

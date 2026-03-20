@@ -41,8 +41,8 @@ class ToolSelector:
         self,
         context: ToolSelectionContext,
         max_intents: int = 3,
-        max_candidates_per_intent: int = 5,
-        max_tools: int = 5,
+        max_candidates_per_intent: int = 10,
+        max_tools: int = 8,
     ) -> List[ToolSelection]:
         """Full pipeline: intents → retrieval → evaluation → arg binding."""
         # Phase 1
@@ -52,7 +52,7 @@ class ToolSelector:
             return []
 
         # Phase 2
-        candidates = await self.retrieve_candidates(intents, max_candidates_per_intent)
+        candidates = await self.retrieve_candidates(intents, context, max_candidates_per_intent)
         if not candidates:
             logger.warning("ToolSelector: Semantic search returned 0 candidates. Trying brute-force fallback.")
             candidates = self._get_brute_force_candidates(context)
@@ -65,6 +65,12 @@ class ToolSelector:
         approved = [e for e in evaluations if e.relevant]
         approved.sort(key=lambda e: e.priority)
         approved = approved[:max_tools]
+
+        logger.info(
+            f"ToolSelector: {len(evaluations)} evaluated, "
+            f"{len([e for e in evaluations if e.relevant])} approved, "
+            f"{len(approved)} after max_tools clip"
+        )
 
         if not approved:
             logger.info("ToolSelector: No candidates approved by evaluation.")
@@ -108,10 +114,18 @@ class ToolSelector:
     # ------------------------------------------------------------------
 
     async def retrieve_candidates(
-        self, intents: List[ToolIntent], limit_per_intent: int = 5,
+        self, intents: List[ToolIntent], context: ToolSelectionContext,
+        limit_per_intent: int = 10,
     ) -> List[ToolCandidate]:
-        """Semantic search per intent, merge + deduplicate."""
+        """Semantic search per intent, merge + deduplicate. Applies vendor filter from context."""
         from src.core.qdrant import vector_store
+
+        # Extract vendor filter from context
+        vendor_filter = None
+        if context.component and context.component.vendor:
+            vendor_filter = context.component.vendor.lower()
+        elif context.source_component and context.source_component.vendor:
+            vendor_filter = context.source_component.vendor.lower()
 
         seen: Dict[str, ToolCandidate] = {}
 
@@ -121,6 +135,8 @@ class ToolSelector:
                     intent=intent.query,
                     customer_id=self.customer_id,
                     limit=limit_per_intent,
+                    vendor=vendor_filter,
+                    read_only=True,
                 )
                 for payload in payloads:
                     t_name = payload.get("tool_name")
@@ -141,9 +157,53 @@ class ToolSelector:
                         search_score=payload.get("score", 0.0),
                         source_intent=intent.query,
                         catalog_context=payload.get("page_content", ""),
+                        vendor=payload.get("vendor", ""),
+                        method=payload.get("method", ""),
+                        read_only=payload.get("read_only", "true") == "true",
+                        category=payload.get("category", ""),
+                        param_count=payload.get("param_count", 0),
                     )
             except Exception as e:
                 logger.warning(f"ToolSelector: Semantic search failed for '{intent.query[:50]}': {e}")
+
+        # Vendor fallback: retry without vendor filter if no results
+        if not seen and vendor_filter:
+            logger.info(f"ToolSelector: No vendor-specific results for '{vendor_filter}'. Retrying without vendor filter.")
+            for intent in intents:
+                try:
+                    payloads = await vector_store.search_tool_catalog(
+                        intent=intent.query,
+                        customer_id=self.customer_id,
+                        limit=limit_per_intent,
+                        read_only=True,
+                    )
+                    for payload in payloads:
+                        t_name = payload.get("tool_name")
+                        if not t_name or t_name in seen:
+                            continue
+                        tool = CapabilityRegistry.get_tool(t_name)
+                        if not tool:
+                            continue
+                        if not CapabilityRegistry._is_safe(t_name):
+                            continue
+                        seen[t_name] = ToolCandidate(
+                            tool_name=t_name,
+                            description=tool.description or t_name,
+                            args_schema=(
+                                tool.args_schema.model_json_schema()
+                                if tool.args_schema else {}
+                            ),
+                            search_score=payload.get("score", 0.0),
+                            source_intent=intent.query,
+                            catalog_context=payload.get("page_content", ""),
+                            vendor=payload.get("vendor", ""),
+                            method=payload.get("method", ""),
+                            read_only=payload.get("read_only", "true") == "true",
+                            category=payload.get("category", ""),
+                            param_count=payload.get("param_count", 0),
+                        )
+                except Exception as e:
+                    logger.warning(f"ToolSelector: Vendor fallback search failed for '{intent.query[:50]}': {e}")
 
         candidates = list(seen.values())
         logger.info(f"ToolSelector: {len(candidates)} unique candidates from {len(intents)} intents.")
@@ -204,7 +264,8 @@ class ToolSelector:
             schema_str = json.dumps(c.args_schema, indent=2) if c.args_schema else "none"
             context_line = f"\n   Catalog detail: {c.catalog_context}" if c.catalog_context else ""
             candidate_lines.append(
-                f"{idx}. {c.tool_name}: {c.description}{context_line}\n"
+                f"{idx}. {c.tool_name} (score: {c.search_score:.2f}, vendor: {c.vendor or 'generic'}, "
+                f"method: {c.method}, category: {c.category}): {c.description}{context_line}\n"
                 f"   Schema: {schema_str}"
             )
         candidates_block = "\n".join(candidate_lines)
@@ -303,27 +364,16 @@ Irrelevant tools: set priority=0.
         except Exception as e:
             logger.warning(f"ToolSelector: Failed to fetch insights: {e}")
 
-        # Build component context for arg binding
+        # Build component context for arg binding (full metadata)
         if context.mode == "relational" and context.source_component and context.target_component:
             comp_section = (
-                f"Source component: {context.source_component.id} "
-                f"(Role: {context.source_component.role}, Vendor: {context.source_component.vendor or 'unknown'})\n"
-                f"Destination component: {context.target_component.id} "
-                f"(Role: {context.target_component.role}, Vendor: {context.target_component.vendor or 'unknown'})"
+                f"Source component:\n{self._format_component_for_binding(context.source_component)}\n\n"
+                f"Destination component:\n{self._format_component_for_binding(context.target_component)}"
             )
-            device_hint = context.source_component.id
-            target_hint = context.target_component.id
         elif context.component:
-            comp_section = (
-                f"Component: {context.component.id} "
-                f"(Role: {context.component.role}, Vendor: {context.component.vendor or 'unknown'})"
-            )
-            device_hint = context.component.id
-            target_hint = context.component.id
+            comp_section = f"Component:\n{self._format_component_for_binding(context.component)}"
         else:
             comp_section = "No specific component."
-            device_hint = ""
-            target_hint = ""
 
         # Build tool descriptions with full schema
         tool_lines = []
@@ -344,11 +394,12 @@ APPROVED TOOLS (configure arguments for each):
 {insights_text}
 
 GUIDELINES:
-1. For 'device', 'host', 'hostname' args: use the executor component ID ({device_hint}).
-2. For 'target', 'ip', 'address', 'destination' args: use the target component ID ({target_hint}).
-3. Analyze Schema: distinguish mandatory vs optional parameters.
-4. ANTI-HALLUCINATION: Do NOT invent parameters. If a mandatory param has no value from context, SKIP that tool entirely.
-5. READ-ONLY only. No modify/delete/configure actions.
+1. For 'device', 'host', 'hostname' args: use the component ID of the executor-role component.
+2. For target/address parameters: match the component ID or metadata values to the parameter's schema type and description. If the schema expects a single host and the available value is an aggregate (e.g. subnet, group, cluster), derive an appropriate singular value.
+3. Use ALL metadata fields to fill matching parameters.
+4. Analyze Schema: distinguish mandatory vs optional parameters.
+5. ANTI-HALLUCINATION: Do NOT invent parameters. If a mandatory param has no value from context, SKIP that tool entirely.
+6. READ-ONLY only. No modify/delete/configure actions.
 
 Return ONLY a JSON list:
 [
@@ -392,6 +443,25 @@ If you must skip a tool due to missing mandatory params, omit it from the list.
             return []
 
     # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _format_component_for_binding(comp: Component) -> str:
+        """Format a component with all metadata for LLM arg binding."""
+        lines = [
+            f"  ID: {comp.id}",
+            f"  Role: {comp.role}",
+            f"  Vendor: {comp.vendor or 'unknown'}",
+        ]
+        if comp.ref and comp.ref != comp.id:
+            lines.append(f"  Ref: {comp.ref}")
+        if comp.metadata:
+            for k, v in comp.metadata.items():
+                lines.append(f"  {k}: {v}")
+        return "\n".join(lines)
+
+    # ------------------------------------------------------------------
     # Brute-force fallback
     # ------------------------------------------------------------------
 
@@ -399,30 +469,38 @@ If you must skip a tool due to missing mandatory params, omit it from the list.
         self, context: ToolSelectionContext,
     ) -> List[ToolCandidate]:
         """Fallback: safe read-only tools filtered by vendor/role."""
+        from src.core.registry import _extract_tool_metadata
+
         comp = context.component or context.source_component
         if not comp:
             return []
 
         all_tools = CapabilityRegistry.list_tools()
-        role_kw = comp.role.lower()
         vendor_kw = comp.vendor.lower() if comp.vendor else ""
         candidates = []
 
         for t in all_tools:
+            schema = t.args_schema.model_json_schema() if t.args_schema else {}
+            meta = _extract_tool_metadata(t.name, t.description or "", schema, getattr(t, 'server_name', 'builtin'))
+
+            if not meta["read_only"]:
+                continue
+            if vendor_kw and meta["vendor"] and meta["vendor"] != vendor_kw:
+                continue
+
             name = t.name.lower()
-            if "delete" in name or "remove" in name or "shutdown" in name or "reboot" in name:
-                continue
-            if not any(name.startswith(p) for p in ["get", "check", "monitor", "list", "show", "describe", "fetch"]):
-                continue
-            if vendor_kw and vendor_kw not in name:
-                continue
             if any(k in name for k in ["health", "status", "info", "system", "summary", "overview"]):
                 candidates.append(ToolCandidate(
                     tool_name=t.name,
                     description=t.description or t.name,
-                    args_schema=t.args_schema.model_json_schema() if t.args_schema else {},
+                    args_schema=schema,
                     search_score=0.0,
                     source_intent="brute_force_fallback",
+                    vendor=meta["vendor"],
+                    method=meta["method"],
+                    read_only=meta["read_only"],
+                    category=meta["category"],
+                    param_count=meta["param_count"],
                 ))
 
         return candidates[:10]
@@ -459,7 +537,7 @@ Task: Generate 1-{max_intents} SHORT tool-search queries to find the right diagn
 
 RULES:
 1. Each query must be 2-6 words — like a search engine query, NOT a sentence.
-2. Include the vendor or technology name when known (e.g. "fortigate", "vcenter", "cisco").
+2. Do NOT include vendor or product names — vendor filtering is applied automatically. Focus on WHAT the tool does.
 3. Focus on the CATEGORY of tool needed (routing, policy, interface, performance, logs, database, deployment, container, api, authentication, storage, backup, etc.).
 4. Do NOT include IPs, subnets, or ticket-specific details — those are for tool arguments, not tool search.
 5. Do NOT write sentences or descriptions — write search keywords only.
@@ -495,7 +573,7 @@ that verify or disprove this hypothesis.
 
 RULES:
 1. Each query must be 2-6 words — keyword-style, NOT a sentence.
-2. Include vendor or technology name when known.
+2. Do NOT include vendor or product names — vendor filtering is applied automatically.
 3. Focus on category of diagnostic tool needed.
 4. CONFIGURATION-FIRST: Prefer config-reading tools over live traffic tools.
 5. Do NOT include IPs or ticket-specific details.
@@ -519,7 +597,7 @@ or REACHABILITY between source and destination.
 
 RULES:
 1. Each query must be 2-6 words — keyword-style, NOT a sentence.
-2. Include vendor name when known.
+2. Do NOT include vendor or product names — vendor filtering is applied automatically.
 3. Focus on relational diagnostics: route lookup, policy check, NAT mapping, path trace, connectivity.
 4. CONFIGURATION-FIRST: Prefer config-based tools (routing table, policy rules) over live traffic tools.
 5. Do NOT include IPs or ticket-specific details.
@@ -535,11 +613,9 @@ Return ONLY a JSON object:
     def _fallback_intents(self, context: ToolSelectionContext) -> List[ToolIntent]:
         """Produce basic intents when LLM generation fails."""
         if context.mode == "relational":
-            src = context.source_component
-            vendor = src.vendor if src else ""
             return [
-                ToolIntent(query=f"{vendor} route lookup".strip()),
-                ToolIntent(query=f"{vendor} policy check".strip()),
+                ToolIntent(query="route lookup"),
+                ToolIntent(query="policy check"),
             ]
         elif context.mode == "investigation" and context.hypothesis:
             return [
@@ -548,9 +624,8 @@ Return ONLY a JSON object:
             ]
         else:
             comp = context.component
-            vendor = comp.vendor or "" if comp else ""
             role = comp.role if comp else "system"
             return [
-                ToolIntent(query=f"{vendor} {role} status".strip()),
-                ToolIntent(query=f"{vendor} {role} configuration".strip()),
+                ToolIntent(query=f"{role} status"),
+                ToolIntent(query=f"{role} configuration"),
             ]

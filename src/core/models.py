@@ -3,6 +3,30 @@ from dataclasses import dataclass, field as dc_field
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+# --- Role Classification ---
+
+EXECUTOR_ROLES = frozenset([
+    "firewall", "router", "switch", "server", "host", "loadbalancer",
+    "appliance", "controller", "gateway", "hypervisor", "node", "cluster",
+    "database", "storage", "nas", "san",
+])
+
+TARGET_ROLES = frozenset([
+    "subnet", "network", "ip", "address", "url", "service", "process",
+    "endpoint", "user", "application", "container", "pod", "vm", "instance",
+])
+
+
+def is_executor_role(role: str) -> bool:
+    """Return True if *role* (case-insensitive) matches an executor pattern."""
+    return any(r in role.lower() for r in EXECUTOR_ROLES)
+
+
+def is_target_role(role: str) -> bool:
+    """Return True if *role* (case-insensitive) matches a target pattern."""
+    return any(r in role.lower() for r in TARGET_ROLES)
+
+
 # --- Enums & Literals ---
 Severity = Literal["low", "medium", "high", "critical"]
 TicketMode = Literal["incident", "change", "validation", "inquiry"]
@@ -272,6 +296,11 @@ class ToolCandidate(BaseModel):
     search_score: float = 0.0
     source_intent: str = ""
     catalog_context: str = ""  # page_content from Qdrant: description + param summaries
+    vendor: str = ""
+    method: str = ""
+    read_only: bool = True
+    category: str = ""
+    param_count: int = 0
 
 class ToolEvaluation(BaseModel):
     """LLM judgment on a single candidate tool."""

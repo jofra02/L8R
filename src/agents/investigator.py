@@ -6,7 +6,7 @@ from src.core.evidence_store import EvidenceStore
 from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
 from src.core.tool_selector import ToolSelector
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
-from src.utils.arg_sanitizer import sanitize_tool_args, is_executor_role, EXECUTOR_ARG_KEYS
+from src.core.models import is_executor_role
 from src.utils.state_formatters import (
     format_path_analysis,
     format_evidence_summaries,
@@ -90,7 +90,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         evidence_summaries=evidence_context,
         mode="investigation",
     )
-    selections = await selector.select_tools(ctx, max_intents=2, max_tools=3)
+    selections = await selector.select_tools(ctx, max_intents=3, max_tools=5)
 
     if not selections:
         logger.warning("Investigator: ToolSelector returned no tools.")
@@ -105,32 +105,6 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         if not tool:
             logger.warning(f"Investigator: Tool {tool_name} not found in registry.")
             continue
-
-        # Auto-correct LLM-generated values to real component IDs
-        for key in list(tool_args.keys()):
-            if key not in EXECUTOR_ARG_KEYS and key not in ("target", "ip", "address", "subnet", "destination", "network", "cidr"):
-                continue
-            val = tool_args[key]
-
-            match = next((c for c in components if c.id == val), None)
-            if not match:
-                match = next((c for c in components if c.ref.lower() == str(val).lower() or c.role.lower() == str(val).lower()), None)
-
-            if match and match.id != val:
-                if key in EXECUTOR_ARG_KEYS:
-                    if is_executor_role(match.role):
-                        logger.info(f"Investigator: Auto-correcting argument {key}='{val}' -> '{match.id}'")
-                        tool_args[key] = match.id
-                    else:
-                        logger.warning(f"Investigator: Prevented using non-executor '{match.id}' ({match.role}) as '{key}'.")
-                else:
-                    logger.info(f"Investigator: Auto-correcting argument {key}='{val}' -> '{match.id}'")
-                    tool_args[key] = match.id
-
-        # Type-aware placeholder sanitization
-        best_comp = next((c for c in components if c.id in str(tool_args.values())), components[0] if components else None)
-        if best_comp:
-            tool_args = sanitize_tool_args(tool_args, best_comp)
 
         # SAFETY CHECK
         if not is_safe_tool(tool_name, tool_args):
@@ -147,9 +121,16 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
 
             executor = AdaptiveExecutor(customer_id=customer_id)
             facts_str = json.dumps(state.get("facts", {}), default=str)
-            context = f"Ticket: {state['ticket'].text}\nFacts: {facts_str}\nHypothesis: {target_hypothesis.summary}\nGoal: Verify hypothesis."
+            best_comp = next((c for c in components if c.id in str(tool_args.values())), components[0] if components else None)
+            comp_meta = json.dumps(best_comp.metadata, default=str) if best_comp and best_comp.metadata else "{}"
+            context = (
+                f"Ticket: {state['ticket'].text}\n"
+                f"Component: {best_comp.id if best_comp else 'unknown'} (metadata={comp_meta})\n"
+                f"Facts: {facts_str}\n"
+                f"Hypothesis: {target_hypothesis.summary}\nGoal: Verify hypothesis."
+            )
 
-            output = await executor.execute(tool, tool_args, context)
+            output = await executor.execute(tool, tool_args, context, intent=sel.evaluation.reasoning)
 
             snapshot = await store.save_evidence(
                 tool_name=tool_name,

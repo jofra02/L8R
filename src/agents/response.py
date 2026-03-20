@@ -135,6 +135,19 @@ The agent has paused execution because it lacks critical information to proceed.
     - If evidence is insufficient for a definitive conclusion, state "Inconclusive" and specify the exact diagnostic action needed to resolve.
     """
 
+    # Retrieve KB references for citation in report
+    kb_references = ""
+    try:
+        from src.core.qdrant import vector_store
+        kb_articles = await vector_store.search_knowledge_base(
+            query=ticket.text, customer_id=state.get("customer_id", "unknown"), limit=3
+        )
+        if kb_articles:
+            kb_lines = [f"- [{a.get('source', '?')}]: {(a.get('page_content') or a.get('text', ''))[:500]}" for a in kb_articles]
+            kb_references = "\n\nReference Documentation:\n" + "\n".join(kb_lines)
+    except Exception as e:
+        logger.warning(f"Response: KB retrieval failed: {e}")
+
     system_prompt = f"""
     SYSTEM PROMPT - "IT Support / Incident & Change Engineer"
 
@@ -152,6 +165,7 @@ The agent has paused execution because it lacks critical information to proceed.
     - In the "Evidence and Tools Executed" section, group executions and mention failures only if they add context.
     {mode_guardrails}
     {general_guardrails}
+    - If Reference Documentation is available, cite relevant KB articles in the report.
     Output Format (Markdown):
     # Technical Report - Ticket {ticket.id}
 
@@ -183,6 +197,8 @@ The agent has paused execution because it lacks critical information to proceed.
     Current Plan:
     {plan_text}
     
+    {kb_references}
+
     Task: Generate the Final Report.
     """
 

@@ -71,12 +71,12 @@ class TicketIndexer:
             )
             
             # --- 4. Save to Vector Store ---
-            await self.vector_store.save_resolved_ticket(resolved_case)
+            await self.vector_store.save_resolved_ticket(resolved_case, customer_id=customer_id)
             
             # --- 5. Consistency Check ---
             # Verify immediately (RAG Telemetry)
             logger.debug(f"Indexer: Verifying consistency for {ticket.id}...")
-            found_cases = await self.vector_store.find_similar_cases(ticket.text, limit=5)
+            found_cases = await self.vector_store.find_similar_cases(ticket.text, customer_id=customer_id, limit=5)
             
             # Note: find_similar_cases returns List[Dict] (payloads)
             is_indexed = False
