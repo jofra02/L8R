@@ -1,6 +1,6 @@
 # Quickstart
 
-> Minimal steps to get the support AI agent running locally.
+> Step-by-step guide to get the support AI agent running locally, from zero to submitting your first ticket.
 
 ## Prerequisites
 
@@ -30,17 +30,18 @@ If not using Docker Compose, ensure:
 - PostgreSQL running on `localhost:5432`
 - Qdrant running on `localhost:6333`
 
-For full-stack Docker deployment (including the app container), see [Deployment Guide](deployment.md).
+For full-stack Docker deployment (including app + frontend containers), see [Deployment Guide](deployment.md).
 
 ## 3. Configure Environment
 
-Create `.env` in the project root:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set these required values:
 
 ```ini
-APP_ENV=development
-LOG_LEVEL=INFO
-
-# PostgreSQL
+# PostgreSQL (must match your docker compose or local instance)
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USER=postgres
@@ -50,7 +51,7 @@ DB_NAME=support_agent_db
 # Qdrant
 QDRANT_URL=http://127.0.0.1:6333
 
-# LLM
+# LLM — required for pipeline execution
 OPENAI_API_KEY=sk-...
 ```
 
@@ -59,7 +60,7 @@ See [configuration.md](configuration.md) for the full env var reference.
 ## 4. Initialize Database
 
 ```bash
-# Run Alembic migrations
+# Run Alembic migrations (creates all tables including api_keys)
 uv run alembic upgrade head
 
 # Initialize Qdrant collections + indexes
@@ -67,6 +68,8 @@ uv run python -m src.utils.init_qdrant
 ```
 
 ## 5. Register a Tenant
+
+A tenant represents a customer/organization. All tickets, runs, and audit data are scoped to a tenant.
 
 ```bash
 # Register tenant from YAML definition
@@ -76,9 +79,79 @@ uv run python src/main.py register-tenant --file data/tenants/fake_client/tenant
 uv run python src/main.py seed-context --file data/tenants/fake_client/context.yaml
 ```
 
-## 6. Run
+This creates a `fake_client` tenant in the database with allowed tools and context data.
 
-### CLI Test (Mock Ticket)
+## 6. Create an API Key
+
+API keys are required for both the Platform API and the frontend dashboard. Each key is scoped to a tenant and has a role that determines access level.
+
+**Roles** (ascending privilege): `viewer` < `operator` < `tenant_admin` < `platform_admin`
+
+| Role | Can do |
+|---|---|
+| `viewer` | View reports, audit logs |
+| `operator` | Submit tickets, view runs/evidence/hypotheses, retry runs |
+| `tenant_admin` | Everything above + manage API keys for the tenant |
+| `platform_admin` | Everything above + act on behalf of any tenant |
+
+### Option A: Tenant Key (most common)
+
+Creates a key scoped to a specific tenant. Use this for the frontend dashboard and API integration.
+
+```bash
+# Default: creates a tenant_admin key named "default"
+uv run python src/main.py create-tenant-key fake_client
+
+# With explicit role and name
+uv run python src/main.py create-tenant-key fake_client operator "CI Pipeline"
+```
+
+Output:
+
+```
+============================================================
+Tenant API Key Created
+============================================================
+  Tenant:   fake_client
+  Key ID:   550e8400-e29b-41d4-a716-446655440000
+  Name:     default
+  Role:     tenant_admin
+  Raw Key:  sk_live_a1b2c3d4e5f6...
+============================================================
+SAVE THIS KEY — it will not be shown again.
+============================================================
+```
+
+Copy the `Raw Key` value -- you will need it to log in to the frontend and to authenticate API requests.
+
+### Option B: Platform Admin Key
+
+Creates a super-admin key that can impersonate any tenant via the `?customer_id=` query parameter. Only needed for multi-tenant management.
+
+```bash
+uv run python src/main.py create-admin-key
+```
+
+## 7. Run the Backend
+
+### Option A: Platform API (recommended)
+
+The Platform API serves both the frontend dashboard and programmatic API clients.
+
+```bash
+uv run uvicorn src.api.app:app --reload --port 8000
+```
+
+Verify it is running:
+
+```bash
+curl http://localhost:8000/health
+# {"status": "ok", "app": "SupportAI-Agent"}
+```
+
+### Option B: CLI Test (no server needed)
+
+For quick testing without starting the API server:
 
 ```bash
 uv run python run_mock.py --file ticket_prueba.txt --fast
@@ -86,17 +159,90 @@ uv run python run_mock.py --file ticket_prueba.txt --fast
 
 The `--fast` flag enables `TEST_MODE_FAST` (reduced iterations, fewer retries).
 
-### Web Stack
+## 8. Frontend Dashboard
+
+The React dashboard provides a web UI for ticket submission, run monitoring, evidence/hypothesis inspection, and audit logs.
+
+### Dev Mode
+
+Requires the backend running on `:8000` (step 7A). Vite proxies `/api` and `/health` automatically.
 
 ```bash
-# Terminal 1: FastAPI server
-uv run uvicorn src.ingestion.api:app --reload
-
-# Terminal 2: Streamlit UI
-uv run streamlit run streamlit_app.py
+cd frontend
+npm install
+npm run dev
 ```
 
-### Submit a Ticket via API
+Open `http://localhost:5173` in your browser.
+
+### Production Mode (Docker)
+
+```bash
+docker compose up -d    # Starts postgres, qdrant, app, frontend
+```
+
+Frontend available at `http://localhost:3001` (configurable via `FRONTEND_PORT` in `.env`).
+
+### Logging In
+
+1. Open the frontend URL (`http://localhost:5173` dev / `http://localhost:3001` production)
+2. You will see a login screen asking for an API key
+3. Paste the `Raw Key` from step 6 (the `sk_live_...` value)
+4. The dashboard loads showing stats, recent tickets, and recent runs
+
+If you get "invalid key" or "unauthorized":
+- Confirm the backend is running and healthy (`curl http://localhost:8000/health`)
+- Confirm you ran `alembic upgrade head` (the `api_keys` table must exist)
+- Confirm you created a key with `create-tenant-key` (step 6) -- `register-tenant` alone does **not** create API keys
+
+## 9. Submit Your First Ticket
+
+### Via the Dashboard
+
+1. Log in to the frontend (step 8)
+2. Click **New Ticket** in the header
+3. Fill in the description, severity, and mode
+4. Click **Submit** -- the ticket appears in the list and the pipeline runs in the background
+5. Click on the ticket to see its timeline, evidence, hypotheses, plan, and final report
+
+### Via curl
+
+```bash
+curl -X POST http://localhost:8000/api/v1/tickets \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk_live_YOUR_KEY_HERE" \
+  -d '{
+    "text": "Users on subnet 192.168.1.0/24 cannot reach the internet through the firewall",
+    "severity": "high",
+    "mode": "incident"
+  }'
+```
+
+Response (HTTP 202):
+
+```json
+{
+  "status": "accepted",
+  "ticket_id": "TKT-abc123",
+  "job_id": "550e8400-..."
+}
+```
+
+Poll the run status:
+
+```bash
+curl http://localhost:8000/api/v1/runs?ticket_id=TKT-abc123 \
+  -H "Authorization: Bearer sk_live_YOUR_KEY_HERE"
+```
+
+Retrieve the final report:
+
+```bash
+curl http://localhost:8000/api/v1/tickets/TKT-abc123/report \
+  -H "Authorization: Bearer sk_live_YOUR_KEY_HERE"
+```
+
+### Via Legacy Webhook (no API key needed)
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/webhook/servicenow \
@@ -105,39 +251,8 @@ curl -X POST http://localhost:8000/api/v1/webhook/servicenow \
   -d '{"text": "VPN tunnel between site A and site B is down", "severity": "high"}'
 ```
 
-Returns HTTP 202 with `ticket_id` and `job_id` for polling.
-
-## 7. Frontend Dashboard
-
-The React dashboard provides a web UI for ticket management, run monitoring, and audit logs.
-
-### Dev Mode
-
-Requires the backend running on `:8000` (Vite proxies `/api` and `/health` automatically).
-
-```bash
-cd frontend
-npm install
-npm run dev        # http://localhost:5173
-```
-
-### Production Mode (Docker)
-
-```bash
-docker compose up -d    # Starts postgres, qdrant, app, frontend
-```
-
-- Frontend at `http://localhost:3001` (configurable via `FRONTEND_PORT` in `.env`)
-- nginx proxies API requests to the `app` service internally
-
-### First Login
-
-1. Navigate to the frontend URL (`http://localhost:5173` dev, `http://localhost:3001` production)
-2. Enter an API key on the login screen (create one via `register-tenant` or the auth API)
-3. Dashboard loads with stats, charts, and recent tickets/runs
-
 ## See Also
 
 - [Configuration Reference](configuration.md) - Full env var table
 - [Deployment Guide](deployment.md) - Docker, production, scaling
-- [API Reference](../integrations/api_reference.md) - REST endpoints
+- [API Reference](../integrations/api_reference.md) - All 22 Platform API endpoints

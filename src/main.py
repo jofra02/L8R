@@ -79,9 +79,12 @@ async def main():
         elif cmd == "create-admin-key":
             await create_admin_key()
 
+        elif cmd == "create-tenant-key":
+            await create_tenant_key()
+
         else:
             logger.info("Unknown command.")
-            logger.info("Available: test, init-db, register-tenant, seed-context, seed-kb, resume, create-admin-key")
+            logger.info("Available: test, init-db, register-tenant, seed-context, seed-kb, resume, create-admin-key, create-tenant-key")
     else:
         logger.info("Usage: python src/main.py [command]")
         # In future: uvicorn.run(app)
@@ -336,6 +339,60 @@ async def create_admin_key():
     print("\n" + "=" * 60)
     print("Platform Admin API Key Created")
     print("=" * 60)
+    print(f"  Key ID:   {key_orm.id}")
+    print(f"  Name:     {key_orm.name}")
+    print(f"  Role:     {key_orm.role}")
+    print(f"  Raw Key:  {raw_key}")
+    print("=" * 60)
+    print("SAVE THIS KEY — it will not be shown again.")
+    print("=" * 60 + "\n")
+
+
+async def create_tenant_key():
+    """Create an API key for an existing tenant.
+
+    Usage:
+        create-tenant-key <customer_id> [role] [name]
+    Examples:
+        create-tenant-key fake_client
+        create-tenant-key fake_client operator "CI Key"
+    """
+    if len(sys.argv) < 3:
+        print("Usage: create-tenant-key <customer_id> [role] [name]")
+        print("  role:  viewer | operator | tenant_admin  (default: tenant_admin)")
+        print("  name:  key display name                  (default: 'default')")
+        return
+
+    customer_id = sys.argv[2]
+    role = sys.argv[3] if len(sys.argv) > 3 else "tenant_admin"
+    name = sys.argv[4] if len(sys.argv) > 4 else "default"
+
+    valid_roles = ["viewer", "operator", "tenant_admin"]
+    if role not in valid_roles:
+        print(f"Invalid role '{role}'. Must be one of: {', '.join(valid_roles)}")
+        return
+
+    from src.core.database import async_session_factory
+    from src.core.orm import PlatformTenant
+    from src.api.services.auth_service import AuthService
+
+    async with async_session_factory() as session:
+        tenant = await session.get(PlatformTenant, customer_id)
+        if not tenant:
+            print(f"Tenant '{customer_id}' not found. Register it first with register-tenant.")
+            return
+
+        service = AuthService(session)
+        raw_key, key_orm = await service.create_key(
+            customer_id=customer_id,
+            name=name,
+            role=role,
+        )
+
+    print("\n" + "=" * 60)
+    print(f"Tenant API Key Created")
+    print("=" * 60)
+    print(f"  Tenant:   {customer_id}")
     print(f"  Key ID:   {key_orm.id}")
     print(f"  Name:     {key_orm.name}")
     print(f"  Role:     {key_orm.role}")
