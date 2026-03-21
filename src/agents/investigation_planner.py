@@ -71,6 +71,14 @@ async def investigation_planner_node(state: GlobalState) -> Dict[str, Any]:
                 [f"- [{q.id}] {q.question} → {q.answer}" for q in answered]
             )
 
+    # Identify blocked questions (no tools available)
+    blocked_str = "None."
+    blocked = [q for q in existing_questions if q.status == "blocked"]
+    if blocked:
+        blocked_str = "\n".join(
+            [f"- [{q.id}] {q.question} → BLOCKED: {q.answer}" for q in blocked]
+        )
+
     prompt = f"""You are an Investigation Planner for IT support cases. Your task is to produce
 a structured list of questions that must be answered to verify or reject the active hypotheses.
 
@@ -91,6 +99,9 @@ Evidence Gathered:
 Previously Answered Questions:
 {answered_str}
 
+Questions That Could Not Be Investigated (no tools available):
+{blocked_str}
+
 INSTRUCTIONS:
 1. For each active (proposed/verifying) hypothesis, identify 1-3 specific questions that would confirm or reject it.
 2. Questions should be answerable by read-only tool execution (configuration checks, status queries, log inspections).
@@ -99,7 +110,8 @@ INSTRUCTIONS:
 5. Set `done_when` to a concrete, verifiable condition (e.g., "When we have the routing table entry for subnet X").
 6. Set `source_hypothesis_id` to link each question to the hypothesis it investigates.
 7. Do NOT repeat questions that have already been answered.
-8. Generate between 2-6 questions total.
+8. Do NOT regenerate questions that were previously blocked — rephrase or approach from a different angle.
+9. Generate between 2-6 questions total.
 
 {parser.get_format_instructions()}
 """
@@ -117,7 +129,7 @@ INSTRUCTIONS:
         new_questions = parsed.questions
 
         # Merge: keep answered/irrelevant questions, replace open ones with new plan
-        preserved = [q for q in existing_questions if q.status in ("answered", "irrelevant")]
+        preserved = [q for q in existing_questions if q.status in ("answered", "irrelevant", "blocked")]
         merged = preserved + new_questions
 
         logger.info(

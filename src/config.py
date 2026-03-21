@@ -56,10 +56,10 @@ class Settings(BaseSettings):
         #     "command": "npx",
         #     "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
         # },
-        # "remote-server": {
-        #     "transport": "sse",
-        #     "url": "http://localhost:8000/sse"
-        # }
+         "remote-server": {
+             "transport": "sse",
+             "url": "http://localhost:8001/sse"
+         }
     }
     
     # --- LLM Profiles (Governance) ---

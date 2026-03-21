@@ -99,15 +99,32 @@ The agent has paused execution because it lacks critical information to proceed.
         }
 
     llm = LLMFactory.get_model_for_agent("response") # Use smart model for final synthesis
-    
+
     # Context Construction
     evidence_summary = "\n".join([f"- [{e.tool_name}]: {e.summary}" for e in evidence])
     hypothesis_summary = "\n".join([f"- {h.summary} (Rank: {h.rank}, Status: {h.status}, Conf: {h.confidence})" for h in hypotheses])
-    
+
     plan_text = "None"
     if plan:
          steps = "\n".join([f"{i+1}. {s.description} (Expected: {s.expected_outcome})" for i, s in enumerate(plan.diagnosis_steps)])
          plan_text = f"Diagnosis Steps:\n{steps}"
+
+    # Scoring context for pipeline awareness
+    scoring = state.get("scoring")
+    scoring_text = "No scoring data available."
+    if scoring:
+        s_conf = scoring.confidence if hasattr(scoring, 'confidence') else scoring.get('confidence', 0)
+        s_dec = scoring.decision if hasattr(scoring, 'decision') else scoring.get('decision', '?')
+        s_rat = scoring.rationale if hasattr(scoring, 'rationale') else scoring.get('rationale', '')
+        s_miss = scoring.missing_facts if hasattr(scoring, 'missing_facts') else scoring.get('missing_facts', [])
+        scoring_text = f"Confidence: {s_conf:.0%}, Decision: {s_dec}, Rationale: {s_rat}"
+        if s_miss:
+            scoring_text += f"\nMissing facts: {', '.join(str(f) for f in s_miss)}"
+
+    # Path analysis + open questions
+    from src.utils.state_formatters import format_path_analysis, format_open_questions
+    path_text = format_path_analysis(state.get("path_analysis")) or "No path analysis available."
+    questions_text = format_open_questions(state.get("open_questions", []))
 
     # --- Mode-specific guardrail blocks ---
     mode_guardrails = ""
@@ -130,9 +147,10 @@ The agent has paused execution because it lacks critical information to proceed.
     general_guardrails = """
     LANGUAGE GUARDRAILS (all modes):
     - Prefer definitive statements backed by evidence refs over probabilistic hedging.
-    - Use "Inconclusive" instead of "probably", "likely", "might", "could be", "appears to", "seems like".
+    - Use "Inconclusive" ONLY when the pipeline has no hypothesis or the scoring confidence is below 50%. When a hypothesis exists with scoring confidence >= 50%, present it as the working diagnosis and note remaining gaps in "Next Steps". Do NOT override the pipeline's diagnosis by independently re-analyzing raw evidence.
     - Every conclusion MUST cite at least one evidence snapshot (tool name + summary).
-    - If evidence is insufficient for a definitive conclusion, state "Inconclusive" and specify the exact diagnostic action needed to resolve.
+    - If evidence gaps exist, acknowledge them in "Next Steps" as areas requiring further investigation — do NOT use them to contradict the primary diagnosis.
+    - CRITICAL: The Scoring Gate Result, Hypothesis, and Plan represent the pipeline's collective analysis across multiple specialized agents. Your role is to PRESENT these conclusions professionally, not to second-guess them.
     """
 
     # Retrieve KB references for citation in report
@@ -151,12 +169,12 @@ The agent has paused execution because it lacks critical information to proceed.
     system_prompt = f"""
     SYSTEM PROMPT - "IT Support / Incident & Change Engineer"
 
-    Mission: Resolve problems, validate configurations, and assess IT system states objectively and verifiably. Actionable, HIGH-LEVEL conclusion first (TL;DR).
+    Mission: Synthesize the pipeline's diagnostic conclusions into a clear, professional report. You are the FINAL PRESENTER — the hypothesis, scoring, and planning agents have already analyzed the evidence. Your job is to communicate their findings, not to re-evaluate them. Actionable, HIGH-LEVEL conclusion first (TL;DR).
 
     Contract:
-    1) Conclusion (For validations/queries: analysis of current state indicating whether it meets requirements. For incidents: Root Cause Diagnosis or Hypothesis).
-    2) Evidence (Supporting data for the conclusion, listing what was checked).
-    3) Plan / Remediation / Blockers (Only if applicable or there is a problem to fix).
+    1) Conclusion: Present the pipeline's diagnosis (from hypothesis + plan). Frame certainty proportional to the Scoring Gate confidence level. For validations/queries: analysis of current state indicating whether it meets requirements. For incidents: Root Cause Diagnosis or Hypothesis.
+    2) Evidence: List the key evidence that supports the conclusion.
+    3) Gaps / Next Steps: If scoring confidence < 80% or path analysis lists missing evidence, clearly state what remains unverified and what diagnostic actions are needed. This goes in "Next Steps", NOT as a contradiction of the conclusion. Plan / Remediation / Blockers only if applicable.
 
     Rules:
     - Evidence-only: Do not invent anything or assume something is broken if the ticket only asks for validation.
@@ -196,7 +214,16 @@ The agent has paused execution because it lacks critical information to proceed.
     
     Current Plan:
     {plan_text}
-    
+
+    Scoring Gate Result:
+    {scoring_text}
+
+    Path Analysis:
+    {path_text}
+
+    Open Investigation Questions:
+    {questions_text}
+
     {kb_references}
 
     Task: Generate the Final Report.

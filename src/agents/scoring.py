@@ -57,8 +57,10 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
         required = len(best.required_facts)
         evidence_coverage = min(covered / max(required, 1), 1.0)
     else:
-        # No required_facts declared → use evidence count heuristic
-        evidence_coverage = min(len(evidence_refs) / 3.0, 1.0)  # 3+ evidence items → full coverage
+        # No required_facts declared → scale with scenario complexity
+        components = state.get("components", [])
+        min_evidence = max(len(components) * 2, 5)
+        evidence_coverage = min(len(evidence_refs) / min_evidence, 1.0)
     
     # 3. Compute confidence
     # Weighted average of:
@@ -81,7 +83,33 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
         fact_density * 0.15 +
         question_completion * 0.20
     )
-    
+
+    # 3b. Quality penalty from path analysis gaps
+    path_analysis = state.get("path_analysis")
+    quality_penalty = 0.0
+    if path_analysis:
+        missing = (path_analysis.missing_evidence
+                   if hasattr(path_analysis, 'missing_evidence')
+                   else path_analysis.get('missing_evidence', []))
+        breakpoints = (path_analysis.most_likely_breakpoints
+                       if hasattr(path_analysis, 'most_likely_breakpoints')
+                       else path_analysis.get('most_likely_breakpoints', []))
+        candidate_paths = (path_analysis.candidate_paths
+                           if hasattr(path_analysis, 'candidate_paths')
+                           else path_analysis.get('candidate_paths', []))
+        incomplete_paths = [
+            p for p in candidate_paths
+            if (p.status if hasattr(p, 'status') else p.get('status', '')) in ('incomplete', 'blocked')
+        ]
+        quality_penalty = min(
+            len(missing) * 0.05 +
+            len(breakpoints) * 0.03 +
+            len(incomplete_paths) * 0.05,
+            0.25  # cap at 25%
+        )
+
+    confidence = max(confidence - quality_penalty, 0.0)
+
     # 4. Compute risk score (1-10)
     severity_weight = SEVERITY_WEIGHTS.get(ticket.severity, 2.0)
     # High severity + low confidence = high risk
@@ -138,6 +166,9 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
             # Find uncovered required facts
             covered_set = set(best.supporting_facts)
             missing_facts = [f for f in best.required_facts if f not in covered_set]
+
+    if quality_penalty > 0:
+        rationale += f" (quality penalty: -{quality_penalty:.0%} from path analysis gaps)"
 
     scoring = ScoringResult(
         risk_score=risk_score,

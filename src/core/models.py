@@ -314,6 +314,10 @@ class ToolSelection(BaseModel):
     name: str
     args: Dict[str, Any]
     evaluation: ToolEvaluation
+    missing_params: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Mandatory params not bound from context. key=param, value=description from schema"
+    )
 
 
 @dataclass
@@ -374,6 +378,9 @@ class GlobalState(TypedDict):
 
     final_answer: str
     handoff: HandoffPackage
+
+    # Dedup: "tool_name::args_hash" strings executed in this run
+    _executed_tool_signatures: List[str]
 
     # Meta information for flow control
     meta: Dict[str, Any]  # iterations, tool_calls, trace_id, cost

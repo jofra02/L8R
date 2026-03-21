@@ -122,11 +122,14 @@ class AuditService:
         
         if isinstance(data, list):
             return [self._sanitize(item) for item in data]
-            
-        # Handle non-serializable objects (like datetime) strictly if needed, 
-        # but SQLAlchemy/JSON usually handles basics. 
-        # If we see weird types, we might need str() conversion.
+
+        if isinstance(data, (set, frozenset)):
+            return [self._sanitize(item) for item in data]
+
+        if isinstance(data, tuple):
+            return [self._sanitize(item) for item in data]
+
         if isinstance(data, datetime):
             return data.isoformat()
-            
+
         return data

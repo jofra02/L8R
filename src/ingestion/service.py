@@ -93,6 +93,11 @@ class IngestionService:
             "final_answer": "",
             "handoff": None,
             "pending_requirements": [],
+            "_executed_tool_signatures": [],
+            "structured_facts": [],
+            "open_questions": [],
+            "fulfillment_goals": [],
+            "case_status": "new",
             "meta": {
                 "iterations": 0,
                 "run_id": run_id,

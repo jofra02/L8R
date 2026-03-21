@@ -645,6 +645,7 @@ class VectorStore:
                 key="category", match=models.MatchValue(value=category.lower())
             ))
 
+        logger.debug(f"search_tool_catalog: query='{intent}', vendor={vendor}, read_only={read_only}, category={category}")
         results = await self.search(
             "tool_catalog", intent, customer_id, limit,
             score_threshold=threshold,

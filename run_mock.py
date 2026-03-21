@@ -69,6 +69,11 @@ def main():
         "final_answer": "",
         "handoff": None,
         "pending_requirements": [],
+        "_executed_tool_signatures": [],
+        "structured_facts": [],
+        "open_questions": [],
+        "fulfillment_goals": [],
+        "case_status": "new",
         "meta": {"iterations": 0}
     }
     

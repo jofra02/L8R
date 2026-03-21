@@ -50,6 +50,7 @@ class ToolSelector:
         if not intents:
             logger.warning("ToolSelector: No intents generated.")
             return []
+        logger.info(f"ToolSelector: Intents generated: {[i.query for i in intents]}")
 
         # Phase 2
         candidates = await self.retrieve_candidates(intents, context, max_candidates_per_intent)
@@ -288,10 +289,9 @@ CANDIDATE TOOLS TO EVALUATE:
 
 For EACH tool, answer:
 1. Does the tool's PURPOSE match what we're investigating?
-2. Can we provide the REQUIRED parameters from available context (components, facts)?
+2. Is the tool's SCOPE appropriate (correct vendor, device type, domain)?
 3. Will the tool's OUTPUT contribute useful diagnostic data?
 4. CONFIGURATION-FIRST: Prefer config-reading tools over live traffic tools.
-5. If a tool was already executed (check previous evidence), mark as not relevant.
 
 Return ONLY a JSON list (one entry per tool, same order):
 [
@@ -398,15 +398,14 @@ GUIDELINES:
 2. For target/address parameters: match the component ID or metadata values to the parameter's schema type and description. If the schema expects a single host and the available value is an aggregate (e.g. subnet, group, cluster), derive an appropriate singular value.
 3. Use ALL metadata fields to fill matching parameters.
 4. Analyze Schema: distinguish mandatory vs optional parameters.
-5. ANTI-HALLUCINATION: Do NOT invent parameters. If a mandatory param has no value from context, SKIP that tool entirely.
+5. ANTI-HALLUCINATION: Do NOT invent parameter values. Bind all parameters you CAN determine from context. Omit parameters you cannot determine — do NOT guess.
 6. READ-ONLY only. No modify/delete/configure actions.
 
-Return ONLY a JSON list:
+Return ONLY a JSON list (one entry per approved tool):
 [
     {{"name": "tool_name_1", "args": {{...}}}},
     {{"name": "tool_name_2", "args": {{...}}}}
 ]
-If you must skip a tool due to missing mandatory params, omit it from the list.
 """
 
         try:
@@ -429,11 +428,42 @@ If you must skip a tool due to missing mandatory params, omit it from the list.
                 ev = eval_map.get(name)
                 if not ev:
                     continue
+
+                # Deterministic: check schema required fields vs bound args
+                cand = candidate_map.get(name)
+                missing = {}
+                if cand and cand.args_schema:
+                    required_fields = cand.args_schema.get("required", [])
+                    properties = cand.args_schema.get("properties", {})
+                    for field in required_fields:
+                        if field not in args or args[field] is None:
+                            prop = properties.get(field, {})
+                            missing[field] = prop.get("description", f"required parameter '{field}'")
+
                 selections.append(ToolSelection(
-                    name=name,
-                    args=args,
-                    evaluation=ev,
+                    name=name, args=args, evaluation=ev,
+                    missing_params=missing,
                 ))
+
+            # Recover approved tools that the LLM omitted from Phase 4
+            bound_names = {s.name for s in selections}
+            for ev in approved:
+                if ev.tool_name not in bound_names:
+                    cand = candidate_map.get(ev.tool_name)
+                    if not cand:
+                        continue
+                    schema = cand.args_schema or {}
+                    required_fields = schema.get("required", [])
+                    properties = schema.get("properties", {})
+                    missing = {
+                        f: properties.get(f, {}).get("description", f"required parameter '{f}'")
+                        for f in required_fields
+                    }
+                    selections.append(ToolSelection(
+                        name=ev.tool_name, args={}, evaluation=ev,
+                        missing_params=missing,
+                    ))
+                    logger.info(f"ToolSelector: Recovered omitted tool {ev.tool_name} (missing: {list(missing.keys())})")
 
             logger.info(f"ToolSelector: {len(selections)} tools with bound arguments.")
             return selections
@@ -441,6 +471,353 @@ If you must skip a tool due to missing mandatory params, omit it from the list.
         except Exception as e:
             logger.error(f"ToolSelector: Arg binding failed: {e}")
             return []
+
+    # ------------------------------------------------------------------
+    # Phase 5: Prerequisite Resolution
+    # ------------------------------------------------------------------
+
+    async def resolve_prerequisites(
+        self,
+        selections: List[ToolSelection],
+        components: list,
+        state: dict,
+        store,
+        executed_signatures: set,
+        max_prereqs: int = 2,
+    ) -> tuple:
+        """
+        For tools with missing_params, attempt to find and execute a prereq tool
+        that can provide the missing data, then rebind.
+
+        Returns (updated_selections, prereq_evidence_snapshots).
+        Single-depth only: prereq tools must be fully bindable.
+        """
+        from src.core.adaptive_executor import AdaptiveExecutor
+        from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
+
+        needs_prereq = [s for s in selections if s.missing_params]
+        if not needs_prereq:
+            return selections, []
+
+        prereq_evidence = []
+        resolved_count = 0
+
+        for sel in needs_prereq:
+            if resolved_count >= max_prereqs:
+                break
+
+            missing_desc = "; ".join(
+                f"{k}: {v}" for k, v in sel.missing_params.items()
+            )
+            logger.info(
+                f"ToolSelector: Resolving prereqs for {sel.name} — missing: {list(sel.missing_params.keys())}"
+            )
+
+            # Build a focused context to find a prereq tool
+            target_comp = None
+            for c in components:
+                if c.id in str(sel.args.values()):
+                    target_comp = c
+                    break
+            if not target_comp and components:
+                target_comp = components[0]
+
+            prereq_ctx = ToolSelectionContext(
+                ticket_text=f"Need to discover: {missing_desc}",
+                component=target_comp,
+                components=components,
+                facts=state.get("facts", {}),
+                mode="evidence",
+            )
+
+            try:
+                prereq_selections = await self.select_tools(
+                    prereq_ctx, max_intents=1, max_tools=2
+                )
+            except Exception as e:
+                logger.warning(f"ToolSelector: Prereq search failed for {sel.name}: {e}")
+                continue
+
+            # Filter to fully-bindable prereq tools only (single-depth)
+            prereq_selections = [p for p in prereq_selections if not p.missing_params]
+            if not prereq_selections:
+                logger.info(f"ToolSelector: No fully-bindable prereq found for {sel.name}")
+                continue
+
+            # Execute the best prereq tool
+            prereq_sel = prereq_selections[0]
+            prereq_tool_name = prereq_sel.name
+            prereq_tool_args = prereq_sel.args
+
+            # Dedup check
+            import hashlib as _hl
+            sig_norm = json.dumps(prereq_tool_args or {}, sort_keys=True, default=str)
+            prereq_sig = f"{prereq_tool_name}::{_hl.sha256(sig_norm.encode()).hexdigest()[:16]}"
+            if prereq_sig in executed_signatures:
+                logger.info(f"ToolSelector: Prereq {prereq_tool_name} already executed, skipping")
+                continue
+
+            from src.core.registry import CapabilityRegistry as _CR
+            prereq_tool = _CR.get_tool(prereq_tool_name)
+            if not prereq_tool:
+                continue
+            if not is_safe_tool(prereq_tool_name, prereq_tool_args):
+                continue
+            if not await is_tool_allowed_for_tenant(prereq_tool_name, self.customer_id):
+                continue
+
+            try:
+                executor = AdaptiveExecutor(customer_id=self.customer_id)
+                comp_meta = json.dumps(target_comp.metadata, default=str) if target_comp and target_comp.metadata else "{}"
+                exec_context = (
+                    f"Ticket: {state.get('ticket', {})}\n"
+                    f"Component: {target_comp.id if target_comp else 'unknown'} (metadata={comp_meta})\n"
+                    f"Goal: Fetch prerequisite data for {sel.name}: {missing_desc}"
+                )
+                output = await executor.execute(
+                    prereq_tool, prereq_tool_args, exec_context,
+                    intent=f"Prerequisite for {sel.name}"
+                )
+
+                snapshot = await store.save_evidence(
+                    tool_name=prereq_tool_name,
+                    tool_args=prereq_tool_args,
+                    content=output,
+                    summary=f"Prerequisite for {sel.name}: {missing_desc}"
+                )
+                prereq_evidence.append(snapshot)
+                executed_signatures.add(prereq_sig)
+                logger.info(f"ToolSelector: Prereq {prereq_tool_name} executed successfully")
+
+                # Rebind: extract missing param values from prereq output
+                updated_sel = await self._rebind_with_prereq_data(
+                    sel, output, target_comp
+                )
+                # Replace in selections list
+                for i, s in enumerate(selections):
+                    if s.name == sel.name and s is sel:
+                        selections[i] = updated_sel
+                        break
+
+                resolved_count += 1
+
+            except Exception as e:
+                logger.warning(f"ToolSelector: Prereq execution failed for {prereq_tool_name}: {e}")
+
+        return selections, prereq_evidence
+
+    async def resolve_runtime_dependency(
+        self,
+        failed_tool_name: str,
+        failed_tool_args: dict,
+        error: "MissingDependencyError",
+        component,
+        components: list,
+        state: dict,
+        store,
+        executed_signatures: set,
+    ) -> tuple:
+        """
+        Post-execution recovery: when a tool fails at runtime due to missing data
+        only discoverable at execution time.
+
+        Returns (resolved_args | None, evidence_snapshots).
+        Single-depth: resolution tool itself cannot trigger recursive recovery.
+        """
+        from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
+        from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
+        from src.core.registry import CapabilityRegistry
+
+        deps = "; ".join(error.dependencies)
+        source_hint = error.suggested_source or ""
+        evidence_snapshots = []
+
+        # 1. Find resolution tools via full ToolSelector pipeline
+        prereq_ctx = ToolSelectionContext(
+            ticket_text=f"Need to discover: {deps}. Hint: {source_hint}",
+            component=component,
+            components=components,
+            facts=state.get("facts", {}),
+            mode="evidence",
+        )
+
+        try:
+            prereq_selections = await self.select_tools(
+                prereq_ctx, max_intents=1, max_tools=2
+            )
+        except Exception as e:
+            logger.warning(f"ToolSelector: Runtime dep search failed for {failed_tool_name}: {e}")
+            return None, []
+
+        # 2. Filter to fully-bindable only (single-depth — no recursive prereqs)
+        prereq_selections = [p for p in prereq_selections if not p.missing_params]
+        if not prereq_selections:
+            logger.info(f"ToolSelector: No fully-bindable resolution tool found for {failed_tool_name}")
+            return None, []
+
+        prereq_sel = prereq_selections[0]
+        prereq_tool_name = prereq_sel.name
+        prereq_tool_args = prereq_sel.args
+
+        # 3. Dedup check
+        import hashlib as _hl
+        sig_norm = json.dumps(prereq_tool_args or {}, sort_keys=True, default=str)
+        prereq_sig = f"{prereq_tool_name}::{_hl.sha256(sig_norm.encode()).hexdigest()[:16]}"
+        if prereq_sig in executed_signatures:
+            logger.info(f"ToolSelector: Resolution tool {prereq_tool_name} already executed, skipping")
+            return None, []
+
+        # 4. Safety + governance checks
+        prereq_tool = CapabilityRegistry.get_tool(prereq_tool_name)
+        if not prereq_tool:
+            return None, []
+        if not is_safe_tool(prereq_tool_name, prereq_tool_args):
+            logger.warning(f"ToolSelector: Resolution tool {prereq_tool_name} failed safety check")
+            return None, []
+        if not await is_tool_allowed_for_tenant(prereq_tool_name, self.customer_id):
+            logger.warning(f"ToolSelector: Resolution tool {prereq_tool_name} not allowed for tenant")
+            return None, []
+
+        # 5. Execute resolution tool (catch MissingDependencyError to prevent recursion)
+        try:
+            executor = AdaptiveExecutor(customer_id=self.customer_id)
+            comp_meta = json.dumps(component.metadata, default=str) if component and component.metadata else "{}"
+            exec_context = (
+                f"Ticket: {state.get('ticket', {})}\n"
+                f"Component: {component.id if component else 'unknown'} (metadata={comp_meta})\n"
+                f"Goal: Fetch runtime dependency for {failed_tool_name}: {deps}"
+            )
+            output = await executor.execute(
+                prereq_tool, prereq_tool_args, exec_context,
+                intent=f"Runtime resolution for {failed_tool_name}"
+            )
+
+            snapshot = await store.save_evidence(
+                tool_name=prereq_tool_name,
+                tool_args=prereq_tool_args,
+                content=output,
+                summary=f"Runtime resolution for {failed_tool_name}: {deps}"
+            )
+            evidence_snapshots.append(snapshot)
+            executed_signatures.add(prereq_sig)
+            logger.info(f"ToolSelector: Resolution tool {prereq_tool_name} executed successfully")
+
+        except MissingDependencyError:
+            logger.warning(f"ToolSelector: Resolution tool {prereq_tool_name} also has missing deps — aborting (no recursion)")
+            return None, evidence_snapshots
+        except Exception as e:
+            logger.warning(f"ToolSelector: Resolution tool {prereq_tool_name} execution failed: {e}")
+            return None, evidence_snapshots
+
+        # 6. Build a temporary ToolSelection for the failed tool to rebind missing params
+        failed_tool = CapabilityRegistry.get_tool(failed_tool_name)
+        if not failed_tool:
+            return None, evidence_snapshots
+
+        schema = failed_tool.args_schema.model_json_schema() if failed_tool.args_schema else {}
+        required_fields = schema.get("required", [])
+        properties = schema.get("properties", {})
+        missing_params = {}
+        for field in required_fields:
+            if field not in failed_tool_args or failed_tool_args[field] is None:
+                prop = properties.get(field, {})
+                missing_params[field] = prop.get("description", f"required parameter '{field}'")
+        # Also include the deps from the error as missing
+        for dep in error.dependencies:
+            dep_key = dep.strip().split(":")[0].strip().lower().replace(" ", "_")
+            if dep_key not in missing_params:
+                missing_params[dep_key] = dep
+
+        temp_selection = ToolSelection(
+            name=failed_tool_name,
+            args=dict(failed_tool_args),
+            evaluation=ToolEvaluation(
+                tool_name=failed_tool_name, relevant=True,
+                reasoning="Runtime dependency resolution", priority=1,
+            ),
+            missing_params=missing_params,
+        )
+
+        # 7. Extract values from resolution output
+        updated_sel = await self._rebind_with_prereq_data(
+            temp_selection, output, component
+        )
+
+        if updated_sel.args != failed_tool_args:
+            logger.info(f"ToolSelector: Resolved runtime params for {failed_tool_name}: {set(updated_sel.args.keys()) - set(failed_tool_args.keys()) or 'updated values'}")
+            return updated_sel.args, evidence_snapshots
+
+        logger.info(f"ToolSelector: Could not extract runtime params for {failed_tool_name}")
+        return None, evidence_snapshots
+
+    async def _rebind_with_prereq_data(
+        self, sel: ToolSelection, prereq_output: str, comp
+    ) -> ToolSelection:
+        """
+        Use LLM to extract missing parameter values from prerequisite tool output.
+        Anti-hallucination: LLM told to only use data present in the output.
+        """
+        if not sel.missing_params:
+            return sel
+
+        missing_desc = json.dumps(sel.missing_params, indent=2)
+        existing_args = json.dumps(sel.args, indent=2)
+        comp_info = f"Component: {comp.id} (role={comp.role})" if comp else "No component"
+
+        prompt = f"""You have prerequisite tool output that may contain values for missing parameters.
+
+TARGET TOOL: {sel.name}
+EXISTING ARGS: {existing_args}
+MISSING PARAMETERS (need values):
+{missing_desc}
+
+{comp_info}
+
+PREREQUISITE OUTPUT:
+{prereq_output[:3000]}
+
+RULES:
+1. ONLY extract values that are EXPLICITLY present in the prerequisite output above.
+2. Do NOT invent, guess, or assume any values.
+3. Match parameter descriptions to data in the output.
+4. Return a JSON object with ONLY the parameters you can fill from the output.
+
+Return ONLY a JSON object:
+{{"extracted": {{"param_name": "value_from_output", ...}}}}
+
+If no values can be extracted, return: {{"extracted": {{}}}}
+"""
+
+        try:
+            response = await self.llm.ainvoke([
+                SystemMessage(content="You extract parameter values from tool output. Never invent data."),
+                HumanMessage(content=prompt),
+            ])
+            raw = json.loads(
+                response.content.strip().replace("```json", "").replace("```", "")
+            )
+            extracted = raw.get("extracted", {})
+
+            if extracted:
+                new_args = dict(sel.args)
+                new_missing = dict(sel.missing_params)
+                for k, v in extracted.items():
+                    if k in new_missing and v is not None:
+                        new_args[k] = v
+                        del new_missing[k]
+                        logger.info(f"ToolSelector: Resolved param '{k}' for {sel.name}")
+
+                return ToolSelection(
+                    name=sel.name,
+                    args=new_args,
+                    evaluation=sel.evaluation,
+                    missing_params=new_missing,
+                )
+            return sel
+
+        except Exception as e:
+            logger.warning(f"ToolSelector: Rebind failed for {sel.name}: {e}")
+            return sel
 
     # ------------------------------------------------------------------
     # Helpers

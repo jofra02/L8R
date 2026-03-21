@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
-from langchain_core.messages import SystemMessage, HumanMessage
 import json
+import hashlib
 import re
 
 from src.core.models import (
@@ -9,14 +9,20 @@ from src.core.models import (
 )
 from src.core.registry import CapabilityRegistry
 from src.core.evidence_store import EvidenceStore
-from src.core.llm import LLMFactory
 from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
 from src.core.tool_selector import ToolSelector
 from src.core.adaptive_executor import AdaptiveExecutor, MissingDependencyError
 from src.core.models import is_executor_role, is_target_role
+from src.utils.state_formatters import format_evidence_summaries
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _args_signature(tool_args: dict) -> str:
+    """Deterministic hash of tool arguments for dedup."""
+    normalized = json.dumps(tool_args or {}, sort_keys=True, default=str)
+    return hashlib.sha256(normalized.encode()).hexdigest()[:16]
 
 
 async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
@@ -28,13 +34,18 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     evidence_refs: List[EvidenceSnapshot] = state.get("evidence_refs", [])
     customer_id = state.get("customer_id", "unknown")
 
-    logger.info(f"Evidence Collector: Processing {len(components)} components.")
+    # Build dedup set from prior invocations + existing evidence_refs
+    _sig_list: List[str] = state.get("_executed_tool_signatures", [])
+    executed_signatures: set = set(_sig_list)
+    for ev in evidence_refs:
+        executed_signatures.add(f"{ev.tool_name}::{_args_signature(ev.tool_args)}")
+
+    logger.info(f"Evidence Collector: Processing {len(components)} components ({len(executed_signatures)} tools already executed).")
 
     store = EvidenceStore(
         customer_id=customer_id,
         run_id=state.get("meta", {}).get("run_id")
     )
-    llm = LLMFactory.get_model_for_agent("evidence_collector")
 
     new_evidence = []
     missing_info_list = []
@@ -58,6 +69,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     # --- RELATIONAL EVIDENCE PRE-LOOP ---
     relational_evidence = await _collect_relational_evidence(
         state, store, components, ticket_text, customer_id,
+        executed_signatures=executed_signatures,
     )
     new_evidence.extend(relational_evidence)
 
@@ -66,15 +78,33 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
         try:
             # 1. Select tools via centralized ToolSelector pipeline
             selector = ToolSelector(customer_id=customer_id)
+            evidence_context = format_evidence_summaries(
+                evidence_refs + new_evidence, max_items=15
+            )
             ctx = ToolSelectionContext(
                 ticket_text=ticket_text,
                 component=comp,
                 components=components,
                 facts=state.get("facts", {}),
                 path_context=path_context,
+                evidence_summaries=evidence_context,
                 mode="evidence",
             )
             selections = await selector.select_tools(ctx, max_tools=8)
+
+            # Resolve prerequisite tools for selections with missing params
+            selections, prereq_evidence = await selector.resolve_prerequisites(
+                selections, components, state, store, executed_signatures
+            )
+            if prereq_evidence:
+                new_evidence.extend(prereq_evidence)
+
+            # Drop tools still missing params after resolution
+            fully_bound = [s for s in selections if not s.missing_params]
+            for s in selections:
+                if s.missing_params:
+                    logger.warning(f"EvidenceCollector: Dropping {s.name} — still missing: {list(s.missing_params.keys())}")
+            selections = fully_bound
 
             if not selections:
                 logger.warning(f"No tools selected for {comp.id}.")
@@ -84,6 +114,12 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
             for sel in selections:
                 tool_name = sel.name
                 tool_args = sel.args
+
+                # DEDUP CHECK
+                sig = f"{tool_name}::{_args_signature(tool_args)}"
+                if sig in executed_signatures:
+                    logger.info(f"Evidence Collector: SKIP duplicate {tool_name} (same args already executed)")
+                    continue
 
                 tool = CapabilityRegistry.get_tool(tool_name)
                 if not tool:
@@ -121,53 +157,46 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                     )
                     snapshot.tool_call_id = "auto"
                     new_evidence.append(snapshot)
+                    executed_signatures.add(sig)
                     logger.info(f"Collected evidence with {tool_name}")
 
                 except MissingDependencyError as missing_e:
                     deps_str = "; ".join(missing_e.dependencies)
                     logger.warning(f"AdaptiveExec Signal: Missing Info for {tool_name} -> {deps_str}")
 
-                    logger.info(f"Attempting in-flight resolution for {deps_str}")
+                    # Save ONE failure snapshot
+                    fail_snapshot = await store.save_evidence(
+                        tool_name=tool_name, tool_args=tool_args,
+                        content=f"RUNTIME DEPENDENCY ERROR: {deps_str}\nSource hint: {missing_e.suggested_source}",
+                        summary=f"Failed {tool_name}: missing runtime dependency"
+                    )
+                    new_evidence.append(fail_snapshot)
 
-                    resolution_context = f"""
-                    Problem: Tool '{tool_name}' failed on component '{comp.id}'.
-                    Missing: {deps_str}
-                    Source Hint: {missing_e.suggested_source}
+                    # Attempt runtime resolution via ToolSelector pipeline
+                    resolved_args, res_evidence = await selector.resolve_runtime_dependency(
+                        tool_name, tool_args, missing_e, comp, components,
+                        state, store, executed_signatures,
+                    )
+                    new_evidence.extend(res_evidence)
 
-                    Task: Select a DIFFERENT tool to FETCH this missing information from the component itself (or inventory).
-                    Ex: If IP is missing, run 'get_system_interface' or similar.
-                    """
+                    if resolved_args:
+                        # Retry original tool with resolved args (max 1 attempt)
+                        try:
+                            retry_output = await executor.execute(tool, resolved_args, context, intent=sel.evaluation.reasoning)
+                            retry_snapshot = await store.save_evidence(
+                                tool_name=tool_name, tool_args=resolved_args,
+                                content=retry_output,
+                                summary=f"Retry after runtime resolution"
+                            )
+                            retry_snapshot.tool_call_id = "auto"
+                            new_evidence.append(retry_snapshot)
+                            executed_signatures.add(f"{tool_name}::{_args_signature(resolved_args)}")
+                            logger.info(f"Runtime recovery successful: {tool_name}")
+                            continue
+                        except Exception as retry_e:
+                            logger.warning(f"Runtime recovery retry failed for {tool_name}: {retry_e}")
 
-                    try:
-                        resolution_tools = await _select_resolution_tool(llm, comp, resolution_context)
-
-                        if resolution_tools:
-                            res_tool_def = resolution_tools[0]
-                            res_tool_name = res_tool_def["name"]
-                            res_tool_args = res_tool_def["args"]
-
-                            if "device" in res_tool_args and is_executor_role(comp.role):
-                                res_tool_args["device"] = comp.id
-
-                            logger.info(f"Recovery: Executing resolution tool {res_tool_name}")
-
-                            res_tool = CapabilityRegistry.get_tool(res_tool_name)
-                            if res_tool:
-                                res_output = await executor.execute(res_tool, res_tool_args, context)
-
-                                res_snapshot = await store.save_evidence(
-                                    tool_name=res_tool_name,
-                                    tool_args=res_tool_args,
-                                    content=res_output,
-                                    summary=f"Resolution for {deps_str}"
-                                )
-                                new_evidence.append(res_snapshot)
-                                logger.info(f"Recovery successful: Collected info via {res_tool_name}")
-                                continue
-
-                    except Exception as res_e:
-                        logger.error(f"Recovery failed: {res_e}")
-
+                    # Fallback: PendingRequirement (HITL)
                     req = PendingRequirement(
                         key=f"missing_{tool_name}_{comp.id}",
                         description=deps_str,
@@ -197,6 +226,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
         "missing_info": missing_info_list,
         "pending_requirements": pending_requirements,
         "case_status": "investigating",
+        "_executed_tool_signatures": list(executed_signatures),
     }
 
 
@@ -226,6 +256,7 @@ async def _collect_relational_evidence(
     components: List[Component],
     ticket_text: str,
     customer_id: str,
+    executed_signatures: set | None = None,
 ) -> List[EvidenceSnapshot]:
     """
     Relational pre-loop: pair source and target components, use ToolSelector
@@ -276,6 +307,13 @@ async def _collect_relational_evidence(
             t_name = sel.name
             tool_args = sel.args
 
+            # DEDUP CHECK
+            if executed_signatures is not None:
+                sig = f"{t_name}::{_args_signature(tool_args)}"
+                if sig in executed_signatures:
+                    logger.info(f"[Relational] SKIP duplicate {t_name} (same args already executed)")
+                    continue
+
             tool = CapabilityRegistry.get_tool(t_name)
             if not tool:
                 continue
@@ -306,6 +344,8 @@ async def _collect_relational_evidence(
                 )
                 snapshot.tool_call_id = "relational"
                 new_evidence.append(snapshot)
+                if executed_signatures is not None:
+                    executed_signatures.add(f"{t_name}::{_args_signature(tool_args)}")
                 logger.info(f"[Relational] Collected evidence with {t_name}")
             except Exception as e:
                 logger.warning(f"[Relational] Execution failed for {t_name}: {e}")
@@ -318,24 +358,3 @@ async def _collect_relational_evidence(
     return new_evidence
 
 
-async def _select_resolution_tool(llm, component, context_str) -> List[Dict[str, Any]]:
-    """Helper to select a tool to resolve missing info."""
-    vendor = component.vendor or 'generic' if component else 'generic'
-    prompt = f"""
-    Context: {context_str}
-
-    Available Tools (Heuristic): We need 'get', 'show', 'status', 'list' tools for {vendor}.
-
-    Task: Select ONE read-only tool to retrieve the missing information.
-    Return JSON: [ {{ "name": "tool", "args": {{ ... }} }} ]
-    """
-    try:
-        found = CapabilityRegistry.search_tools("status info get", limit=10)
-        tools_json = json.dumps([{'name': t.name, 'description': t.description} for t in found])
-
-        full_prompt = prompt + f"\nChoose from:\n{tools_json}"
-
-        response = await llm.ainvoke([SystemMessage(content="You are a Recovery Specialist."), HumanMessage(content=full_prompt)])
-        return json.loads(response.content.strip().replace("```json", "").replace("```", ""))
-    except Exception:
-        return []
