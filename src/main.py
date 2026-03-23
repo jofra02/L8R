@@ -213,7 +213,6 @@ async def create_admin_key():
         raw_key, key_orm = await service.create_key(
             customer_id="__platform__",
             name=name,
-            role="platform_admin",
         )
 
     print("\n" + "=" * 60)
@@ -221,7 +220,6 @@ async def create_admin_key():
     print("=" * 60)
     print(f"  Key ID:   {key_orm.id}")
     print(f"  Name:     {key_orm.name}")
-    print(f"  Role:     {key_orm.role}")
     print(f"  Raw Key:  {raw_key}")
     print("=" * 60)
     print("SAVE THIS KEY — it will not be shown again.")
@@ -229,28 +227,21 @@ async def create_admin_key():
 
 
 async def create_tenant_key():
-    """Create an API key for an existing tenant.
+    """Create an API key for an existing tenant (ticket ingestion only).
 
     Usage:
-        create-tenant-key <customer_id> [role] [name]
+        create-tenant-key <customer_id> [name]
     Examples:
         create-tenant-key fake_client
-        create-tenant-key fake_client operator "CI Key"
+        create-tenant-key fake_client "CI Key"
     """
     if len(sys.argv) < 3:
-        print("Usage: create-tenant-key <customer_id> [role] [name]")
-        print("  role:  viewer | operator | tenant_admin  (default: tenant_admin)")
-        print("  name:  key display name                  (default: 'default')")
+        print("Usage: create-tenant-key <customer_id> [name]")
+        print("  name:  key display name  (default: 'default')")
         return
 
     customer_id = sys.argv[2]
-    role = sys.argv[3] if len(sys.argv) > 3 else "tenant_admin"
-    name = sys.argv[4] if len(sys.argv) > 4 else "default"
-
-    valid_roles = ["viewer", "operator", "tenant_admin"]
-    if role not in valid_roles:
-        print(f"Invalid role '{role}'. Must be one of: {', '.join(valid_roles)}")
-        return
+    name = sys.argv[3] if len(sys.argv) > 3 else "default"
 
     from src.core.database import async_session_factory
     from src.core.orm import PlatformTenant
@@ -266,7 +257,6 @@ async def create_tenant_key():
         raw_key, key_orm = await service.create_key(
             customer_id=customer_id,
             name=name,
-            role=role,
         )
 
     print("\n" + "=" * 60)
@@ -275,7 +265,6 @@ async def create_tenant_key():
     print(f"  Tenant:   {customer_id}")
     print(f"  Key ID:   {key_orm.id}")
     print(f"  Name:     {key_orm.name}")
-    print(f"  Role:     {key_orm.role}")
     print(f"  Raw Key:  {raw_key}")
     print("=" * 60)
     print("SAVE THIS KEY — it will not be shown again.")

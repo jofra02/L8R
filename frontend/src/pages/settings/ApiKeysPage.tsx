@@ -2,12 +2,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, RotateCw, Trash2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
-import { listApiKeys, createApiKey, revokeApiKey, rotateApiKey, listProfiles } from "@/api/endpoints";
-import { StatusBadge } from "@/components/common/StatusBadge";
+import { listApiKeys, createApiKey, revokeApiKey, rotateApiKey } from "@/api/endpoints";
 import { TimeAgo } from "@/components/common/TimeAgo";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { EmptyState } from "@/components/common/EmptyState";
-import { ROLE_HIERARCHY } from "@/lib/constants";
 import type { ApiKeyCreatedResponse } from "@/api/types";
 
 export function ApiKeysPage() {
@@ -58,6 +56,10 @@ export function ApiKeysPage() {
         </button>
       </div>
 
+      <p className="text-xs text-text-muted">
+        API keys are used for ticket ingestion via webhook or API call. Each key is scoped to this tenant.
+      </p>
+
       {/* New key banner */}
       {newKey && (
         <div className="bg-status-completed/10 border border-status-completed/30 rounded-lg p-4">
@@ -90,7 +92,6 @@ export function ApiKeysPage() {
               <tr className="border-b border-border">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Prefix</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Role</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Active</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Last Used</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Created</th>
@@ -102,7 +103,6 @@ export function ApiKeysPage() {
                 <tr key={k.id} className="border-b border-border-subtle">
                   <td className="px-4 py-3 text-text-primary">{k.name}</td>
                   <td className="px-4 py-3 font-mono text-xs text-text-secondary">{k.key_prefix}...</td>
-                  <td className="px-4 py-3"><StatusBadge value={k.role} type="role" /></td>
                   <td className="px-4 py-3">
                     <span className={`inline-block w-2 h-2 rounded-full ${k.is_active ? "bg-status-completed" : "bg-status-failed"}`} />
                   </td>
@@ -155,13 +155,6 @@ function CreateKeyModal({
 }) {
   const qc = useQueryClient();
   const [name, setName] = useState("");
-  const [role, setRole] = useState("operator");
-  const [profileId, setProfileId] = useState("");
-
-  const { data: profiles } = useQuery({
-    queryKey: ["profiles"],
-    queryFn: listProfiles,
-  });
 
   const createMut = useMutation({
     mutationFn: createApiKey,
@@ -183,11 +176,7 @@ function CreateKeyModal({
           onSubmit={(e) => {
             e.preventDefault();
             if (!name.trim()) return;
-            createMut.mutate({
-              name: name.trim(),
-              role,
-              profile_id: profileId || undefined,
-            });
+            createMut.mutate({ name: name.trim() });
           }}
           className="p-5 space-y-4"
         >
@@ -198,40 +187,14 @@ function CreateKeyModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-elevated border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+              placeholder="e.g. Production Webhook"
               required
               autoFocus
             />
           </div>
-          <div>
-            <label className="block text-xs text-text-secondary mb-1">Profile</label>
-            <select
-              value={profileId}
-              onChange={(e) => setProfileId(e.target.value)}
-              className="w-full bg-elevated border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="">— Use legacy role —</option>
-              {profiles?.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <p className="text-xs text-text-muted mt-1">
-              {profileId ? "Permissions resolved from selected profile" : "Fallback: permissions mapped from role below"}
-            </p>
-          </div>
-          {!profileId && (
-            <div>
-              <label className="block text-xs text-text-secondary mb-1">Legacy Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-elevated border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-              >
-                {ROLE_HIERARCHY.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          <p className="text-xs text-text-muted">
+            This key will only have permission to submit tickets via API.
+          </p>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary">
               Cancel

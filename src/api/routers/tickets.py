@@ -1,5 +1,6 @@
+import asyncio
 import math
-from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
@@ -75,12 +76,12 @@ async def _get_latest_run(
 @router.post("", status_code=202)
 async def submit_ticket(
     body: TicketSubmit,
-    background_tasks: BackgroundTasks,
     auth: AuthContext = Depends(require_permission("tickets:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Submit a new ticket for pipeline processing. Returns 202 + ticket_id + job_id."""
     from src.ingestion.service import IngestionService
+    from src.core import task_registry
 
     payload = {
         "text": body.text,
@@ -93,12 +94,10 @@ async def submit_ticket(
     service = IngestionService(db)
     ticket, job_id = await service.ingest_webhook(body.source, payload, auth.customer_id)
 
-    background_tasks.add_task(
-        service.run_pipeline_background,
-        ticket=ticket,
-        run_id=job_id,
-        customer_id=auth.customer_id,
+    task = asyncio.create_task(
+        service.run_pipeline_background(ticket=ticket, run_id=job_id, customer_id=auth.customer_id)
     )
+    task_registry.register(job_id, task)
 
     return {
         "status": "accepted",
@@ -474,12 +473,12 @@ async def get_ticket_report(
 @router.post("/{ticket_id}/retry", status_code=202)
 async def retry_ticket(
     ticket_id: str,
-    background_tasks: BackgroundTasks,
     auth: AuthContext = Depends(require_permission("tickets:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Re-run the pipeline for an existing ticket."""
     from src.core.models import Ticket as TicketModel
+    from src.core import task_registry
     ticket_orm = await _get_ticket_or_404(ticket_id, auth.customer_id, db)
 
     from src.ingestion.service import IngestionService
@@ -500,12 +499,10 @@ async def retry_ticket(
         raw_payload=ticket_orm.raw_payload or {},
     )
 
-    background_tasks.add_task(
-        service.run_pipeline_background,
-        ticket=ticket,
-        run_id=job_id,
-        customer_id=auth.customer_id,
+    task = asyncio.create_task(
+        service.run_pipeline_background(ticket=ticket, run_id=job_id, customer_id=auth.customer_id)
     )
+    task_registry.register(job_id, task)
 
     return {
         "status": "accepted",

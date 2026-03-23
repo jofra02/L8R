@@ -216,12 +216,6 @@ class ApiKeyORM(Base):
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    # RBAC extensions (nullable for backward compat with existing keys)
-    profile_id: Mapped[Optional[str]] = mapped_column(ForeignKey("profiles.id"), nullable=True)
-    created_by_user_id: Mapped[Optional[str]] = mapped_column(ForeignKey("users.id"), nullable=True)
-
-    profile: Mapped[Optional["ProfileORM"]] = relationship()
-    created_by_user: Mapped[Optional["UserORM"]] = relationship()
 
     __table_args__ = (
         Index("ix_api_keys_customer_active", "customer_id", "is_active"),

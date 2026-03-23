@@ -611,6 +611,10 @@ class VectorStore:
         
         return indexed
 
+    # Tool catalog is global (shared across all tenants).
+    # All tools are indexed under this sentinel; per-tenant restrictions will be added later.
+    TOOL_CATALOG_GLOBAL_ID = "__global__"
+
     @rag_telemetry(operation_name="search_tool_catalog")
     async def search_tool_catalog(
         self, intent: str, customer_id: str, limit: int = 8,
@@ -625,6 +629,8 @@ class VectorStore:
         Returns tool payloads sorted by relevance.
         Optional keyword filters narrow results before vector scoring.
         """
+        # Tool catalog is global — override per-tenant customer_id
+        customer_id = self.TOOL_CATALOG_GLOBAL_ID
         threshold = score_threshold if score_threshold is not None else settings.QDRANT_SCORE_TOOL_CATALOG
 
         extra_filter = []

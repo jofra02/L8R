@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useTenantNavigate } from "@/hooks/useTenantNavigate";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { TimeAgo } from "@/components/common/TimeAgo";
@@ -8,7 +10,9 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { JsonViewer } from "@/components/common/JsonViewer";
 import { MarkdownRenderer } from "@/components/common/MarkdownRenderer";
 import { useRunDetail, useRunTimeline, useRunToolCalls } from "@/hooks/useRuns";
+import { cancelRun } from "@/api/endpoints";
 import { formatDate, formatDuration, cn } from "@/lib/utils";
+import { Square } from "lucide-react";
 
 const TABS = ["Overview", "Timeline", "Tool Calls"] as const;
 type Tab = (typeof TABS)[number];
@@ -16,10 +20,25 @@ type Tab = (typeof TABS)[number];
 export function RunDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useTenantNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const runId = id ?? "";
 
   const { data: run, isLoading } = useRunDetail(runId);
+
+  const cancelMut = useMutation({
+    mutationFn: () => cancelRun(runId),
+    onSuccess: () => {
+      toast.success("Run cancelled");
+      setShowCancelConfirm(false);
+      queryClient.invalidateQueries({ queryKey: ["run", runId] });
+      queryClient.invalidateQueries({ queryKey: ["runs"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.detail ?? "Failed to cancel run");
+    },
+  });
 
   if (isLoading) return <LoadingSpinner className="py-32" size="lg" />;
   if (!run) return <EmptyState title="Run not found" />;
@@ -44,13 +63,49 @@ export function RunDetailPage() {
             {` | Hypotheses: ${run.hypothesis_count ?? 0}`}
           </p>
         </div>
-        <button
-          onClick={() => navigate(`/tickets/${run.ticket_id}`)}
-          className="text-sm text-accent hover:text-accent-hover transition-colors"
-        >
-          View Ticket
-        </button>
+        <div className="flex items-center gap-3">
+          {run.status === "running" && (
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="flex items-center gap-1.5 text-sm text-status-failed hover:text-red-300 transition-colors border border-status-failed/30 px-3 py-1.5 rounded-md hover:bg-status-failed/10"
+            >
+              <Square size={14} /> Stop Run
+            </button>
+          )}
+          <button
+            onClick={() => navigate(`/tickets/${run.ticket_id}`)}
+            className="text-sm text-accent hover:text-accent-hover transition-colors"
+          >
+            View Ticket
+          </button>
+        </div>
       </div>
+
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md shadow-xl space-y-4">
+            <h2 className="text-base font-semibold text-text-primary">Stop this run?</h2>
+            <p className="text-sm text-text-secondary">
+              This will immediately stop the pipeline. Any partial results will be lost. Are you sure you want to cancel this run?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => cancelMut.mutate()}
+                disabled={cancelMut.isPending}
+                className="px-4 py-2 text-sm bg-status-failed/20 text-status-failed border border-status-failed/30 rounded-md hover:bg-status-failed/30 transition-colors disabled:opacity-50"
+              >
+                {cancelMut.isPending ? "Stopping..." : "Stop Run"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="border-b border-border flex gap-0">
         {TABS.map((tab) => (

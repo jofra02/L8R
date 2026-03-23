@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useTenantNavigate } from "@/hooks/useTenantNavigate";
 import { useTenantId } from "@/contexts/TenantContext";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Square } from "lucide-react";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { TimeAgo } from "@/components/common/TimeAgo";
 import { useRunList } from "@/hooks/useRuns";
 import { usePagination } from "@/hooks/usePagination";
+import { cancelRun } from "@/api/endpoints";
 import { formatDuration } from "@/lib/utils";
 import { STATUS_OPTIONS } from "@/lib/constants";
 import type { RunListItem } from "@/api/types";
@@ -15,9 +18,23 @@ import type { RunListItem } from "@/api/types";
 export function RunListPage() {
   const navigate = useTenantNavigate();
   const tenantId = useTenantId();
+  const queryClient = useQueryClient();
   const { page, pageSize, setPage, reset } = usePagination();
   const [status, setStatus] = useState("");
   const [ticketId, setTicketId] = useState("");
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
+
+  const cancelMut = useMutation({
+    mutationFn: (runId: string) => cancelRun(runId),
+    onSuccess: () => {
+      toast.success("Run cancelled");
+      setCancelTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["runs"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.detail ?? "Failed to cancel run");
+    },
+  });
 
   const filters = {
     page,
@@ -82,6 +99,21 @@ export function RunListPage() {
       render: (r) => <TimeAgo date={r.started_at} />,
       className: "w-32",
     },
+    {
+      key: "actions",
+      header: "",
+      render: (r) =>
+        r.status === "running" ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); setCancelTarget(r.id); }}
+            className="p-1 text-status-failed/70 hover:text-status-failed transition-colors"
+            title="Stop run"
+          >
+            <Square size={14} />
+          </button>
+        ) : null,
+      className: "w-10",
+    },
   ];
 
   return (
@@ -127,6 +159,32 @@ export function RunListPage() {
           emptyMessage="No runs found"
         />
       </div>
+
+      {cancelTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md shadow-xl space-y-4">
+            <h2 className="text-base font-semibold text-text-primary">Stop this run?</h2>
+            <p className="text-sm text-text-secondary">
+              This will immediately stop the pipeline. Any partial results will be lost. Are you sure you want to cancel this run?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setCancelTarget(null)}
+                className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => cancelMut.mutate(cancelTarget)}
+                disabled={cancelMut.isPending}
+                className="px-4 py-2 text-sm bg-status-failed/20 text-status-failed border border-status-failed/30 rounded-md hover:bg-status-failed/30 transition-colors disabled:opacity-50"
+              >
+                {cancelMut.isPending ? "Stopping..." : "Stop Run"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

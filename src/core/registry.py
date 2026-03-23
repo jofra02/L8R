@@ -218,46 +218,50 @@ class CapabilityRegistry:
             logger.info(f"Registry: Registering external tool {tool.name} from {tool.server_name}")
             cls._tools[tool.name] = tool
 
+    # Sentinel used for global (tenant-agnostic) tool catalog storage in Qdrant.
+    TOOL_CATALOG_SENTINEL = "__global__"
+
     @classmethod
-    async def index_tools_for_tenant(cls, customer_id: str):
+    async def index_tools(cls):
         """
-        Index registered tools into Qdrant tool_catalog for a specific tenant.
+        Index registered tools into Qdrant tool_catalog (global, shared across all tenants).
         Uses diff logic: only indexes tools not already present, avoiding
         unnecessary OpenAI Embedding API calls on warm startups.
         """
         from src.core.qdrant import vector_store
-        
+
+        cid = cls.TOOL_CATALOG_SENTINEL
         tools = cls.list_tools()
         registry_names = {t.name for t in tools}
-        
+
         # Fast scroll — no embeddings, just payload field
-        already_indexed = await vector_store.get_indexed_tool_names(customer_id)
+        already_indexed = await vector_store.get_indexed_tool_names(cid)
 
         # Migration: detect old-format points without vendor metadata
         if already_indexed:
-            needs_migration = await vector_store._check_catalog_needs_migration(customer_id)
+            needs_migration = await vector_store._check_catalog_needs_migration(cid)
             if needs_migration:
                 logger.info("Registry: tool_catalog missing metadata fields — forcing full re-index.")
                 already_indexed = set()
 
         new_tools = registry_names - already_indexed
         stale_tools = already_indexed - registry_names  # tools removed from MCP
-        
+
         if not new_tools and not stale_tools:
             logger.info(
-                f"Registry: tool_catalog up to date for '{customer_id}' "
+                f"Registry: tool_catalog up to date "
                 f"({len(already_indexed)} tools). Skipping indexing."
             )
             return
-        
+
         if stale_tools:
             logger.info(f"Registry: {len(stale_tools)} stale tools detected (not cleaning up yet)")
-        
+
         logger.info(
-            f"Registry: Indexing {len(new_tools)} NEW tools for '{customer_id}' "
+            f"Registry: Indexing {len(new_tools)} NEW tools "
             f"(skipping {len(already_indexed)} already indexed)"
         )
-        
+
         tools_by_name = {t.name: t for t in tools}
         texts, metadatas, ids = [], [], []
 
@@ -284,7 +288,7 @@ class CapabilityRegistry:
                     args_summary = "Parameters: " + "; ".join(parts)
 
                 embed_text = f"{tool.description or tool.name}. {args_summary}".strip()
-                dedup_key = f"{customer_id}-{tool.name}"
+                dedup_key = f"{cid}-{tool.name}"
 
                 texts.append(embed_text)
                 metadatas.append({
@@ -301,10 +305,10 @@ class CapabilityRegistry:
 
         if texts:
             await vector_store.batch_index_tools(
-                texts=texts, metadatas=metadatas, ids=ids, customer_id=customer_id,
+                texts=texts, metadatas=metadatas, ids=ids, customer_id=cid,
             )
 
-        logger.info(f"Registry: Indexed {len(texts)}/{len(new_tools)} new tools for '{customer_id}'")
+        logger.info(f"Registry: Indexed {len(texts)}/{len(new_tools)} new tools (global)")
 
     @classmethod
     async def semantic_search_tools(
@@ -322,7 +326,7 @@ class CapabilityRegistry:
 
             results = await vector_store.search_tool_catalog(
                 intent=intent,
-                customer_id=customer_id,
+                customer_id=cls.TOOL_CATALOG_SENTINEL,
                 limit=limit,
                 vendor=vendor,
                 method=method,

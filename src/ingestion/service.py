@@ -8,6 +8,8 @@ from src.agent_graph import app
 from langchain_core.messages import HumanMessage
 from typing import Dict, Any, Type, Tuple, Optional, List
 from src.core.langfuse_integration import langfuse_manager, set_current_trace
+from src.core import task_registry
+import asyncio
 import logging
 import uuid
 
@@ -99,20 +101,17 @@ class IngestionService:
                 initial_state,
                 config={"configurable": {"thread_id": f"thread_{ticket.id}"}}
             )
-            
+
             # Save final state back to the run
-            # Use the robust sanitize method from AuditService to ensure SQLAlchemy/FastAPI can serialize everything
             try:
                 serializable_state = self.audit._sanitize(final_state)
             except Exception as e:
                 logger.error(f"Failed to sanitize final state: {e}")
                 serializable_state = {"error": "Failed to serialize state", "final_answer": str(final_state.get('final_answer', ''))}
-            
-            logger.info(f"DEBUG: serializable_state keys before save: {list(serializable_state.keys())}")
-            
+
             await self.audit.update_run_context(run_id, customer_id, serializable_state)
 
-            # Populate denormalized summary columns (S6)
+            # Populate denormalized summary columns
             final_answer = str(final_state.get("final_answer") or "")
             hypothesis_count = len(final_state.get("hypotheses") or [])
             await self.audit.complete_run(
@@ -122,10 +121,15 @@ class IngestionService:
             )
             logger.info(f"Background execution completed for Run {run_id} (Ticket {ticket.id})")
 
+        except asyncio.CancelledError:
+            logger.info(f"Run {run_id} (Ticket {ticket.id}) was cancelled by user.")
+            await self.audit.complete_run(run_id, "cancelled")
+
         except Exception as e:
             logger.error(f"Background execution failed for Run {run_id}: {e}")
             await self.audit.complete_run(run_id, "failed")
         finally:
+            task_registry.unregister(run_id)
             langfuse_manager.flush()
 
     async def get_job_status(self, job_id: str, customer_id: str = None) -> Optional[Dict[str, Any]]:

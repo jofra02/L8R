@@ -3,8 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from src.config import settings
 from src.api.exceptions import register_exception_handlers
+from src.utils.logger import setup_logging
 import logging
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -17,8 +19,9 @@ async def lifespan(app: FastAPI):
     try:
         await CapabilityRegistry.load_external_tools()
         logger.info(f"Loaded {len(CapabilityRegistry.list_tools())} tools successfully.")
+        await CapabilityRegistry.index_tools()
     except Exception as e:
-        logger.error(f"Failed to load external MCP tools during startup: {e}")
+        logger.error(f"Failed to load/index MCP tools during startup: {e}")
     yield
     # Shutdown: flush Langfuse
     from src.core.langfuse_integration import langfuse_manager
@@ -78,11 +81,13 @@ def create_app() -> FastAPI:
 
 def _mount_legacy_webhook(application: FastAPI) -> None:
     """Mount legacy ingestion endpoints for backward compatibility."""
-    from fastapi import Depends, HTTPException, Body, Header, BackgroundTasks
+    import asyncio
+    from fastapi import Depends, HTTPException, Body, Header
     from sqlalchemy.ext.asyncio import AsyncSession
     from typing import Dict, Any
     from src.core.database import get_session
     from src.ingestion.service import IngestionService
+    from src.core import task_registry
 
     async def _get_service(session: AsyncSession = Depends(get_session)) -> IngestionService:
         return IngestionService(session)
@@ -90,7 +95,6 @@ def _mount_legacy_webhook(application: FastAPI) -> None:
     @application.post("/api/v1/webhook/{source_id}", status_code=202, tags=["legacy"])
     async def receive_webhook(
         source_id: str,
-        background_tasks: BackgroundTasks,
         payload: Dict[str, Any] = Body(...),
         customer_id: str = Header(..., alias="X-Customer-ID"),
         service: IngestionService = Depends(_get_service),
@@ -98,11 +102,10 @@ def _mount_legacy_webhook(application: FastAPI) -> None:
         if not customer_id:
             raise HTTPException(status_code=400, detail="Missing X-Customer-ID header")
         ticket, job_id = await service.ingest_webhook(source_id, payload, customer_id)
-        background_tasks.add_task(
-            service.run_pipeline_background,
-            ticket=ticket, run_id=job_id,
-            customer_id=customer_id,
+        task = asyncio.create_task(
+            service.run_pipeline_background(ticket=ticket, run_id=job_id, customer_id=customer_id)
         )
+        task_registry.register(job_id, task)
         return {
             "status": "accepted",
             "message": "Ticket ingested. Processing launched in background.",

@@ -100,7 +100,7 @@ def main():
         
         # Index tools in Qdrant tool_catalog for semantic search
         logger.info("Indexing tools in tool_catalog for semantic search...")
-        await CapabilityRegistry.index_tools_for_tenant(initial_state["customer_id"])
+        await CapabilityRegistry.index_tools()
         
         # Setup DB references
         async with async_session_factory() as session:

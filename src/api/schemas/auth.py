@@ -5,18 +5,14 @@ from datetime import datetime
 
 class ApiKeyCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
-    role: str = Field(default="operator", pattern=r"^(platform_admin|tenant_admin|operator|viewer)$")
     expires_at: Optional[datetime] = None
-    profile_id: Optional[str] = None
 
 
 class ApiKeyResponse(BaseModel):
     id: str
     key_prefix: str
     name: str
-    role: str
     is_active: bool
-    profile_id: Optional[str] = None
     expires_at: Optional[datetime] = None
     last_used_at: Optional[datetime] = None
     created_at: datetime

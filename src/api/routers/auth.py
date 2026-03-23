@@ -6,10 +6,19 @@ from src.api.schemas.auth import (
     ApiKeyCreate, ApiKeyResponse, ApiKeyCreatedResponse, AuthContext,
     LoginRequest, TokenResponse, RefreshRequest, ChangePasswordRequest, SwitchTenantRequest,
 )
-from src.api.services.auth_service import AuthService, role_rank
+from src.api.services.auth_service import AuthService
 from src.api.services.user_service import UserService
 from src.api.services.jwt_service import create_access_token
 from src.api.exceptions import APIError
+
+
+def _require_jwt_auth():
+    """Dependency: only JWT-authenticated users can manage API keys."""
+    async def dependency(auth: AuthContext = Depends(get_auth_context)) -> AuthContext:
+        if auth.auth_method != "jwt":
+            raise APIError(403, "jwt_required", "API key management requires JWT authentication")
+        return auth
+    return dependency
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -129,26 +138,20 @@ async def get_me(
 @router.post("/keys", response_model=ApiKeyCreatedResponse, status_code=201)
 async def create_key(
     body: ApiKeyCreate,
-    auth: AuthContext = Depends(require_permission("keys:manage")),
+    auth: AuthContext = Depends(_require_jwt_auth()),
     db: AsyncSession = Depends(get_db),
 ):
-    """Issue a new API key. The raw key is returned only once."""
+    """Issue a new API key for ticket ingestion. The raw key is returned only once."""
     service = AuthService(db)
     raw_key, key_orm = await service.create_key(
         customer_id=auth.customer_id,
         name=body.name,
-        role=body.role,
-        created_by=auth.key_id,
         expires_at=body.expires_at,
-        profile_id=body.profile_id,
-        created_by_user_id=auth.user_id,
     )
     return ApiKeyCreatedResponse(
         id=key_orm.id,
         key_prefix=key_orm.key_prefix,
         name=key_orm.name,
-        role=key_orm.role,
-        profile_id=key_orm.profile_id,
         is_active=key_orm.is_active,
         expires_at=key_orm.expires_at,
         last_used_at=key_orm.last_used_at,
@@ -159,7 +162,7 @@ async def create_key(
 
 @router.get("/keys", response_model=list[ApiKeyResponse])
 async def list_keys(
-    auth: AuthContext = Depends(require_permission("keys:read")),
+    auth: AuthContext = Depends(_require_jwt_auth()),
     db: AsyncSession = Depends(get_db),
 ):
     """List all API keys for the authenticated tenant."""
@@ -171,7 +174,7 @@ async def list_keys(
 @router.delete("/keys/{key_id}", status_code=204)
 async def revoke_key(
     key_id: str,
-    auth: AuthContext = Depends(require_permission("keys:manage")),
+    auth: AuthContext = Depends(_require_jwt_auth()),
     db: AsyncSession = Depends(get_db),
 ):
     """Revoke an API key."""
@@ -184,7 +187,7 @@ async def revoke_key(
 @router.post("/keys/{key_id}/rotate", response_model=ApiKeyCreatedResponse)
 async def rotate_key(
     key_id: str,
-    auth: AuthContext = Depends(require_permission("keys:manage")),
+    auth: AuthContext = Depends(_require_jwt_auth()),
     db: AsyncSession = Depends(get_db),
 ):
     """Revoke an existing key and issue a new one with the same metadata."""
@@ -197,8 +200,6 @@ async def rotate_key(
         id=key_orm.id,
         key_prefix=key_orm.key_prefix,
         name=key_orm.name,
-        role=key_orm.role,
-        profile_id=key_orm.profile_id,
         is_active=key_orm.is_active,
         expires_at=key_orm.expires_at,
         last_used_at=key_orm.last_used_at,

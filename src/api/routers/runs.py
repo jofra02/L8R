@@ -13,6 +13,7 @@ from src.api.schemas.runs import (
 )
 from src.api.exceptions import APIError
 from src.core.orm import AgentRunORM, AgentEventORM, ToolCallAuditORM
+from src.core import task_registry
 
 router = APIRouter(prefix="/runs", tags=["runs"])
 
@@ -193,3 +194,32 @@ async def get_run_tool_calls(
     )
     result = await db.execute(stmt)
     return [RunToolCall.model_validate(tc) for tc in result.scalars().all()]
+
+
+@router.post("/{run_id}/cancel")
+async def cancel_run(
+    run_id: str,
+    auth: AuthContext = Depends(require_permission("runs:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cancel a running pipeline execution."""
+    stmt = select(AgentRunORM).where(
+        AgentRunORM.id == run_id,
+        AgentRunORM.customer_id == auth.customer_id,
+    )
+    result = await db.execute(stmt)
+    run = result.scalar_one_or_none()
+    if not run:
+        raise APIError(404, "not_found", "Run not found")
+
+    if run.status != "running":
+        raise APIError(409, "invalid_state", f"Run is not running (current status: {run.status})")
+
+    cancelled = task_registry.cancel(run_id)
+    if not cancelled:
+        # Task not in registry (process restarted, etc.) — update DB directly
+        from src.core.audit import AuditService
+        audit = AuditService()
+        await audit.complete_run(run_id, "cancelled")
+
+    return {"status": "cancelled", "run_id": run_id}

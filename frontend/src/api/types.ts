@@ -40,8 +40,6 @@ export interface ChangePasswordRequest {
 
 export interface ApiKeyCreate {
   name: string;
-  role: string;
-  profile_id?: string;
   expires_at?: string | null;
 }
 
@@ -49,8 +47,6 @@ export interface ApiKeyResponse {
   id: string;
   key_prefix: string;
   name: string;
-  role: string;
-  profile_id: string | null;
   is_active: boolean;
   expires_at: string | null;
   last_used_at: string | null;

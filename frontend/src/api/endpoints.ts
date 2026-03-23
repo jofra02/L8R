@@ -279,6 +279,11 @@ export async function getRunStats(params?: { date_from?: string; date_to?: strin
   return data;
 }
 
+export async function cancelRun(runId: string): Promise<{ status: string; run_id: string }> {
+  const { data } = await client.post<{ status: string; run_id: string }>(`/runs/${runId}/cancel`);
+  return data;
+}
+
 // --- Audit ---
 interface AuditFilters {
   page?: number;

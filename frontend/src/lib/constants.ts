@@ -11,6 +11,7 @@ export const STATUS_COLORS: Record<string, string> = {
   completed: "bg-status-completed/15 text-status-completed border-status-completed/30",
   failed: "bg-status-failed/15 text-status-failed border-status-failed/30",
   error: "bg-status-failed/15 text-status-failed border-status-failed/30",
+  cancelled: "bg-severity-medium/15 text-severity-medium border-severity-medium/30",
 };
 
 export const DECISION_COLORS: Record<string, string> = {
@@ -62,4 +63,4 @@ export const ROUTES = {
 
 export const MODE_OPTIONS = ["incident", "change", "validation", "inquiry"] as const;
 export const SEVERITY_OPTIONS = ["low", "medium", "high", "critical"] as const;
-export const STATUS_OPTIONS = ["pending", "running", "completed", "failed", "error"] as const;
+export const STATUS_OPTIONS = ["pending", "running", "completed", "failed", "error", "cancelled"] as const;
