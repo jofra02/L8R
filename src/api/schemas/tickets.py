@@ -81,6 +81,10 @@ class PlanResponse(BaseModel):
     rollback_steps: List[Dict[str, Any]] = []
 
 
+class GlobalTicketListItem(TicketListItem):
+    customer_id: str
+
+
 class TicketReportResponse(BaseModel):
     ticket_id: str
     job_id: str

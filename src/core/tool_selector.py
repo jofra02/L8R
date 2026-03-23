@@ -29,8 +29,9 @@ class ToolSelector:
       4. Argument binding (LLM) — configure args for approved tools only
     """
 
-    def __init__(self, customer_id: str):
+    def __init__(self, customer_id: str, run_id: str = None):
         self.customer_id = customer_id
+        self.run_id = run_id
         self.llm = LLMFactory.get_model_for_agent("evidence_collector")
 
     # ------------------------------------------------------------------
@@ -650,7 +651,7 @@ Return ONLY a JSON list (one entry per approved tool):
                 continue
 
             try:
-                executor = AdaptiveExecutor(customer_id=self.customer_id)
+                executor = AdaptiveExecutor(customer_id=self.customer_id, run_id=self.run_id)
                 comp_meta = json.dumps(target_comp.metadata, default=str) if target_comp and target_comp.metadata else "{}"
                 exec_context = (
                     f"Ticket: {state.get('ticket', {})}\n"
@@ -769,7 +770,7 @@ Return ONLY a JSON list (one entry per approved tool):
 
         # 5. Execute resolution tool (catch MissingDependencyError to prevent recursion)
         try:
-            executor = AdaptiveExecutor(customer_id=self.customer_id)
+            executor = AdaptiveExecutor(customer_id=self.customer_id, run_id=self.run_id)
             comp_meta = json.dumps(component.metadata, default=str) if component and component.metadata else "{}"
             exec_context = (
                 f"Ticket: {state.get('ticket', {})}\n"

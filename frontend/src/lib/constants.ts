@@ -20,6 +20,12 @@ export const DECISION_COLORS: Record<string, string> = {
   blocked: "bg-status-failed/15 text-status-failed border-status-failed/30",
 };
 
+export const PROFILE_COLORS: Record<string, string> = {
+  "Super Admin": "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  "Super Admin Readonly": "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  "Tenant Admin": "bg-accent/15 text-accent border-accent/30",
+};
+
 export const ROLE_COLORS: Record<string, string> = {
   platform_admin: "bg-purple-500/15 text-purple-400 border-purple-500/30",
   tenant_admin: "bg-accent/15 text-accent border-accent/30",
@@ -31,6 +37,15 @@ export const ROLE_HIERARCHY = ["viewer", "operator", "tenant_admin", "platform_a
 
 export const ROUTES = {
   LOGIN: "/login",
+  CHANGE_PASSWORD: "/change-password",
+  // Global view
+  GLOBAL_DASHBOARD: "/global",
+  GLOBAL_TENANTS: "/global/tenants",
+  GLOBAL_TENANT_DETAIL: "/global/tenants/:id",
+  GLOBAL_TICKETS: "/global/tickets",
+  GLOBAL_USERS: "/global/users",
+  GLOBAL_PROFILES: "/global/profiles",
+  // Tenant view (relative to /t/:tenantId)
   DASHBOARD: "/",
   TICKETS: "/tickets",
   TICKET_DETAIL: "/tickets/:id",
@@ -39,7 +54,10 @@ export const ROUTES = {
   RUN_DETAIL: "/runs/:id",
   AUDIT_LOGS: "/audit/logs",
   TOOL_CALLS: "/audit/tool-calls",
+  INVENTORY: "/inventory",
   API_KEYS: "/settings/keys",
+  USERS: "/settings/users",
+  PROFILES: "/settings/profiles",
 } as const;
 
 export const MODE_OPTIONS = ["incident", "change", "validation", "inquiry"] as const;

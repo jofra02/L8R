@@ -10,14 +10,15 @@ logger = logging.getLogger(__name__)
 
 class EvidenceStore:
     """Manages immutable evidence artifacts."""
-    
-    def __init__(self, base_path: str = "data/evidence", customer_id: str = "unknown", run_id: str = None):
+
+    def __init__(self, base_path: str = "data/evidence", customer_id: str = "unknown", run_id: str = None, ticket_id: str = None):
         self.customer_id = customer_id
         self.run_id = run_id
+        self.ticket_id = ticket_id
         # Namespace by tenant to isolate evidence on disk
         self.base_path = os.path.join(base_path, customer_id)
         os.makedirs(self.base_path, exist_ok=True)
-        
+
     async def save_evidence(self, tool_name: str, tool_args: Dict[str, Any], content: Any, summary: Optional[str] = None) -> EvidenceSnapshot:
         """Persist evidence and return a snapshot reference."""
         
@@ -102,5 +103,25 @@ class EvidenceStore:
         except Exception as e:
             # Don't fail the whole tool execution if indexing fails, but log it.
             logger.error(f"EvidenceStore: Failed to index evidence {snapshot_id}: {e}")
-            
+
+        # 7. Persist to PostgreSQL (EvidenceRefORM) for API queries
+        if self.ticket_id:
+            try:
+                from src.core.database import async_session_factory
+                from src.core.orm import EvidenceRefORM
+                async with async_session_factory() as session:
+                    ref = EvidenceRefORM(
+                        id=snapshot.id,
+                        ticket_id=self.ticket_id,
+                        customer_id=self.customer_id,
+                        tool_name=snapshot.tool_name,
+                        content_hash=snapshot.content_hash,
+                        storage_ref=snapshot.storage_ref,
+                        summary=snapshot.summary,
+                    )
+                    await session.merge(ref)
+                    await session.commit()
+            except Exception as e:
+                logger.error(f"EvidenceStore: Failed to persist EvidenceRefORM {snapshot_id}: {e}")
+
         return snapshot

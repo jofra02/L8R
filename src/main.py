@@ -66,9 +66,12 @@ async def main():
         elif cmd == "create-tenant-key":
             await create_tenant_key()
 
+        elif cmd == "create-admin":
+            await create_admin_user()
+
         else:
             logger.info("Unknown command.")
-            logger.info("Available: test, init-db, register-tenant, seed-context, seed-kb, create-admin-key, create-tenant-key")
+            logger.info("Available: test, init-db, register-tenant, seed-context, seed-kb, create-admin-key, create-tenant-key, create-admin")
     else:
         logger.info("Usage: python src/main.py [command]")
         # In future: uvicorn.run(app)
@@ -276,6 +279,51 @@ async def create_tenant_key():
     print(f"  Raw Key:  {raw_key}")
     print("=" * 60)
     print("SAVE THIS KEY — it will not be shown again.")
+    print("=" * 60 + "\n")
+
+
+async def create_admin_user():
+    """Create a Super Admin user account.
+
+    Usage:
+        create-admin [email]
+    Examples:
+        create-admin
+        create-admin admin@mycompany.com
+    """
+    import secrets
+
+    email = sys.argv[2] if len(sys.argv) > 2 else settings.BOOTSTRAP_ADMIN_EMAIL
+    password = secrets.token_urlsafe(16)
+
+    from src.core.database import async_session_factory
+    from src.api.services.user_service import UserService
+
+    async with async_session_factory() as session:
+        service = UserService(session)
+
+        existing = await service.get_user_by_email(email)
+        if existing:
+            print(f"User '{email}' already exists (id={existing.id}).")
+            return
+
+        user = await service.create_user(
+            email=email,
+            display_name="Super Admin",
+            password=password,
+            is_platform_admin=True,
+            must_change_password=True,
+        )
+
+    print("\n" + "=" * 60)
+    print("Super Admin User Created")
+    print("=" * 60)
+    print(f"  Email:    {email}")
+    print(f"  Password: {password}")
+    print(f"  User ID:  {user.id}")
+    print("  (password change will be required on first login)")
+    print("=" * 60)
+    print("SAVE THIS PASSWORD — it will not be shown again.")
     print("=" * 60 + "\n")
 
 

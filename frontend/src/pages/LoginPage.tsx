@@ -4,8 +4,9 @@ import { Shield, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export function LoginPage() {
-  const [apiKey, setApiKey] = useState("");
-  const [showKey, setShowKey] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const { login, loading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -19,16 +20,20 @@ export function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!apiKey.trim()) {
-      setError("API key is required");
+    if (!email.trim() || !password) {
+      setError("Email and password are required");
       return;
     }
 
-    const result = await login(apiKey.trim());
+    const result = await login(email.trim(), password);
     if (result.success) {
-      navigate("/", { replace: true });
+      if (result.must_change_password) {
+        navigate("/change-password", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } else {
-      setError("Invalid API key or connection failed");
+      setError(result.error ?? "Invalid credentials");
     }
   }
 
@@ -39,30 +44,45 @@ export function LoginPage() {
           <div className="flex flex-col items-center mb-8">
             <Shield className="text-accent mb-3" size={40} />
             <h1 className="text-xl font-semibold text-text-primary">SupportAI</h1>
-            <p className="text-sm text-text-secondary mt-1">Connect with your API key</p>
+            <p className="text-sm text-text-secondary mt-1">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="apiKey" className="block text-sm text-text-secondary mb-1.5">
-                API Key
+              <label htmlFor="email" className="block text-sm text-text-secondary mb-1.5">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="w-full bg-elevated border border-border rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                autoFocus
+                autoComplete="email"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm text-text-secondary mb-1.5">
+                Password
               </label>
               <div className="relative">
                 <input
-                  id="apiKey"
-                  type={showKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sai_..."
-                  className="w-full bg-elevated border border-border rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent font-mono"
-                  autoFocus
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-elevated border border-border rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowKey(!showKey)}
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
                 >
-                  {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
@@ -76,7 +96,7 @@ export function LoginPage() {
               disabled={loading}
               className="w-full bg-accent hover:bg-accent-hover text-white font-medium py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              {loading ? "Connecting..." : "Connect"}
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
         </div>

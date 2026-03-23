@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 import logging
 import json
 import asyncio
+import uuid
 from datetime import datetime
 
 from src.core.interfaces import MCPToolInterface
@@ -30,14 +31,44 @@ class AdaptiveExecutor:
     3. Continuous Learning (Save insights)
     """
 
-    def __init__(self, max_retries: int = None, customer_id: str = "unknown"):
+    def __init__(self, max_retries: int = None, customer_id: str = "unknown", run_id: str = None):
         if max_retries is None:
             self.max_retries = 1 if settings.TEST_MODE_FAST else 2
         else:
             self.max_retries = max_retries
 
         self.customer_id = customer_id
+        self.run_id = run_id
         self.llm = LLMFactory.get_model_for_agent("adaptive_fix")
+
+    async def _log_tool_call(
+        self, tool_name: str, args: Dict[str, Any], status: str,
+        result_meta: Dict[str, Any] = None, error: str = None,
+        started_at: datetime = None, ended_at: datetime = None,
+    ):
+        """Persist a tool call audit record to PostgreSQL."""
+        if not self.run_id:
+            return
+        try:
+            from src.core.database import async_session_factory
+            from src.core.orm import ToolCallAuditORM
+            async with async_session_factory() as session:
+                record = ToolCallAuditORM(
+                    id=str(uuid.uuid4()),
+                    run_id=self.run_id,
+                    customer_id=self.customer_id,
+                    tool_name=tool_name,
+                    args_redacted=args,
+                    result_meta=result_meta or {},
+                    status=status,
+                    error=error,
+                    started_at=started_at or datetime.utcnow(),
+                    ended_at=ended_at or datetime.utcnow(),
+                )
+                session.add(record)
+                await session.commit()
+        except Exception as e:
+            logger.error(f"AdaptiveExec: Failed to log tool call audit for {tool_name}: {e}")
 
     async def execute(self, tool: MCPToolInterface, args: Dict[str, Any], context: str = "", intent: str = "") -> str:
         """
@@ -47,6 +78,7 @@ class AdaptiveExecutor:
         current_args = args.copy()
         attempts = 0
         last_error = None
+        started_at = datetime.utcnow()
 
         # Create Langfuse span for this tool execution
         parent_span = get_current_span()
@@ -77,6 +109,12 @@ class AdaptiveExecutor:
 
                 LangfuseManager.end_span(tool_span, output={"result_length": len(str(result))})
 
+                await self._log_tool_call(
+                    tool_name, current_args, "success",
+                    result_meta={"length": len(str(result)), "attempts": attempts + 1},
+                    started_at=started_at,
+                )
+
                 return result
 
             except Exception as e:
@@ -90,6 +128,13 @@ class AdaptiveExecutor:
                         tool_span, output={"error": str(e)},
                         level="ERROR", status_message=str(e)[:200],
                     )
+
+                    await self._log_tool_call(
+                        tool_name, current_args, "failed",
+                        error=str(e)[:500], started_at=started_at,
+                        result_meta={"attempts": attempts},
+                    )
+
                     raise e # Re-raise final exception
 
                 # 2. Heal / Diagnose
@@ -103,6 +148,11 @@ class AdaptiveExecutor:
                     current_args = fixed_args
 
                 except MissingDependencyError:
+                    await self._log_tool_call(
+                        tool_name, current_args, "missing_dependency",
+                        error=str(e)[:500], started_at=started_at,
+                        result_meta={"attempts": attempts},
+                    )
                     raise # Allow signal to bubble up to EvidenceCollector without logging error
 
                 except Exception as diag_e:

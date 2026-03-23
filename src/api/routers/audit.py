@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import datetime
 
-from src.api.dependencies import get_db, get_pagination, require_role
+from src.api.dependencies import get_db, get_pagination, require_permission
 from src.api.schemas.auth import AuthContext
 from src.api.schemas.common import PaginationParams, PaginatedResponse
 from src.api.schemas.audit import AuditLogResponse, ToolCallResponse
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 
 @router.get("/logs", response_model=PaginatedResponse[AuditLogResponse])
 async def query_audit_logs(
-    auth: AuthContext = Depends(require_role("viewer")),
+    auth: AuthContext = Depends(require_permission("audit:read")),
     pagination: PaginationParams = Depends(get_pagination),
     db: AsyncSession = Depends(get_db),
     ticket_id: Optional[str] = Query(None),
@@ -61,7 +61,7 @@ async def query_audit_logs(
 
 @router.get("/tool-calls", response_model=PaginatedResponse[ToolCallResponse])
 async def query_tool_calls(
-    auth: AuthContext = Depends(require_role("viewer")),
+    auth: AuthContext = Depends(require_permission("audit:read")),
     pagination: PaginationParams = Depends(get_pagination),
     db: AsyncSession = Depends(get_db),
     run_id: Optional[str] = Query(None),

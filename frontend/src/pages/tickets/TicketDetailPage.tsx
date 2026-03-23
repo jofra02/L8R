@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantNavigate";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -26,7 +27,7 @@ type Tab = (typeof TABS)[number];
 
 export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const ticketId = id ?? "";
 

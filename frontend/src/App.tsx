@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
-import { AppShell } from "@/components/layout/AppShell";
+import { GlobalShell } from "@/components/layout/GlobalShell";
+import { TenantShell } from "@/components/layout/TenantShell";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
+import { PostLoginRedirect } from "@/components/common/PostLoginRedirect";
 import { LoginPage } from "@/pages/LoginPage";
+import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { TicketListPage } from "@/pages/tickets/TicketListPage";
 import { TicketDetailPage } from "@/pages/tickets/TicketDetailPage";
@@ -13,6 +16,13 @@ import { RunStatsPage } from "@/pages/runs/RunStatsPage";
 import { AuditLogsPage } from "@/pages/audit/AuditLogsPage";
 import { ToolCallsPage } from "@/pages/audit/ToolCallsPage";
 import { ApiKeysPage } from "@/pages/settings/ApiKeysPage";
+import { UsersPage } from "@/pages/settings/UsersPage";
+import { ProfilesPage } from "@/pages/settings/ProfilesPage";
+import { TenantDetailPage } from "@/pages/settings/TenantDetailPage";
+import { InventoryPage } from "@/pages/inventory/InventoryPage";
+import { GlobalDashboardPage } from "@/pages/global/GlobalDashboardPage";
+import { TenantManagementPage } from "@/pages/global/TenantManagementPage";
+import { GlobalTicketsPage } from "@/pages/global/GlobalTicketsPage";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 const queryClient = new QueryClient({
@@ -32,79 +42,33 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route element={<AppShell />}>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute minRole="operator">
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/tickets"
-                element={
-                  <ProtectedRoute minRole="operator">
-                    <TicketListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/tickets/:id"
-                element={
-                  <ProtectedRoute minRole="operator">
-                    <TicketDetailPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/runs"
-                element={
-                  <ProtectedRoute minRole="operator">
-                    <RunListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/runs/stats"
-                element={
-                  <ProtectedRoute minRole="operator">
-                    <RunStatsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/runs/:id"
-                element={
-                  <ProtectedRoute minRole="operator">
-                    <RunDetailPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/audit/logs"
-                element={
-                  <ProtectedRoute minRole="viewer">
-                    <AuditLogsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/audit/tool-calls"
-                element={
-                  <ProtectedRoute minRole="viewer">
-                    <ToolCallsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings/keys"
-                element={
-                  <ProtectedRoute minRole="tenant_admin">
-                    <ApiKeysPage />
-                  </ProtectedRoute>
-                }
-              />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route path="/" element={<PostLoginRedirect />} />
+
+            {/* Global View */}
+            <Route path="/global" element={<GlobalShell />}>
+              <Route index element={<ProtectedRoute permission="tenants:read"><GlobalDashboardPage /></ProtectedRoute>} />
+              <Route path="tenants" element={<ProtectedRoute permission="tenants:read"><TenantManagementPage /></ProtectedRoute>} />
+              <Route path="tenants/:id" element={<ProtectedRoute permission="tenants:read"><TenantDetailPage /></ProtectedRoute>} />
+              <Route path="tickets" element={<ProtectedRoute permission="tickets:read"><GlobalTicketsPage /></ProtectedRoute>} />
+              <Route path="users" element={<ProtectedRoute permission="users:read"><UsersPage /></ProtectedRoute>} />
+              <Route path="profiles" element={<ProtectedRoute permission="profiles:read"><ProfilesPage /></ProtectedRoute>} />
+            </Route>
+
+            {/* Tenant View */}
+            <Route path="/t/:tenantId" element={<TenantShell />}>
+              <Route index element={<ProtectedRoute permission="tickets:read"><DashboardPage /></ProtectedRoute>} />
+              <Route path="tickets" element={<ProtectedRoute permission="tickets:read"><TicketListPage /></ProtectedRoute>} />
+              <Route path="tickets/:id" element={<ProtectedRoute permission="tickets:read"><TicketDetailPage /></ProtectedRoute>} />
+              <Route path="runs" element={<ProtectedRoute permission="runs:read"><RunListPage /></ProtectedRoute>} />
+              <Route path="runs/stats" element={<ProtectedRoute permission="runs:read"><RunStatsPage /></ProtectedRoute>} />
+              <Route path="runs/:id" element={<ProtectedRoute permission="runs:read"><RunDetailPage /></ProtectedRoute>} />
+              <Route path="audit/logs" element={<ProtectedRoute permission="audit:read"><AuditLogsPage /></ProtectedRoute>} />
+              <Route path="audit/tool-calls" element={<ProtectedRoute permission="audit:read"><ToolCallsPage /></ProtectedRoute>} />
+              <Route path="inventory" element={<ProtectedRoute permission="inventory:read"><InventoryPage /></ProtectedRoute>} />
+              <Route path="settings/keys" element={<ProtectedRoute permission="keys:read"><ApiKeysPage /></ProtectedRoute>} />
+              <Route path="settings/users" element={<ProtectedRoute permission="users:read"><UsersPage /></ProtectedRoute>} />
+              <Route path="settings/profiles" element={<ProtectedRoute permission="profiles:read"><ProfilesPage /></ProtectedRoute>} />
             </Route>
           </Routes>
         </BrowserRouter>

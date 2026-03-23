@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_session
 from src.api.schemas.common import PaginationParams
 from src.api.schemas.auth import AuthContext
-from src.api.middleware.auth import get_auth_context, require_role  # noqa: re-export
+from src.api.middleware.auth import get_auth_context, require_role, require_permission  # noqa: re-export
 
 # Re-export for convenience
 __all__ = [
@@ -12,6 +12,7 @@ __all__ = [
     "get_pagination",
     "get_auth_context",
     "require_role",
+    "require_permission",
 ]
 
 

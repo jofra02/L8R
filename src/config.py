@@ -98,6 +98,20 @@ class Settings(BaseSettings):
     LANGFUSE_FLUSH_AT: int = 15
     LANGFUSE_FLUSH_INTERVAL: int = 5
 
+    # JWT
+    JWT_SECRET_KEY: str = "CHANGE-ME-IN-PRODUCTION"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # Password Policy
+    PASSWORD_MIN_LENGTH: int = 12
+    PASSWORD_REQUIRE_UPPERCASE: bool = True
+    PASSWORD_REQUIRE_SYMBOL: bool = True
+
+    # Bootstrap
+    BOOTSTRAP_ADMIN_EMAIL: str = "admin@localhost"
+
     # Global API Keys
     OPENAI_API_KEY: Optional[str] = None
 

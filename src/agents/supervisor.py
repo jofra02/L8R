@@ -80,10 +80,17 @@ def supervisor_router(state: GlobalState) -> Literal[
             logger.info(f"Supervisor: {ticket_mode} ticket needs enrichment")
             return "enricher_agent"
 
-    # Fulfillment path: change tickets go to goal decomposer (P6)
-    if ticket_mode == "change" and not state.get("fulfillment_goals") and not state.get("hypotheses"):
-        logger.info("Supervisor: Change ticket → goal decomposer.")
-        return "goal_decomposer"
+    # Fulfillment path: change tickets → goal decomposer → planner → response
+    if ticket_mode == "change":
+        goals = state.get("fulfillment_goals")
+        if not goals:
+            logger.info("Supervisor: Change ticket → goal decomposer.")
+            return "goal_decomposer"
+        if state.get("plan"):
+            logger.info("Supervisor: Change ticket with plan → response_agent")
+            return "response_agent"
+        logger.info("Supervisor: Change ticket with goals → planner_agent")
+        return "planner_agent"
 
     # 6. SCORING-DRIVEN DECISION GATE
     scoring = state.get("scoring")

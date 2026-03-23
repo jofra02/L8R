@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
 import { Activity, CheckCircle, Clock, Zap } from "lucide-react";
+import { useTenantNavigate } from "@/hooks/useTenantNavigate";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { StatCard } from "@/components/common/StatCard";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -19,7 +19,7 @@ const STATUS_CHART_COLORS: Record<string, string> = {
 };
 
 export function DashboardPage() {
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const { data: stats, isLoading: statsLoading } = useRunStats();
   const { data: recentTickets, isLoading: ticketsLoading } = useTicketList({ page: 1, page_size: 5 });
   const { data: recentRuns, isLoading: runsLoading } = useRunList({ page: 1, page_size: 5 });

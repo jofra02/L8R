@@ -57,6 +57,14 @@ async def response_agent_node(state: GlobalState) -> Dict[str, Any]:
     - Inconclusive items MUST include the exact next probe (tool name + arguments) needed to resolve.
     - Present checks in table format: | Check | Status | Evidence | Next Probe |
     """
+    elif ticket.mode == "change":
+        mode_guardrails = """
+    MODE-SPECIFIC RULES (change):
+    - Frame the report as an Implementation Plan, not a diagnosis.
+    - Present each fulfillment goal with its status, preconditions, and validation criteria.
+    - If preconditions are unmet, list them as blockers in Next Steps.
+    - Do NOT frame the change request as a problem to diagnose.
+    """
     elif ticket.mode == "inquiry":
         mode_guardrails = """
     MODE-SPECIFIC RULES (inquiry):
@@ -121,18 +129,28 @@ async def response_agent_node(state: GlobalState) -> Dict[str, Any]:
     (If there is no problem or the state is correct, state "No action required. Environment operational". If action is needed, indicate what to do or what information is missing).
     """
 
+    # Fulfillment goals context (change tickets)
+    goals = state.get("fulfillment_goals", [])
+    goals_text = "\n".join(
+        [f"- [{g.status}] {g.description} | Preconditions: {', '.join(g.preconditions) or 'none'} | Validation: {', '.join(g.validation_criteria) or 'none'}"
+         for g in goals]
+    ) if goals else ""
+
     user_input = f"""
     Ticket: {ticket.text}
     Ticket Mode: {ticket.mode}
     Context: {state.get('client_context', 'Unknown')}
-    
+
     Facts: {json.dumps(facts, default=str)}
     Evidence Log:
     {evidence_summary}
-    
+
     Hypothesis History:
     {hypothesis_summary}
-    
+
+    Fulfillment Goals:
+    {goals_text or "N/A"}
+
     Current Plan:
     {plan_text}
 

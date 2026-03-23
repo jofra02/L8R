@@ -8,25 +8,24 @@ import {
   KeyRound,
   ChevronLeft,
   ChevronRight,
-  Server,
+  Users,
+  ShieldCheck,
+  Building2,
   Boxes,
-  Bell,
-  Database,
-  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
-  hasRole: (role: string) => boolean;
+  hasPermission: (perm: string) => boolean;
 }
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
-  minRole: string;
+  permission?: string;
   disabled?: boolean;
 }
 
@@ -34,37 +33,36 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "OPERATIONS",
     items: [
-      { label: "Dashboard", path: "/", icon: <LayoutDashboard size={20} />, minRole: "operator" },
-      { label: "Tickets", path: "/tickets", icon: <Ticket size={20} />, minRole: "operator" },
-      { label: "Runs", path: "/runs", icon: <Play size={20} />, minRole: "operator" },
+      { label: "Dashboard", path: "/", icon: <LayoutDashboard size={20} />, permission: "tickets:read" },
+      { label: "Tickets", path: "/tickets", icon: <Ticket size={20} />, permission: "tickets:read" },
+      { label: "Runs", path: "/runs", icon: <Play size={20} />, permission: "runs:read" },
+    ],
+  },
+  {
+    label: "CONFIGURATION",
+    items: [
+      { label: "Inventory", path: "/inventory", icon: <Boxes size={20} />, permission: "inventory:read" },
     ],
   },
   {
     label: "OBSERVABILITY",
     items: [
-      { label: "Audit Logs", path: "/audit/logs", icon: <ScrollText size={20} />, minRole: "viewer" },
-      { label: "Tool Calls", path: "/audit/tool-calls", icon: <Wrench size={20} />, minRole: "viewer" },
+      { label: "Audit Logs", path: "/audit/logs", icon: <ScrollText size={20} />, permission: "audit:read" },
+      { label: "Tool Calls", path: "/audit/tool-calls", icon: <Wrench size={20} />, permission: "audit:read" },
     ],
   },
   {
     label: "ADMIN",
     items: [
-      { label: "API Keys", path: "/settings/keys", icon: <KeyRound size={20} />, minRole: "tenant_admin" },
-    ],
-  },
-  {
-    label: "COMING SOON",
-    items: [
-      { label: "Tenants", path: "#", icon: <Server size={20} />, minRole: "platform_admin", disabled: true },
-      { label: "Inventory", path: "#", icon: <Boxes size={20} />, minRole: "operator", disabled: true },
-      { label: "Alerts", path: "#", icon: <Bell size={20} />, minRole: "operator", disabled: true },
-      { label: "Vector", path: "#", icon: <Database size={20} />, minRole: "operator", disabled: true },
-      { label: "System", path: "#", icon: <Settings size={20} />, minRole: "platform_admin", disabled: true },
+      { label: "Tenants", path: "/settings/tenants", icon: <Building2 size={20} />, permission: "tenants:read" },
+      { label: "API Keys", path: "/settings/keys", icon: <KeyRound size={20} />, permission: "keys:read" },
+      { label: "Users", path: "/settings/users", icon: <Users size={20} />, permission: "users:read" },
+      { label: "Profiles", path: "/settings/profiles", icon: <ShieldCheck size={20} />, permission: "profiles:read" },
     ],
   },
 ];
 
-export function Sidebar({ collapsed, onToggle, hasRole }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, hasPermission }: SidebarProps) {
   return (
     <aside
       className={cn(
@@ -74,7 +72,9 @@ export function Sidebar({ collapsed, onToggle, hasRole }: SidebarProps) {
     >
       <nav className="flex-1 overflow-y-auto py-4 space-y-6">
         {NAV_GROUPS.map((group) => {
-          const visibleItems = group.items.filter((item) => item.disabled || hasRole(item.minRole));
+          const visibleItems = group.items.filter(
+            (item) => item.disabled || !item.permission || hasPermission(item.permission),
+          );
           if (visibleItems.length === 0) return null;
 
           return (

@@ -29,10 +29,12 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     """
     LangGraph node: Collects evidence using centralized ToolSelector pipeline.
     """
-    ticket_text = state["ticket"].text
+    ticket = state["ticket"]
+    ticket_text = ticket.text
     components = state.get("components", [])
     evidence_refs: List[EvidenceSnapshot] = state.get("evidence_refs", [])
     customer_id = state.get("customer_id", "unknown")
+    run_id = state.get("meta", {}).get("run_id")
 
     # Build dedup set from prior invocations + existing evidence_refs
     _sig_list: List[str] = state.get("_executed_tool_signatures", [])
@@ -44,7 +46,8 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
 
     store = EvidenceStore(
         customer_id=customer_id,
-        run_id=state.get("meta", {}).get("run_id")
+        run_id=run_id,
+        ticket_id=ticket.id,
     )
 
     new_evidence = []
@@ -70,6 +73,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     relational_evidence = await _collect_relational_evidence(
         state, store, components, ticket_text, customer_id,
         executed_signatures=executed_signatures,
+        run_id=run_id,
     )
     new_evidence.extend(relational_evidence)
 
@@ -77,7 +81,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
     for comp in components:
         try:
             # 1. Select tools via centralized ToolSelector pipeline
-            selector = ToolSelector(customer_id=customer_id)
+            selector = ToolSelector(customer_id=customer_id, run_id=run_id)
             evidence_context = format_evidence_summaries(
                 evidence_refs + new_evidence, max_items=15
             )
@@ -138,7 +142,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
 
                 logger.info(f"Evidence Collector: Executing {tool_name} with {tool_args}")
                 try:
-                    executor = AdaptiveExecutor(customer_id=customer_id)
+                    executor = AdaptiveExecutor(customer_id=customer_id, run_id=run_id)
                     facts_str = json.dumps(state.get("facts", {}), default=str)
                     meta_str = json.dumps(comp.metadata, default=str) if comp.metadata else "{}"
                     context = (
@@ -257,6 +261,7 @@ async def _collect_relational_evidence(
     ticket_text: str,
     customer_id: str,
     executed_signatures: set | None = None,
+    run_id: str | None = None,
 ) -> List[EvidenceSnapshot]:
     """
     Relational pre-loop: pair source and target components, use ToolSelector
@@ -293,7 +298,7 @@ async def _collect_relational_evidence(
 
     for src_comp, dst_comp in pairs:
         # Use ToolSelector in relational mode
-        selector = ToolSelector(customer_id=customer_id)
+        selector = ToolSelector(customer_id=customer_id, run_id=run_id)
         ctx = ToolSelectionContext(
             ticket_text=ticket_text,
             source_component=src_comp,
@@ -325,7 +330,7 @@ async def _collect_relational_evidence(
 
             logger.info(f"[Relational] Executing {t_name} with {tool_args}")
             try:
-                executor = AdaptiveExecutor(customer_id=customer_id)
+                executor = AdaptiveExecutor(customer_id=customer_id, run_id=run_id)
                 src_meta = json.dumps(src_comp.metadata, default=str) if src_comp.metadata else "{}"
                 dst_meta = json.dumps(dst_comp.metadata, default=str) if dst_comp.metadata else "{}"
                 context = (

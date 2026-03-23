@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantNavigate";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { TimeAgo } from "@/components/common/TimeAgo";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
@@ -14,7 +15,7 @@ type Tab = (typeof TABS)[number];
 
 export function RunDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const runId = id ?? "";
 

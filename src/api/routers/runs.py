@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import datetime
 
-from src.api.dependencies import get_db, get_pagination, require_role
+from src.api.dependencies import get_db, get_pagination, require_permission
 from src.api.schemas.auth import AuthContext
 from src.api.schemas.common import PaginationParams, PaginatedResponse
 from src.api.schemas.runs import (
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/runs", tags=["runs"])
 
 @router.get("", response_model=PaginatedResponse[RunListItem])
 async def list_runs(
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("runs:read")),
     pagination: PaginationParams = Depends(get_pagination),
     db: AsyncSession = Depends(get_db),
     status: Optional[str] = Query(None),
@@ -61,7 +61,7 @@ async def list_runs(
 
 @router.get("/stats", response_model=RunStats)
 async def get_run_stats(
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("runs:read")),
     db: AsyncSession = Depends(get_db),
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
@@ -122,7 +122,7 @@ async def get_run_stats(
 @router.get("/{run_id}", response_model=RunDetail)
 async def get_run_detail(
     run_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("runs:read")),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = select(AgentRunORM).where(
@@ -152,7 +152,7 @@ async def get_run_detail(
 @router.get("/{run_id}/timeline", response_model=list[RunTimelineEvent])
 async def get_run_timeline(
     run_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("runs:read")),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify run belongs to tenant
@@ -175,7 +175,7 @@ async def get_run_timeline(
 @router.get("/{run_id}/tool-calls", response_model=list[RunToolCall])
 async def get_run_tool_calls(
     run_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("runs:read")),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify run belongs to tenant

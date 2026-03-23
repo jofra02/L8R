@@ -1,4 +1,4 @@
-from sqlalchemy import String, Text, DateTime, JSON, ForeignKey, Integer, Boolean, Float, BigInteger, Index, UniqueConstraint
+from sqlalchemy import String, Text, DateTime, JSON, ForeignKey, Integer, Boolean, Float, BigInteger, Index, UniqueConstraint, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func, text
 from datetime import datetime
@@ -210,16 +210,110 @@ class ApiKeyORM(Base):
     key_hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     key_prefix: Mapped[str] = mapped_column(String(12), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    role: Mapped[str] = mapped_column(String, nullable=False)  # platform_admin | tenant_admin | operator | viewer
+    role: Mapped[str] = mapped_column(String, nullable=False)  # deprecated — kept for backward compat
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # RBAC extensions (nullable for backward compat with existing keys)
+    profile_id: Mapped[Optional[str]] = mapped_column(ForeignKey("profiles.id"), nullable=True)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    profile: Mapped[Optional["ProfileORM"]] = relationship()
+    created_by_user: Mapped[Optional["UserORM"]] = relationship()
 
     __table_args__ = (
         Index("ix_api_keys_customer_active", "customer_id", "is_active"),
     )
+
+
+# --- RBAC (Control Plane) ---
+
+class UserORM(Base):
+    """Employee user accounts (control plane, no TenantMixin)."""
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    display_name: Mapped[str] = mapped_column(String, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_platform_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    tenant_profiles: Mapped[List["UserTenantProfileORM"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens: Mapped[List["RefreshTokenORM"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+
+class PermissionORM(Base):
+    """Granular permission catalog (seeded via migration)."""
+    __tablename__ = "permissions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)  # e.g. "tickets:read"
+    resource: Mapped[str] = mapped_column(String, nullable=False)  # e.g. "tickets"
+    action: Mapped[str] = mapped_column(String, nullable=False)    # e.g. "read"
+    description: Mapped[str] = mapped_column(String, nullable=False)
+
+
+# Junction table: profile <-> permission (many-to-many)
+profile_permissions = Table(
+    "profile_permissions",
+    Base.metadata,
+    Column("profile_id", String, ForeignKey("profiles.id", ondelete="CASCADE"), primary_key=True),
+    Column("permission_id", String, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class ProfileORM(Base):
+    """Named permission sets (roles)."""
+    __tablename__ = "profiles"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False, default="")
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    permissions: Mapped[List["PermissionORM"]] = relationship(secondary=profile_permissions, lazy="selectin")
+
+
+class UserTenantProfileORM(Base):
+    """Junction: user x tenant x profile. One profile per tenant per user."""
+    __tablename__ = "user_tenant_profiles"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("platform_tenants.customer_id"), nullable=False)
+    profile_id: Mapped[str] = mapped_column(ForeignKey("profiles.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["UserORM"] = relationship(back_populates="tenant_profiles")
+    tenant: Mapped["PlatformTenant"] = relationship()
+    profile: Mapped["ProfileORM"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "customer_id", name="uq_user_tenant_profile"),
+        Index("ix_user_tenant_profiles_customer", "customer_id"),
+    )
+
+
+class RefreshTokenORM(Base):
+    """JWT refresh tokens."""
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    is_revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["UserORM"] = relationship(back_populates="refresh_tokens")
 
 
 class CheckpointORM(Base, TenantMixin):

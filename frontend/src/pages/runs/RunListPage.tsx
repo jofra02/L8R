@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantNavigate";
+import { useTenantId } from "@/contexts/TenantContext";
 import { BarChart3 } from "lucide-react";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -11,7 +13,8 @@ import { STATUS_OPTIONS } from "@/lib/constants";
 import type { RunListItem } from "@/api/types";
 
 export function RunListPage() {
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
+  const tenantId = useTenantId();
   const { page, pageSize, setPage, reset } = usePagination();
   const [status, setStatus] = useState("");
   const [ticketId, setTicketId] = useState("");
@@ -86,7 +89,7 @@ export function RunListPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-text-primary">Runs</h1>
         <Link
-          to="/runs/stats"
+          to={`/t/${tenantId}/runs/stats`}
           className="flex items-center gap-2 bg-elevated border border-border text-sm text-text-secondary hover:text-text-primary px-3 py-1.5 rounded-md transition-colors"
         >
           <BarChart3 size={14} /> Statistics

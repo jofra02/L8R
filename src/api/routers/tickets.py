@@ -5,12 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import datetime
 
-from src.api.dependencies import get_db, get_pagination, require_role
+from src.api.dependencies import get_db, get_pagination, require_permission
 from src.api.schemas.auth import AuthContext
 from src.api.schemas.common import PaginationParams, PaginatedResponse
 from src.api.schemas.tickets import (
     TicketSubmit, TicketListItem, TicketDetail, TicketTimelineEvent,
     EvidenceItem, HypothesisItem, FactItem, PlanResponse, TicketReportResponse,
+    GlobalTicketListItem,
 )
 from src.api.exceptions import APIError
 from src.core.orm import TicketORM, AgentRunORM, AgentEventORM, EvidenceRefORM
@@ -75,7 +76,7 @@ async def _get_latest_run(
 async def submit_ticket(
     body: TicketSubmit,
     background_tasks: BackgroundTasks,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Submit a new ticket for pipeline processing. Returns 202 + ticket_id + job_id."""
@@ -106,9 +107,93 @@ async def submit_ticket(
     }
 
 
+@router.get("/global", response_model=PaginatedResponse[GlobalTicketListItem])
+async def list_global_tickets(
+    auth: AuthContext = Depends(require_permission("tickets:read")),
+    pagination: PaginationParams = Depends(get_pagination),
+    db: AsyncSession = Depends(get_db),
+    severity: Optional[str] = Query(None),
+    mode: Optional[str] = Query(None),
+    status: Optional[str] = Query(None, description="Filter by latest run status"),
+    search: Optional[str] = Query(None, description="Search ticket text"),
+    tenant: Optional[str] = Query(None, description="Filter by tenant customer_id"),
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+):
+    """List tickets across all tenants. Platform admin only."""
+    if not auth.is_platform_admin:
+        raise APIError(403, "platform_admin_required", "Requires platform admin")
+
+    latest = _latest_run_subquery()
+
+    base = (
+        select(
+            TicketORM,
+            latest.c.latest_run_status,
+            latest.c.latest_run_decision,
+        )
+        .outerjoin(
+            latest,
+            (latest.c.ticket_id == TicketORM.id) & (latest.c.rn == 1),
+        )
+    )
+
+    if tenant:
+        base = base.where(TicketORM.customer_id == tenant)
+    if severity:
+        base = base.where(TicketORM.severity == severity)
+    if mode:
+        base = base.where(TicketORM.mode == mode)
+    if search:
+        base = base.where(TicketORM.text.ilike(f"%{search}%"))
+    if date_from:
+        base = base.where(TicketORM.created_at >= date_from)
+    if date_to:
+        base = base.where(TicketORM.created_at <= date_to)
+    if status:
+        base = base.where(latest.c.latest_run_status == status)
+
+    count_stmt = select(func.count()).select_from(base.subquery())
+    total = (await db.execute(count_stmt)).scalar() or 0
+
+    rows_stmt = (
+        base
+        .order_by(TicketORM.created_at.desc())
+        .offset(pagination.offset)
+        .limit(pagination.page_size)
+    )
+    result = await db.execute(rows_stmt)
+    rows = result.all()
+
+    items = []
+    for row in rows:
+        ticket = row[0]
+        items.append(GlobalTicketListItem(
+            id=ticket.id,
+            external_id=ticket.external_id,
+            mode=ticket.mode,
+            severity=ticket.severity,
+            source=ticket.source,
+            text=ticket.text,
+            created_at=ticket.created_at,
+            updated_at=ticket.updated_at,
+            latest_run_status=row[1],
+            latest_run_decision=row[2],
+            customer_id=ticket.customer_id,
+        ))
+
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+        total_pages=math.ceil(total / pagination.page_size) if total else 0,
+    )
+
+
 @router.get("", response_model=PaginatedResponse[TicketListItem])
 async def list_tickets(
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:read")),
     pagination: PaginationParams = Depends(get_pagination),
     db: AsyncSession = Depends(get_db),
     severity: Optional[str] = Query(None),
@@ -191,7 +276,7 @@ async def list_tickets(
 @router.get("/{ticket_id}", response_model=TicketDetail)
 async def get_ticket_detail(
     ticket_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:read")),
     db: AsyncSession = Depends(get_db),
 ):
     ticket = await _get_ticket_or_404(ticket_id, auth.customer_id, db)
@@ -226,7 +311,7 @@ async def get_ticket_detail(
 @router.get("/{ticket_id}/timeline", response_model=list[TicketTimelineEvent])
 async def get_ticket_timeline(
     ticket_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Agent events for all runs of this ticket, ordered by seq."""
@@ -261,7 +346,7 @@ async def get_ticket_timeline(
 @router.get("/{ticket_id}/evidence", response_model=list[EvidenceItem])
 async def get_ticket_evidence(
     ticket_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:read")),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_ticket_or_404(ticket_id, auth.customer_id, db)
@@ -281,7 +366,7 @@ async def get_ticket_evidence(
 @router.get("/{ticket_id}/hypotheses", response_model=list[HypothesisItem])
 async def get_ticket_hypotheses(
     ticket_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Extract hypotheses from the latest run's state_json."""
@@ -308,7 +393,7 @@ async def get_ticket_hypotheses(
 @router.get("/{ticket_id}/facts", response_model=list[FactItem])
 async def get_ticket_facts(
     ticket_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Extract structured facts from the latest run's state_json."""
@@ -340,7 +425,7 @@ async def get_ticket_facts(
 @router.get("/{ticket_id}/plan", response_model=PlanResponse)
 async def get_ticket_plan(
     ticket_id: str,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:read")),
     db: AsyncSession = Depends(get_db),
 ):
     """Extract resolution plan from the latest run's state_json."""
@@ -364,7 +449,7 @@ async def get_ticket_plan(
 @router.get("/{ticket_id}/report", response_model=TicketReportResponse)
 async def get_ticket_report(
     ticket_id: str,
-    auth: AuthContext = Depends(require_role("viewer")),
+    auth: AuthContext = Depends(require_permission("tickets:read")),
     db: AsyncSession = Depends(get_db),
 ):
     await _get_ticket_or_404(ticket_id, auth.customer_id, db)
@@ -390,7 +475,7 @@ async def get_ticket_report(
 async def retry_ticket(
     ticket_id: str,
     background_tasks: BackgroundTasks,
-    auth: AuthContext = Depends(require_role("operator")),
+    auth: AuthContext = Depends(require_permission("tickets:write")),
     db: AsyncSession = Depends(get_db),
 ):
     """Re-run the pipeline for an existing ticket."""

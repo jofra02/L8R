@@ -54,11 +54,21 @@ def create_app() -> FastAPI:
     from src.api.routers.tickets import router as tickets_router
     from src.api.routers.runs import router as runs_router
     from src.api.routers.audit import router as audit_router
+    from src.api.routers.users import router as users_router
+    from src.api.routers.profiles import router as profiles_router
+    from src.api.routers.tenants import router as tenants_router
+    from src.api.routers.assignments import router as assignments_router
+    from src.api.routers.inventory import router as inventory_router
 
     application.include_router(auth_router, prefix="/api/v1")
     application.include_router(tickets_router, prefix="/api/v1")
     application.include_router(runs_router, prefix="/api/v1")
     application.include_router(audit_router, prefix="/api/v1")
+    application.include_router(users_router, prefix="/api/v1")
+    application.include_router(profiles_router, prefix="/api/v1")
+    application.include_router(tenants_router, prefix="/api/v1")
+    application.include_router(assignments_router, prefix="/api/v1")
+    application.include_router(inventory_router, prefix="/api/v1")
 
     # --- Legacy webhook (backward compat with X-Customer-ID header) ---
     _mount_legacy_webhook(application)

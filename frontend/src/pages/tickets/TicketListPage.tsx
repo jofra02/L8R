@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantNavigate";
 import { Plus } from "lucide-react";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -12,7 +12,7 @@ import { TicketSubmitModal } from "./TicketSubmitModal";
 import type { TicketListItem } from "@/api/types";
 
 export function TicketListPage() {
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const { page, pageSize, setPage, reset } = usePagination();
   const [severity, setSeverity] = useState("");
   const [mode, setMode] = useState("");

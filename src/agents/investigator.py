@@ -66,9 +66,13 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
 
     logger.info(f"Investigator: Verifying Hypothesis (Rank {target_hypothesis.rank}): {target_hypothesis.summary}")
 
+    ticket = state["ticket"]
+    customer_id = state.get("customer_id", "unknown")
+    run_id = state.get("meta", {}).get("run_id")
     store = EvidenceStore(
-        customer_id=state.get("customer_id", "unknown"),
-        run_id=state.get("meta", {}).get("run_id")
+        customer_id=customer_id,
+        run_id=run_id,
+        ticket_id=ticket.id,
     )
 
     # Build dedup set from prior invocations + existing evidence_refs
@@ -89,7 +93,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
     target_component = components[0] if components else None
 
     # 3. Use ToolSelector in investigation mode
-    selector = ToolSelector(customer_id=customer_id)
+    selector = ToolSelector(customer_id=customer_id, run_id=run_id)
     ctx = ToolSelectionContext(
         ticket_text=state["ticket"].text + question_context,
         component=target_component,
@@ -156,7 +160,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         try:
             logger.info(f"Investigator: Executing {tool_name} with {tool_args}")
 
-            executor = AdaptiveExecutor(customer_id=customer_id)
+            executor = AdaptiveExecutor(customer_id=customer_id, run_id=run_id)
             facts_str = json.dumps(state.get("facts", {}), default=str)
             best_comp = next((c for c in components if c.id in str(tool_args.values())), components[0] if components else None)
             comp_meta = json.dumps(best_comp.metadata, default=str) if best_comp and best_comp.metadata else "{}"

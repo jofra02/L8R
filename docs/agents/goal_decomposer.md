@@ -1,28 +1,50 @@
 # Goal Decomposer Agent
 
-> Decomposes change/request tickets into structured fulfillment goals instead of hypotheses.
+> Decomposes change tickets into structured fulfillment goals instead of hypotheses.
 
 ## Overview
 
-The Goal Decomposer (`src/agents/goal_decomposer.py`) handles tickets where the intent is fulfillment rather than troubleshooting. When `ticket.mode` is `"change"` or `"request"`, the pipeline routes to this agent instead of hypothesis generation.
+The Goal Decomposer (`src/agents/goal_decomposer.py`) handles tickets where the intent is fulfillment rather than troubleshooting. When `ticket.mode` is `"change"`, the supervisor routes to this agent instead of continuing the hypothesis-driven investigation path.
 
 Rather than diagnosing what went wrong, the agent produces a set of `FulfillmentGoal` objects that describe what needs to be accomplished. Each goal includes preconditions that must hold before execution, validation criteria that define how to confirm completion, and optional sub-goal references that form a dependency DAG.
+
+The agent is domain-agnostic: the prompt is technology-neutral and works across networking, infrastructure, cloud, application, database, security, and any other IT domain.
 
 The agent is re-entrant. If goals from a prior decomposition are still pending or in progress, it skips re-decomposition. Completed goals from prior runs are preserved and merged with newly generated goals.
 
 ## When Called
 
-Routed by supervisor when the ticket mode is `"change"`, no fulfillment goals exist yet, and no hypotheses have been generated (priority 7).
+Routed by the supervisor when `ticket.mode == "change"` and no fulfillment goals exist yet.
 
 ```python
-ticket_mode = ticket.mode if ticket else "incident"
-if ticket_mode == "change" and not state.get("fulfillment_goals") and not state.get("hypotheses"):
-    return "goal_decomposer"
+if ticket_mode == "change":
+    goals = state.get("fulfillment_goals")
+    if not goals:
+        return "goal_decomposer"
 ```
 
 Return: Fixed edge → supervisor.
 
-## Flow Diagram
+## Change Ticket Lifecycle
+
+The supervisor manages the full change ticket lifecycle:
+
+```
+goal_decomposer → supervisor → planner_agent → supervisor → response_agent
+```
+
+After goals are produced, the supervisor routes to the Resolution Planner (which generates an implementation plan from goals), then to the Response Agent (which presents the goals and plan).
+
+```mermaid
+flowchart LR
+    SUP1[Supervisor] -->|no goals| GD[Goal Decomposer]
+    GD --> SUP2[Supervisor]
+    SUP2 -->|goals exist, no plan| PL[Resolution Planner]
+    PL --> SUP3[Supervisor]
+    SUP3 -->|plan exists| RA[Response Agent]
+```
+
+## Agent Flow Diagram
 
 ```mermaid
 flowchart TD
@@ -103,13 +125,16 @@ flowchart TD
 
 ### Where Output Goes
 
-`fulfillment_goals` are consumed by the [Supervisor](supervisor.md) (presence triggers routing to resolution planner instead of hypothesis path), [Resolution Planner](resolution_planner.md) (generates execution plan from goals), and [Response Agent](response.md) (includes goals in the final report).
+`fulfillment_goals` are consumed by:
+- [Supervisor](supervisor.md) — presence triggers routing to resolution planner (skipping hypothesis/scoring gate)
+- [Resolution Planner](resolution_planner.md) — generates an implementation plan from goals (pre-checks, implementation steps, validation, rollback)
+- [Response Agent](response.md) — includes goals with status, preconditions, and validation criteria in the final report
 
 ## Configuration
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `LLM_MODEL_HYPOTHESIS` | `gpt-5.2` | Shared LLM profile (via `goal_decomposer` agent key) |
+| `LLM_MODEL_HYPOTHESIS` | `gpt-5.4` | Shared LLM profile (via `goal_decomposer` agent key) |
 
 ## Key Implementation Details
 
@@ -117,14 +142,26 @@ flowchart TD
 - LLM temperature set to `0.0` for deterministic goal decomposition.
 - Generates 1-5 goals per decomposition pass.
 - Each `FulfillmentGoal` contains: `id`, `description`, `preconditions`, `validation_criteria`, `status`, `sub_goals` (list of child goal IDs).
-- Goal statuses: `pending`, `in_progress`, `completed`.
+- Goal statuses: `pending`, `in_progress`, `completed`, `blocked`.
 - Goals are ordered by dependency -- prerequisite goals appear first.
 - `sub_goals` field references child goal IDs, forming a directed acyclic graph.
 - Merge strategy: preserves goals with status `completed` from prior iterations; replaces pending/in_progress goals with fresh decomposition.
 - Skip condition: if any goals have status `pending` or `in_progress`, the agent returns early to avoid disrupting active work.
 - Context includes: formatted components (with vendor info), facts, and evidence summaries (max 8 items).
+- Domain-agnostic: the prompt contains no technology-specific terminology or bias.
+
+## Pipeline Integration Notes
+
+The graph defines a hard-edge chain `evidence_collector → enricher → hypothesis → scoring → supervisor`. This means the first pass through the pipeline always runs enricher/hypothesis/scoring for change tickets. This is by design — the enricher produces useful facts and topology data. When the supervisor re-evaluates after this chain, it detects `ticket.mode == "change"` and routes to the goal decomposer, bypassing the hypothesis-driven scoring gate from that point forward.
+
+The change ticket path through the supervisor is:
+1. No goals → `goal_decomposer`
+2. Goals exist, no plan → `planner_agent`
+3. Plan exists → `response_agent`
 
 ## See Also
 
-- [Supervisor Agent](supervisor.md) -- routes change/request tickets to this agent
-- [Resolution Planner](resolution_planner.md) -- consumes fulfillment goals to generate execution plans
+- [Supervisor Agent](supervisor.md) — routes change tickets through the goal lifecycle
+- [Resolution Planner](resolution_planner.md) — generates implementation plan from goals
+- [Response Agent](response.md) — presents goals and plan in the final report
+- [Classifier Agent](classifier.md) — determines ticket mode (may override ingestion mode to "change")
