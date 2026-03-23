@@ -55,21 +55,20 @@ async def receive_webhook(
         if not customer_id:
             raise HTTPException(status_code=400, detail="Missing X-Customer-ID header")
             
-        ticket_id, job_id, text = await service.ingest_webhook(source_id, payload, customer_id)
-        
+        ticket, job_id = await service.ingest_webhook(source_id, payload, customer_id)
+
         # Dispatch the backend execution
         background_tasks.add_task(
             service.run_pipeline_background,
-            ticket_id=ticket_id,
+            ticket=ticket,
             run_id=job_id,
             customer_id=customer_id,
-            text=text
         )
-        
+
         return {
             "status": "accepted",
             "message": "Ticket ingested. Processing launched in background.",
-            "ticket_id": ticket_id,
+            "ticket_id": ticket.id,
             "job_id": job_id
         }
     except Exception as e:

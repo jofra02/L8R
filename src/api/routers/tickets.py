@@ -90,19 +90,18 @@ async def submit_ticket(
     }
 
     service = IngestionService(db)
-    ticket_id, job_id, text = await service.ingest_webhook(body.source, payload, auth.customer_id)
+    ticket, job_id = await service.ingest_webhook(body.source, payload, auth.customer_id)
 
     background_tasks.add_task(
         service.run_pipeline_background,
-        ticket_id=ticket_id,
+        ticket=ticket,
         run_id=job_id,
         customer_id=auth.customer_id,
-        text=text,
     )
 
     return {
         "status": "accepted",
-        "ticket_id": ticket_id,
+        "ticket_id": ticket.id,
         "job_id": job_id,
     }
 
@@ -395,7 +394,8 @@ async def retry_ticket(
     db: AsyncSession = Depends(get_db),
 ):
     """Re-run the pipeline for an existing ticket."""
-    ticket = await _get_ticket_or_404(ticket_id, auth.customer_id, db)
+    from src.core.models import Ticket as TicketModel
+    ticket_orm = await _get_ticket_or_404(ticket_id, auth.customer_id, db)
 
     from src.ingestion.service import IngestionService
     service = IngestionService(db)
@@ -405,12 +405,21 @@ async def retry_ticket(
     trace_id = str(uuid.uuid4())
     job_id = await service.audit.create_run(ticket_id, trace_id, auth.customer_id)
 
+    # Reconstruct domain Ticket from ORM
+    ticket = TicketModel(
+        id=ticket_orm.id,
+        mode=ticket_orm.mode,
+        text=ticket_orm.text,
+        severity=ticket_orm.severity,
+        source=ticket_orm.source,
+        raw_payload=ticket_orm.raw_payload or {},
+    )
+
     background_tasks.add_task(
         service.run_pipeline_background,
-        ticket_id=ticket_id,
+        ticket=ticket,
         run_id=job_id,
         customer_id=auth.customer_id,
-        text=ticket.text,
     )
 
     return {

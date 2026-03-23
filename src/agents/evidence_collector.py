@@ -90,7 +90,7 @@ async def evidence_collector_node(state: GlobalState) -> Dict[str, Any]:
                 evidence_summaries=evidence_context,
                 mode="evidence",
             )
-            selections = await selector.select_tools(ctx, max_tools=8)
+            selections = await selector.select_tools(ctx)
 
             # Resolve prerequisite tools for selections with missing params
             selections, prereq_evidence = await selector.resolve_prerequisites(
@@ -301,7 +301,7 @@ async def _collect_relational_evidence(
             components=components,
             mode="relational",
         )
-        selections = await selector.select_tools(ctx, max_intents=3, max_tools=5)
+        selections = await selector.select_tools(ctx, max_intents=3)
 
         for sel in selections:
             t_name = sel.name

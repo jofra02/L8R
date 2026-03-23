@@ -42,7 +42,6 @@ class ToolSelector:
         context: ToolSelectionContext,
         max_intents: int = 3,
         max_candidates_per_intent: int = 10,
-        max_tools: int = 8,
     ) -> List[ToolSelection]:
         """Full pipeline: intents → retrieval → evaluation → arg binding."""
         # Phase 1
@@ -65,12 +64,10 @@ class ToolSelector:
         evaluations = await self.evaluate_candidates(candidates, context)
         approved = [e for e in evaluations if e.relevant]
         approved.sort(key=lambda e: e.priority)
-        approved = approved[:max_tools]
 
         logger.info(
             f"ToolSelector: {len(evaluations)} evaluated, "
-            f"{len([e for e in evaluations if e.relevant])} approved, "
-            f"{len(approved)} after max_tools clip"
+            f"{len(approved)} approved"
         )
 
         if not approved:
@@ -375,6 +372,27 @@ Irrelevant tools: set priority=0.
         else:
             comp_section = "No specific component."
 
+        # Build ticket context for arg binding (Phase 4 fix: LLM needs ticket text)
+        ticket_section = ""
+        if context.ticket_text:
+            ticket_section = f'TICKET:\n"{context.ticket_text}"'
+
+        # Build evidence context (useful on subsequent passes / multi-component loops)
+        evidence_section = ""
+        if context.evidence_summaries:
+            evidence_section = f"PRIOR EVIDENCE:\n{context.evidence_summaries[:2000]}"
+
+        # Build facts section from context (Change 1: include fact VALUES)
+        facts_section = ""
+        if context.facts:
+            real_facts = {k: v for k, v in context.facts.items() if not k.startswith("_")}
+            if real_facts:
+                fact_lines = []
+                for k, v in list(real_facts.items())[:30]:
+                    val_str = str(v)[:200]
+                    fact_lines.append(f"- {k}: {val_str}")
+                facts_section = "KNOWN FACTS (from prior investigation):\n" + "\n".join(fact_lines)
+
         # Build tool descriptions with full schema
         tool_lines = []
         for idx, ev in enumerate(approved, 1):
@@ -388,6 +406,12 @@ Irrelevant tools: set priority=0.
 
         prompt = f"""{comp_section}
 
+{ticket_section}
+
+{evidence_section}
+
+{facts_section}
+
 APPROVED TOOLS (configure arguments for each):
 {tools_block}
 
@@ -395,11 +419,16 @@ APPROVED TOOLS (configure arguments for each):
 
 GUIDELINES:
 1. For 'device', 'host', 'hostname' args: use the component ID of the executor-role component.
-2. For target/address parameters: match the component ID or metadata values to the parameter's schema type and description. If the schema expects a single host and the available value is an aggregate (e.g. subnet, group, cluster), derive an appropriate singular value.
+2. For target/address/destination parameters: extract values from the TICKET text and component metadata. Match IPs, subnets, hostnames, policy names, etc. from the ticket to the parameter's schema type and description. If the schema expects a single host and the available value is an aggregate (e.g. subnet, group, cluster), derive an appropriate singular value.
 3. Use ALL metadata fields to fill matching parameters.
 4. Analyze Schema: distinguish mandatory vs optional parameters.
-5. ANTI-HALLUCINATION: Do NOT invent parameter values. Bind all parameters you CAN determine from context. Omit parameters you cannot determine — do NOT guess.
-6. READ-ONLY only. No modify/delete/configure actions.
+5. OPERATIONAL vs CONTEXTUAL parameters — classify each required parameter by its schema description:
+   - OPERATIONAL: controls API behavior (result limits, pagination, timeouts, sort order, output format, batch size). Descriptions typically say "max", "limit", "number of", "timeout", "page", "sort", "count". For these, assign a sensible default (e.g., 100 for result counts, 30 for timeouts). This is standard API usage, not guessing.
+   - CONTEXTUAL: identifies WHAT to query (IPs, hostnames, policy names, interfaces, resource IDs). These MUST come from TICKET, KNOWN FACTS, PRIOR EVIDENCE, or metadata.
+   When uncertain, treat as contextual.
+6. ANTI-HALLUCINATION: Do NOT invent CONTEXTUAL parameter values. Bind contextual params only from TICKET, KNOWN FACTS, PRIOR EVIDENCE, or component metadata. For OPERATIONAL parameters, provide sensible defaults per guideline 5.
+7. READ-ONLY only. No modify/delete/configure actions.
+8. Use KNOWN FACTS values to bind parameters when a fact key/value matches a parameter's purpose.
 
 Return ONLY a JSON list (one entry per approved tool):
 [
@@ -445,8 +474,9 @@ Return ONLY a JSON list (one entry per approved tool):
                     missing_params=missing,
                 ))
 
-            # Recover approved tools that the LLM omitted from Phase 4
+            # Recover approved tools the LLM omitted — three-tier recovery
             bound_names = {s.name for s in selections}
+            omitted_count = 0
             for ev in approved:
                 if ev.tool_name not in bound_names:
                     cand = candidate_map.get(ev.tool_name)
@@ -455,17 +485,45 @@ Return ONLY a JSON list (one entry per approved tool):
                     schema = cand.args_schema or {}
                     required_fields = schema.get("required", [])
                     properties = schema.get("properties", {})
-                    missing = {
-                        f: properties.get(f, {}).get("description", f"required parameter '{f}'")
-                        for f in required_fields
-                    }
-                    selections.append(ToolSelection(
-                        name=ev.tool_name, args={}, evaluation=ev,
-                        missing_params=missing,
-                    ))
-                    logger.info(f"ToolSelector: Recovered omitted tool {ev.tool_name} (missing: {list(missing.keys())})")
 
-            logger.info(f"ToolSelector: {len(selections)} tools with bound arguments.")
+                    # Tier 1: No required params — recover with empty args
+                    if not required_fields:
+                        selections.append(ToolSelection(
+                            name=ev.tool_name, args={}, evaluation=ev,
+                            missing_params={},
+                        ))
+                        logger.info(f"ToolSelector: Recovered {ev.tool_name} (no required params)")
+                        continue
+
+                    # Tier 2: All required params are operational — recover with defaults
+                    operational_defaults = await self._classify_params_as_operational(
+                        ev.tool_name, required_fields, properties, cand,
+                    )
+                    if operational_defaults is not None:
+                        selections.append(ToolSelection(
+                            name=ev.tool_name, args=operational_defaults, evaluation=ev,
+                            missing_params={},
+                        ))
+                        logger.info(
+                            f"ToolSelector: Recovered {ev.tool_name} with operational defaults: "
+                            f"{operational_defaults}"
+                        )
+                        continue
+
+                    # Tier 3: Mixed/contextual params — trust LLM omission
+                    omitted_count += 1
+                    logger.info(
+                        f"ToolSelector: LLM omitted {ev.tool_name} from binding "
+                        f"(required: {required_fields}) — not recovering"
+                    )
+
+            # Metrics logging (Change 5)
+            bound_count = len([s for s in selections if not s.missing_params])
+            partial_count = len([s for s in selections if s.missing_params])
+            logger.info(
+                f"ToolSelector: Binding result — {bound_count} fully bound, "
+                f"{partial_count} with missing params, {omitted_count} deliberately omitted"
+            )
             return selections
 
         except Exception as e:
@@ -499,28 +557,53 @@ Return ONLY a JSON list (one entry per approved tool):
         if not needs_prereq:
             return selections, []
 
+        # Change 3: Gate — only attempt prereq for tools missing exactly 1 param
+        eligible = []
+        for sel in needs_prereq:
+            if len(sel.missing_params) > 1:
+                logger.info(
+                    f"ToolSelector: Skipping prereq for {sel.name} — "
+                    f"{len(sel.missing_params)} missing params (max 1 for prereq resolution)"
+                )
+            else:
+                eligible.append(sel)
+
+        if not eligible:
+            logger.info(
+                f"ToolSelector: Prereq resolution — 0 eligible (all had >1 missing params)"
+            )
+            return selections, []
+
+        # Change 4: Group by (missing_param_keys, component_id) for shared resolution
+        def _find_component(sel):
+            for c in components:
+                if c.id in str(sel.args.values()):
+                    return c
+            return components[0] if components else None
+
+        groups: Dict[tuple, list] = {}
+        for sel in eligible:
+            comp = _find_component(sel)
+            comp_id = comp.id if comp else "unknown"
+            key = (frozenset(sel.missing_params.keys()), comp_id)
+            groups.setdefault(key, []).append((sel, comp))
+
         prereq_evidence = []
         resolved_count = 0
 
-        for sel in needs_prereq:
+        for (missing_keys, comp_id), group_entries in groups.items():
             if resolved_count >= max_prereqs:
                 break
 
+            representative_sel, target_comp = group_entries[0]
             missing_desc = "; ".join(
-                f"{k}: {v}" for k, v in sel.missing_params.items()
+                f"{k}: {v}" for k, v in representative_sel.missing_params.items()
             )
+            tool_names_in_group = [s.name for s, _ in group_entries]
             logger.info(
-                f"ToolSelector: Resolving prereqs for {sel.name} — missing: {list(sel.missing_params.keys())}"
+                f"ToolSelector: Resolving prereq group — missing: {list(missing_keys)}, "
+                f"tools: {tool_names_in_group}"
             )
-
-            # Build a focused context to find a prereq tool
-            target_comp = None
-            for c in components:
-                if c.id in str(sel.args.values()):
-                    target_comp = c
-                    break
-            if not target_comp and components:
-                target_comp = components[0]
 
             prereq_ctx = ToolSelectionContext(
                 ticket_text=f"Need to discover: {missing_desc}",
@@ -532,16 +615,16 @@ Return ONLY a JSON list (one entry per approved tool):
 
             try:
                 prereq_selections = await self.select_tools(
-                    prereq_ctx, max_intents=1, max_tools=2
+                    prereq_ctx, max_intents=1
                 )
             except Exception as e:
-                logger.warning(f"ToolSelector: Prereq search failed for {sel.name}: {e}")
+                logger.warning(f"ToolSelector: Prereq search failed for group {tool_names_in_group}: {e}")
                 continue
 
             # Filter to fully-bindable prereq tools only (single-depth)
             prereq_selections = [p for p in prereq_selections if not p.missing_params]
             if not prereq_selections:
-                logger.info(f"ToolSelector: No fully-bindable prereq found for {sel.name}")
+                logger.info(f"ToolSelector: No fully-bindable prereq found for group {tool_names_in_group}")
                 continue
 
             # Execute the best prereq tool
@@ -572,37 +655,43 @@ Return ONLY a JSON list (one entry per approved tool):
                 exec_context = (
                     f"Ticket: {state.get('ticket', {})}\n"
                     f"Component: {target_comp.id if target_comp else 'unknown'} (metadata={comp_meta})\n"
-                    f"Goal: Fetch prerequisite data for {sel.name}: {missing_desc}"
+                    f"Goal: Fetch prerequisite data for {tool_names_in_group}: {missing_desc}"
                 )
                 output = await executor.execute(
                     prereq_tool, prereq_tool_args, exec_context,
-                    intent=f"Prerequisite for {sel.name}"
+                    intent=f"Prerequisite for {tool_names_in_group}"
                 )
 
                 snapshot = await store.save_evidence(
                     tool_name=prereq_tool_name,
                     tool_args=prereq_tool_args,
                     content=output,
-                    summary=f"Prerequisite for {sel.name}: {missing_desc}"
+                    summary=f"Prerequisite for {tool_names_in_group}: {missing_desc}"
                 )
                 prereq_evidence.append(snapshot)
                 executed_signatures.add(prereq_sig)
                 logger.info(f"ToolSelector: Prereq {prereq_tool_name} executed successfully")
 
-                # Rebind: extract missing param values from prereq output
-                updated_sel = await self._rebind_with_prereq_data(
-                    sel, output, target_comp
-                )
-                # Replace in selections list
-                for i, s in enumerate(selections):
-                    if s.name == sel.name and s is sel:
-                        selections[i] = updated_sel
-                        break
+                # Rebind ALL tools in the group with the prereq output
+                for sel, sel_comp in group_entries:
+                    updated_sel = await self._rebind_with_prereq_data(
+                        sel, output, sel_comp or target_comp
+                    )
+                    for i, s in enumerate(selections):
+                        if s.name == sel.name and s is sel:
+                            selections[i] = updated_sel
+                            break
 
                 resolved_count += 1
 
             except Exception as e:
                 logger.warning(f"ToolSelector: Prereq execution failed for {prereq_tool_name}: {e}")
+
+        # Change 5: Metrics logging
+        logger.info(
+            f"ToolSelector: Prereq resolution — {len(groups)} groups, "
+            f"{resolved_count} resolved, {len(prereq_evidence)} evidence collected"
+        )
 
         return selections, prereq_evidence
 
@@ -643,7 +732,7 @@ Return ONLY a JSON list (one entry per approved tool):
 
         try:
             prereq_selections = await self.select_tools(
-                prereq_ctx, max_intents=1, max_tools=2
+                prereq_ctx, max_intents=1
             )
         except Exception as e:
             logger.warning(f"ToolSelector: Runtime dep search failed for {failed_tool_name}: {e}")
@@ -822,6 +911,85 @@ If no values can be extracted, return: {{"extracted": {{}}}}
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    async def _classify_params_as_operational(
+        self,
+        tool_name: str,
+        required_fields: list,
+        properties: dict,
+        candidate: Optional[ToolCandidate],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        LLM check: are ALL required fields operational (API-mechanical)?
+        Returns a defaults dict if yes, None if any param is contextual.
+        """
+        param_lines = []
+        for field in required_fields:
+            prop = properties.get(field, {})
+            param_lines.append(
+                f"- {field} (type: {prop.get('type', 'unknown')}): "
+                f"{prop.get('description', 'no description')}"
+            )
+        params_block = "\n".join(param_lines)
+
+        tool_desc = candidate.description if candidate else tool_name
+
+        prompt = f"""Classify each required parameter of the tool "{tool_name}" as OPERATIONAL or CONTEXTUAL.
+
+Tool description: {tool_desc}
+
+Required parameters:
+{params_block}
+
+DEFINITIONS:
+- OPERATIONAL: Controls API behavior — result limits, pagination, timeouts, sort order, output format, batch size, count of items to return. These do NOT identify what to query. Any sensible value works.
+- CONTEXTUAL: Identifies WHAT to query — IPs, hostnames, policy names, interfaces, resource IDs, device names, filter expressions that reference specific resources.
+
+Be conservative: if uncertain, classify as CONTEXTUAL.
+
+Return ONLY a JSON object:
+{{"classification": {{"param_name": "operational" | "contextual", ...}}, "defaults": {{"param_name": value, ...}}}}
+
+Include "defaults" ONLY for parameters classified as "operational". Use sensible values (e.g., 100 for counts/limits, 30 for timeouts, 0 for offsets).
+"""
+
+        try:
+            response = await self.llm.ainvoke([
+                SystemMessage(content="You classify API parameters. Be conservative — when unsure, classify as contextual."),
+                HumanMessage(content=prompt),
+            ])
+            raw = json.loads(
+                response.content.strip().replace("```json", "").replace("```", "")
+            )
+            classification = raw.get("classification", {})
+            defaults = raw.get("defaults", {})
+
+            # ALL required fields must be operational for recovery
+            for field in required_fields:
+                if classification.get(field) != "operational":
+                    logger.info(
+                        f"ToolSelector: Param '{field}' of {tool_name} classified as "
+                        f"contextual — cannot recover with defaults"
+                    )
+                    return None
+
+            # Ensure every operational field has a default
+            result = {}
+            for field in required_fields:
+                if field in defaults and defaults[field] is not None:
+                    result[field] = defaults[field]
+                else:
+                    logger.info(
+                        f"ToolSelector: No default provided for operational param '{field}' "
+                        f"of {tool_name} — cannot recover"
+                    )
+                    return None
+
+            return result
+
+        except Exception as e:
+            logger.warning(f"ToolSelector: Operational classification failed for {tool_name}: {e}")
+            return None
 
     @staticmethod
     def _format_component_for_binding(comp: Component) -> str:

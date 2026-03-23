@@ -100,7 +100,7 @@ async def investigator_agent_node(state: GlobalState) -> Dict[str, Any]:
         evidence_summaries=evidence_context,
         mode="investigation",
     )
-    selections = await selector.select_tools(ctx, max_intents=3, max_tools=5)
+    selections = await selector.select_tools(ctx, max_intents=3)
 
     # Resolve prerequisite tools for selections with missing params
     selections, prereq_evidence = await selector.resolve_prerequisites(

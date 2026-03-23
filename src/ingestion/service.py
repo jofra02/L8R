@@ -10,7 +10,6 @@ from typing import Dict, Any, Type, Tuple, Optional, List
 from src.core.langfuse_integration import langfuse_manager, set_current_trace
 import logging
 import uuid
-import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -48,35 +47,25 @@ class IngestionService:
         run_id = await self.audit.create_run(ticket.id, trace_id, customer_id)
         
         logger.info(f"Ticket {ticket.id} persisted. Run ID {run_id} created.")
-        
-        return ticket.id, run_id, ticket.text
 
-    async def run_pipeline_background(self, ticket_id: str, run_id: str, customer_id: str, text: str):
+        return ticket, run_id
+
+    async def run_pipeline_background(self, ticket: Ticket, run_id: str, customer_id: str):
         """Background task to execute the LangGraph workflow."""
-        logger.info(f"Background execution started for Run {run_id} (Ticket {ticket_id})")
-        
-        # We need a ticket object for the state. We'll reconstruct a basic one from params
-        mock_ticket = Ticket(
-            id=ticket_id,
-            mode="incident",
-            text=text,
-            severity="medium",
-            source="webhook",
-            timestamps={"created_at": datetime.datetime.now().isoformat()}
-        )
+        logger.info(f"Background execution started for Run {run_id} (Ticket {ticket.id}, mode={ticket.mode})")
         
         # Create Langfuse root trace for this pipeline execution
         trace = langfuse_manager.create_trace(
-            run_id=run_id, ticket_id=ticket_id,
-            customer_id=customer_id, thread_id=f"thread_{ticket_id}",
+            run_id=run_id, ticket_id=ticket.id,
+            customer_id=customer_id, thread_id=f"thread_{ticket.id}",
         )
         if trace:
             set_current_trace(trace)
 
         initial_state = {
-            "ticket": mock_ticket,
+            "ticket": ticket,
             "customer_id": customer_id,
-            "messages": [HumanMessage(content=text)],
+            "messages": [HumanMessage(content=ticket.text)],
             "client_context": None,
             "classification": None,
             "components": [],
@@ -108,7 +97,7 @@ class IngestionService:
         try:
             final_state = await app.ainvoke(
                 initial_state,
-                config={"configurable": {"thread_id": f"thread_{ticket_id}"}}
+                config={"configurable": {"thread_id": f"thread_{ticket.id}"}}
             )
             
             # Save final state back to the run
@@ -131,7 +120,7 @@ class IngestionService:
                 final_answer=final_answer,
                 hypothesis_count=hypothesis_count,
             )
-            logger.info(f"Background execution completed for Run {run_id}")
+            logger.info(f"Background execution completed for Run {run_id} (Ticket {ticket.id})")
 
         except Exception as e:
             logger.error(f"Background execution failed for Run {run_id}: {e}")

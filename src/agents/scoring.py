@@ -131,6 +131,11 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
 
     is_stagnant = stagnant_cycles >= 2
 
+    # 5b. Gap-filling loop cap (fast mode: max 2 needs_more_evidence cycles)
+    gap_fill_cycles = meta.get("_gap_fill_cycles", 0)
+    max_gap_fills = 1 if settings.TEST_MODE_FAST else 5
+    gap_fill_exhausted = gap_fill_cycles >= max_gap_fills
+
     # 6. Decision gate
     if pending_reqs:
         decision = "escalate_to_human"
@@ -148,15 +153,16 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
         decision = "escalate_to_human"
         rationale = f"Low confidence ({confidence:.0%}) on {ticket.severity} severity. Human review needed."
         missing_facts = best.required_facts if best else ["Initial investigation required"]
-    elif is_stagnant:
-        # Force proceed or escalate if investigation is stuck
+    elif is_stagnant or gap_fill_exhausted:
+        # Force proceed or escalate if investigation is stuck or gap-fill budget spent
+        reason = "stagnant" if is_stagnant else "gap-fill budget exhausted"
         if confidence >= 0.5:
             decision = "proceed_to_plan"
-            rationale = f"Investigation stagnant ({stagnant_cycles} cycles with no new facts). Proceeding with {confidence:.0%} confidence."
+            rationale = f"Investigation {reason} ({gap_fill_cycles} gap-fill cycles). Proceeding with {confidence:.0%} confidence."
             missing_facts = []
         else:
             decision = "escalate_to_human"
-            rationale = f"Investigation stagnant ({stagnant_cycles} cycles) with low confidence ({confidence:.0%}). Human review needed."
+            rationale = f"Investigation {reason} ({gap_fill_cycles} gap-fill cycles) with low confidence ({confidence:.0%}). Human review needed."
             missing_facts = best.required_facts if best else ["Investigation stalled"]
     else:
         decision = "needs_more_evidence"
@@ -184,9 +190,10 @@ async def scoring_agent_node(state: GlobalState) -> Dict[str, Any]:
         f"decision={scoring.decision} — {scoring.rationale}"
     )
     
-    # Persist stagnation tracking in meta
+    # Persist stagnation + gap-fill tracking in meta
     updated_meta = dict(meta)
     updated_meta["_last_fact_count"] = current_fact_count
     updated_meta["_stagnant_cycles"] = stagnant_cycles
+    updated_meta["_gap_fill_cycles"] = gap_fill_cycles + 1 if decision == "needs_more_evidence" else gap_fill_cycles
 
     return {"scoring": scoring, "meta": updated_meta}

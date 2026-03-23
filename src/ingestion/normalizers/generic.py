@@ -4,18 +4,35 @@ from datetime import datetime
 from src.core.models import Ticket, TicketMode, Severity
 from src.core.interfaces import IngestorInterface
 
+_CHANGE_KW = ("change", "implement", "deploy", "provision", "install", "migrate", "upgrade")
+_VALIDATION_KW = ("validation", "validate", "verify", "audit", "check", "compliance")
+_INQUIRY_KW = ("inquiry", "question", "info", "information", "how", "explain")
+
+
+def _detect_mode(raw: str) -> TicketMode:
+    """Keyword-based first-pass mode detection from the raw type field."""
+    s = raw.lower()
+    if any(k in s for k in _CHANGE_KW):
+        return "change"
+    if any(k in s for k in _VALIDATION_KW):
+        return "validation"
+    if any(k in s for k in _INQUIRY_KW):
+        return "inquiry"
+    return "incident"
+
+
 class GenericNormalizer:
     """Default normalization logic."""
-    
+
     def normalize(self, raw_data: Dict[str, Any], source_id: str = "generic") -> Ticket:
         # Generate stable ID if not present
         raw_id = str(raw_data.get("id") or raw_data.get("ticket_id") or "")
         if not raw_id:
             raw_id = hashlib.md5(str(raw_data).encode()).hexdigest()
-            
+
         # Extract mode
-        mode_str = raw_data.get("type", "incident").lower()
-        mode: TicketMode = "change" if "change" in mode_str or "implement" in mode_str else "incident"
+        mode_str = raw_data.get("type", raw_data.get("mode", "incident"))
+        mode: TicketMode = _detect_mode(mode_str)
         
         # Extract severity
         sev_str = raw_data.get("severity", "medium").lower()

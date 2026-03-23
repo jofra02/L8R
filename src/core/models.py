@@ -208,6 +208,8 @@ class Classification(BaseModel):
     domains: List[str] = Field(default_factory=list)
     confidence: float = 0.0
     rationale: str = ""
+    mode: TicketMode = "incident"
+    mode_confidence: float = 0.0
 
 class HandoffPackage(BaseModel):
     """Final output artifact for human consumption."""

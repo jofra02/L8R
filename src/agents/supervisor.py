@@ -66,9 +66,21 @@ def supervisor_router(state: GlobalState) -> Literal[
         logger.info(f"Supervisor: Blocking Requirements detected ({len(pending_reqs)}). Routing to Response for User Input.")
         return "response_agent"
 
-    # 5b. Fulfillment path: change/request tickets go to goal decomposer (P6)
+    # 5b. Mode-aware routing
     ticket = state.get("ticket")
     ticket_mode = ticket.mode if ticket else "incident"
+
+    # Validation / Inquiry short path: evidence → enrich → response (skip hypothesis loop)
+    if ticket_mode in ("validation", "inquiry"):
+        has_facts = state.get("facts") or state.get("structured_facts")
+        if has_facts:
+            logger.info(f"Supervisor: {ticket_mode} ticket with facts → response_agent (short path)")
+            return "response_agent"
+        else:
+            logger.info(f"Supervisor: {ticket_mode} ticket needs enrichment")
+            return "enricher_agent"
+
+    # Fulfillment path: change tickets go to goal decomposer (P6)
     if ticket_mode == "change" and not state.get("fulfillment_goals") and not state.get("hypotheses"):
         logger.info("Supervisor: Change ticket → goal decomposer.")
         return "goal_decomposer"
@@ -116,6 +128,9 @@ def supervisor_router(state: GlobalState) -> Literal[
         # If we have a verified hypothesis but no scoring yet, go to planner
         verified = [h for h in hypotheses if h.status == "verified"]
         if verified:
+            if state.get("plan"):
+                logger.info("Supervisor: Fallback — plan already exists, routing to response.")
+                return "response_agent"
             return "planner_agent"
 
         # If proposed/verifying, go to investigation planner first

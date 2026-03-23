@@ -68,12 +68,18 @@ def _extract_tool_metadata(
                 vendor = v
                 break
 
-    # 2. Method: prefix match first, then embedded _method_ scan
+    # 2. Method: prefix match → suffix match → embedded _method_ scan
     method = "unknown"
     for m in (*_READ_METHODS, *_WRITE_METHODS):
         if name_lower.startswith(m + "_") or name_lower == m:
             method = m
             break
+    if method == "unknown":
+        # Suffix match: tool names like "fgt_cmdb_voip_profile_post"
+        for m in (*_WRITE_METHODS, *_READ_METHODS):
+            if name_lower.endswith("_" + m):
+                method = m
+                break
     if method == "unknown":
         best_pos = -1
         for m in (*_READ_METHODS, *_WRITE_METHODS):
@@ -82,8 +88,12 @@ def _extract_tool_metadata(
                 best_pos = pos
                 method = m
 
-    # 3. Read-only: derived from method
+    # 3. Read-only: derived from method; description prefix as fallback
     read_only = method in _READ_METHODS or method == "unknown"
+    if read_only and method == "unknown":
+        desc_first = (description or "").strip().split(" ")[0].lower()
+        if desc_first in ("create", "delete", "update", "remove", "modify"):
+            read_only = False
 
     # 4. Category: keyword scan on name + description
     category = "general"
