@@ -2,7 +2,9 @@ from typing import Dict, List, Any, Optional
 from src.core.interfaces import MCPToolInterface, CapabilityPackInterface
 from src.mcp.client import MCPClient
 from src.config import settings
+from src.core.tool_categories import get_categories_prompt_block, get_all_category_slugs
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -14,25 +16,6 @@ _READ_METHODS = frozenset({
 _WRITE_METHODS = frozenset({
     "post", "put",
 })
-
-_CATEGORY_KEYWORDS = {
-    "routing": ["route", "routing", "bgp", "ospf", "static_route", "rib"],
-    "policy": ["policy", "rule", "acl", "firewall_rule", "security_rule", "filter"],
-    "interface": ["interface", "port", "vlan", "link", "nic", "adapter"],
-    "performance": ["cpu", "memory", "disk", "utilization", "load", "throughput", "latency", "metric"],
-    "logs": ["log", "syslog", "event", "alert", "audit"],
-    "config": ["config", "configuration", "setting"],
-    "status": ["status", "health", "state", "uptime", "availability"],
-    "inventory": ["inventory", "asset", "device", "host", "node"],
-    "session": ["session", "connection", "arp", "mac_table", "neighbor"],
-    "certificate": ["cert", "certificate", "ssl", "tls"],
-    "dns": ["dns", "resolve", "domain", "nameserver"],
-    "user": ["user", "account", "permission", "role", "auth"],
-    "container": ["container", "pod", "kubernetes", "k8s", "docker"],
-    "database": ["database", "db", "table", "replication", "replica"],
-    "storage": ["storage", "volume", "disk", "mount", "filesystem"],
-    "network": ["network", "subnet", "cidr", "ip", "nat", "vpn", "tunnel"],
-}
 
 _VENDOR_PATTERNS = {
     "fortinet": ["fortigate", "fortinet", "forti", "fgt"],
@@ -95,12 +78,8 @@ def _extract_tool_metadata(
         if desc_first in ("create", "delete", "update", "remove", "modify"):
             read_only = False
 
-    # 4. Category: keyword scan on name + description
-    category = "general"
-    for cat, keywords in _CATEGORY_KEYWORDS.items():
-        if any(kw in combined for kw in keywords):
-            category = cat
-            break
+    # 4. Categories: assigned by LLM in index_tools(), empty here
+    categories = []
 
     # 5. Param count
     required = args_schema_json.get("required", []) if args_schema_json else []
@@ -109,7 +88,7 @@ def _extract_tool_metadata(
         "vendor": vendor,
         "method": method,
         "read_only": read_only,
-        "category": category,
+        "categories": categories,
         "param_count": len(required),
     }
 
@@ -296,12 +275,21 @@ class CapabilityRegistry:
                     "description": tool.description or tool.name,
                     "server_name": server_name,
                     "args_schema": args_schema_json,
-                    **meta,
+                    "vendor": meta["vendor"],
+                    "method": meta["method"],
                     "read_only": "true" if meta["read_only"] else "false",
+                    "categories": [],  # filled by LLM below
+                    "param_count": meta["param_count"],
                 })
                 ids.append(vector_store._generate_id(dedup_key))
             except Exception as e:
                 logger.warning(f"Registry: Failed to prepare tool {tool.name}: {e}")
+
+        # LLM-driven category assignment (batched 15-20 tools per prompt)
+        if metadatas:
+            llm_categories = await cls._assign_categories_via_llm(metadatas)
+            for i, cats in enumerate(llm_categories):
+                metadatas[i]["categories"] = cats
 
         if texts:
             await vector_store.batch_index_tools(
@@ -311,10 +299,80 @@ class CapabilityRegistry:
         logger.info(f"Registry: Indexed {len(texts)}/{len(new_tools)} new tools (global)")
 
     @classmethod
+    async def _assign_categories_via_llm(cls, metadatas: List[dict]) -> List[List[str]]:
+        """Batch-assign IT domain categories to tools via LLM.
+
+        Sends batches of 15-20 tools, each with name + truncated description.
+        Returns a list of category lists, one per tool (same order as metadatas).
+        """
+        from langchain_core.messages import SystemMessage, HumanMessage
+        from src.core.llm import LLMFactory
+
+        llm = LLMFactory.get_model_for_agent("classifier")
+        valid_slugs = get_all_category_slugs()
+        taxonomy_block = get_categories_prompt_block()
+        batch_size = 18
+        all_categories: List[List[str]] = [[] for _ in metadatas]
+
+        for batch_start in range(0, len(metadatas), batch_size):
+            batch = metadatas[batch_start:batch_start + batch_size]
+            tool_lines = []
+            for m in batch:
+                desc = (m.get("description") or m["tool_name"])[:150]
+                tool_lines.append(f"- {m['tool_name']}: {desc}")
+            tools_block = "\n".join(tool_lines)
+
+            prompt = (
+                f"Assign 1-5 IT domain categories to each tool from the taxonomy below.\n\n"
+                f"## Taxonomy\n{taxonomy_block}\n\n"
+                f"## Tools\n{tools_block}\n\n"
+                f"Return ONLY valid JSON array. Each element: "
+                f'{{\"tool\": \"<name>\", \"categories\": [\"<slug>\", ...]}}\n'
+                f"Rules:\n"
+                f"- Use ONLY slugs from the taxonomy above\n"
+                f"- Assign 1-5 categories per tool based on what IT domain the tool operates in\n"
+                f"- If uncertain, assign [\"general\"]\n"
+                f"- Output nothing except the JSON array"
+            )
+
+            try:
+                response = await llm.ainvoke([
+                    SystemMessage(content="You are an IT tool classification specialist. Assign domain categories to tools."),
+                    HumanMessage(content=prompt),
+                ])
+                raw = response.content.strip().replace("```json", "").replace("```", "")
+                results = json.loads(raw)
+
+                # Build lookup: tool_name → categories
+                cat_map = {}
+                for entry in results:
+                    name = entry.get("tool", "")
+                    cats = entry.get("categories", [])
+                    # Validate slugs, cap at 5
+                    valid_cats = [c for c in cats if c in valid_slugs][:5]
+                    cat_map[name] = valid_cats if valid_cats else ["general"]
+
+                # Map back to batch positions
+                for i, m in enumerate(batch):
+                    idx = batch_start + i
+                    all_categories[idx] = cat_map.get(m["tool_name"], ["general"])
+
+                logger.info(
+                    f"Registry: LLM categorized batch {batch_start//batch_size + 1} "
+                    f"({len(batch)} tools)"
+                )
+            except Exception as e:
+                logger.warning(f"Registry: LLM category assignment failed for batch: {e}")
+                for i in range(len(batch)):
+                    all_categories[batch_start + i] = ["general"]
+
+        return all_categories
+
+    @classmethod
     async def semantic_search_tools(
         cls, intent: str, customer_id: str, limit: int = 8,
         vendor: str = None, method: str = None,
-        read_only: bool = None, category: str = None,
+        read_only: bool = None, categories: List[str] = None,
     ) -> List[MCPToolInterface]:
         """
         Semantic search for tools by INTENT (what you want to accomplish).
@@ -331,7 +389,7 @@ class CapabilityRegistry:
                 vendor=vendor,
                 method=method,
                 read_only=read_only,
-                category=category,
+                categories=categories,
             )
             
             # Map back to actual tool objects

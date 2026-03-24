@@ -6,12 +6,14 @@ from src.api.exceptions import register_exception_handlers
 from src.utils.logger import setup_logging
 import logging
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize logging first (must happen after uvicorn configures its own loggers)
+    setup_logging()
+
     # Startup: same as legacy ingestion app
     from src.core.registry import CapabilityRegistry
     logger.info("Initializing Capability Registry and MCP tools...")

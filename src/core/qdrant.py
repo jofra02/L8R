@@ -56,7 +56,7 @@ COLLECTION_INDEXES: Dict[str, List[tuple]] = {
         ("vendor", models.PayloadSchemaType.KEYWORD),
         ("method", models.PayloadSchemaType.KEYWORD),
         ("read_only", models.PayloadSchemaType.KEYWORD),
-        ("category", models.PayloadSchemaType.KEYWORD),
+        ("categories", models.PayloadSchemaType.KEYWORD),
         ("source_type", models.PayloadSchemaType.KEYWORD),
     ],
 }
@@ -516,7 +516,7 @@ class VectorStore:
         self, tool_name: str, description: str, args_schema_json: dict,
         server_name: str, customer_id: str,
         vendor: str = "", method: str = "", read_only: bool = True,
-        category: str = "", param_count: int = 0,
+        categories: List[str] = None, param_count: int = 0,
     ):
         """
         Index a tool by its DESCRIPTION (semantic content), not its name.
@@ -550,7 +550,7 @@ class VectorStore:
                 "vendor": vendor,
                 "method": method,
                 "read_only": "true" if read_only else "false",
-                "category": category,
+                "categories": categories or [],
                 "param_count": param_count,
             }],
             ids=[self._generate_id(dedup_key)],
@@ -622,7 +622,7 @@ class VectorStore:
         vendor: str = None,
         method: str = None,
         read_only: bool = None,
-        category: str = None,
+        categories: List[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Semantic search for tools by INTENT description.
@@ -646,12 +646,13 @@ class VectorStore:
             extra_filter.append(models.FieldCondition(
                 key="read_only", match=models.MatchValue(value="true" if read_only else "false")
             ))
-        if category:
+        if categories:
             extra_filter.append(models.FieldCondition(
-                key="category", match=models.MatchValue(value=category.lower())
+                key="categories",
+                match=models.MatchAny(any=[c.lower() for c in categories]),
             ))
 
-        logger.debug(f"search_tool_catalog: query='{intent}', vendor={vendor}, read_only={read_only}, category={category}")
+        logger.debug(f"search_tool_catalog: query='{intent}', vendor={vendor}, read_only={read_only}, categories={categories}")
         results = await self.search(
             "tool_catalog", intent, customer_id, limit,
             score_threshold=threshold,
@@ -660,19 +661,25 @@ class VectorStore:
         return [pt.payload for pt in results]
 
     async def _check_catalog_needs_migration(self, customer_id: str) -> bool:
-        """Check if tool_catalog points have the vendor field (metadata enrichment migration)."""
+        """Check if tool_catalog points need re-indexing (missing vendor or categories)."""
         await self.ensure_collection("tool_catalog")
         tenant_filter = self._build_tenant_filter(customer_id)
         results, _ = await self.client.scroll(
             collection_name="tool_catalog",
             scroll_filter=tenant_filter,
             limit=1,
-            with_payload=["vendor"],
+            with_payload=["vendor", "categories"],
             with_vectors=False,
         )
         if not results:
             return False
-        return "vendor" not in results[0].payload or results[0].payload.get("vendor") == ""
+        payload = results[0].payload
+        # Migration needed if vendor missing OR categories missing/old format (string instead of list)
+        if "vendor" not in payload or payload.get("vendor") == "":
+            return True
+        if "categories" not in payload or isinstance(payload.get("categories"), str):
+            return True
+        return False
 
 
 vector_store = VectorStore()

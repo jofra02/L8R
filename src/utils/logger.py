@@ -4,25 +4,36 @@ import os
 from logging.handlers import RotatingFileHandler
 from src.config import settings
 
-_initialized = False
+_FILE_HANDLER_NAME = "_agent_file_handler"
+
 
 def setup_logging():
-    """Configure the root logger with console + rotating file output."""
-    global _initialized
-    if _initialized:
+    """Configure the root logger with console + rotating file output.
+
+    Safe to call multiple times — checks whether the file handler is
+    already attached before adding it (survives uvicorn's dictConfig reset).
+    """
+    root = logging.getLogger()
+    level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+    root.setLevel(level)
+
+    # Skip if our file handler is already attached
+    if any(getattr(h, "name", None) == _FILE_HANDLER_NAME for h in root.handlers):
         return
-    _initialized = True
 
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+    formatter = logging.Formatter(log_format)
 
-    # Ensure log directory exists
-    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), settings.LOG_DIR)
+    # Ensure log directory exists (relative to project root)
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    log_dir = os.path.join(project_root, settings.LOG_DIR)
     os.makedirs(log_dir, exist_ok=True)
 
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(logging.Formatter(log_format))
+    # Console handler (only add if none exist yet — uvicorn provides its own)
+    if not any(isinstance(h, logging.StreamHandler) and not isinstance(h, RotatingFileHandler) for h in root.handlers):
+        console = logging.StreamHandler(sys.stdout)
+        console.setFormatter(formatter)
+        root.addHandler(console)
 
     # Rotating file handler — 10 MB per file, keep 5 backups
     file_handler = RotatingFileHandler(
@@ -31,11 +42,8 @@ def setup_logging():
         backupCount=5,
         encoding="utf-8",
     )
-    file_handler.setFormatter(logging.Formatter(log_format))
-
-    root = logging.getLogger()
-    root.setLevel(level)
-    root.addHandler(console_handler)
+    file_handler.setFormatter(formatter)
+    file_handler.name = _FILE_HANDLER_NAME
     root.addHandler(file_handler)
 
     # Quiet noisy third-party loggers

@@ -129,7 +129,7 @@ class VectorStoreInterface(ABC):
         self, intent: str, customer_id: str, limit: int = 8,
         score_threshold: float = 0.15,
         vendor: str = None, method: str = None,
-        read_only: bool = None, category: str = None,
+        read_only: bool = None, categories: List[str] = None,
     ) -> List[Dict[str, Any]]:
         pass
 

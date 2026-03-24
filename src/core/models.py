@@ -289,6 +289,7 @@ class ToolIntent(BaseModel):
     """Short keyword query for semantic tool search."""
     query: str          # 2-6 word search query
     goal: str = ""      # What info this intent seeks (optional, for traceability)
+    category: str = ""  # LLM-assigned IT domain category for cascading search
 
 class ToolCandidate(BaseModel):
     """A tool retrieved by semantic search, awaiting LLM evaluation."""
@@ -301,7 +302,7 @@ class ToolCandidate(BaseModel):
     vendor: str = ""
     method: str = ""
     read_only: bool = True
-    category: str = ""
+    categories: List[str] = Field(default_factory=list)
     param_count: int = 0
 
 class ToolEvaluation(BaseModel):

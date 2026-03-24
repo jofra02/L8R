@@ -110,6 +110,10 @@ class Settings(BaseSettings):
     PASSWORD_REQUIRE_UPPERCASE: bool = True
     PASSWORD_REQUIRE_SYMBOL: bool = True
 
+    # Tool Category Search
+    TOOL_CATEGORY_TIER1_MIN: int = 3
+    TOOL_CATEGORY_TIER2_MIN: int = 3
+
     # Bootstrap
     BOOTSTRAP_ADMIN_EMAIL: str = "admin@localhost"
 

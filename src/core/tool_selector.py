@@ -16,6 +16,8 @@ from src.core.models import (
 )
 from src.core.registry import CapabilityRegistry
 from src.core.llm import LLMFactory
+from src.core.tool_categories import get_categories_prompt_block, get_related_categories, get_all_category_slugs
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +52,7 @@ class ToolSelector:
         if not intents:
             logger.warning("ToolSelector: No intents generated.")
             return []
-        logger.info(f"ToolSelector: Intents generated: {[i.query for i in intents]}")
+        logger.info(f"ToolSelector: Intents generated: {[{'query': i.query, 'category': i.category or 'NONE'} for i in intents]}")
 
         # Phase 2
         candidates = await self.retrieve_candidates(intents, context, max_candidates_per_intent)
@@ -91,7 +93,7 @@ class ToolSelector:
 
         try:
             response = await self.llm.ainvoke([
-                SystemMessage(content="You are a tool-search specialist. Output short keyword queries for finding IT diagnostic tools."),
+                SystemMessage(content="You are a tool-search specialist. For each search query, assign an IT domain category. Always return JSON with objects containing 'query' and 'category' keys, never plain strings."),
                 HumanMessage(content=prompt),
             ])
             parsed = json.loads(
@@ -102,7 +104,19 @@ class ToolSelector:
                 raw_intents = [raw_intents]
             raw_intents = raw_intents[:max_intents]
 
-            return [ToolIntent(query=q) for q in raw_intents if q]
+            valid_slugs = get_all_category_slugs()
+            result = []
+            for item in raw_intents:
+                if isinstance(item, dict):
+                    query = item.get("query", "")
+                    cat = item.get("category", "")
+                    if cat and cat not in valid_slugs:
+                        cat = ""
+                    result.append(ToolIntent(query=query, category=cat))
+                elif isinstance(item, str) and item:
+                    logger.warning(f"ToolSelector: LLM returned string intent (no category): '{item}'")
+                    result.append(ToolIntent(query=item))
+            return result
 
         except Exception as e:
             logger.warning(f"ToolSelector: Intent generation failed: {e}")
@@ -116,7 +130,13 @@ class ToolSelector:
         self, intents: List[ToolIntent], context: ToolSelectionContext,
         limit_per_intent: int = 10,
     ) -> List[ToolCandidate]:
-        """Semantic search per intent, merge + deduplicate. Applies vendor filter from context."""
+        """3-tier cascading search per intent, merge + deduplicate.
+
+        Tier 1: exact category + vendor filter
+        Tier 2: related categories + vendor filter (if Tier 1 insufficient)
+        Tier 3: unfiltered semantic search (if Tier 2 still insufficient)
+        Vendor fallback: repeat cascade without vendor if 0 results overall.
+        """
         from src.core.qdrant import vector_store
 
         # Extract vendor filter from context
@@ -126,87 +146,141 @@ class ToolSelector:
         elif context.source_component and context.source_component.vendor:
             vendor_filter = context.source_component.vendor.lower()
 
+        tier1_min = settings.TOOL_CATEGORY_TIER1_MIN
+        tier2_min = settings.TOOL_CATEGORY_TIER2_MIN
+
         seen: Dict[str, ToolCandidate] = {}
 
         for intent in intents:
+            category = intent.category
+            intent_seen_before = len(seen)
+
+            # --- Tier 1: exact category ---
             try:
+                cat_filter = [category] if category else None
                 payloads = await vector_store.search_tool_catalog(
                     intent=intent.query,
                     customer_id=self.customer_id,
                     limit=limit_per_intent,
                     vendor=vendor_filter,
                     read_only=True,
+                    categories=cat_filter,
                 )
-                for payload in payloads:
-                    t_name = payload.get("tool_name")
-                    if not t_name or t_name in seen:
-                        continue
-                    tool = CapabilityRegistry.get_tool(t_name)
-                    if not tool:
-                        continue
-                    if not CapabilityRegistry._is_safe(t_name):
-                        continue
-                    seen[t_name] = ToolCandidate(
-                        tool_name=t_name,
-                        description=tool.description or t_name,
-                        args_schema=(
-                            tool.args_schema.model_json_schema()
-                            if tool.args_schema else {}
-                        ),
-                        search_score=payload.get("score", 0.0),
-                        source_intent=intent.query,
-                        catalog_context=payload.get("page_content", ""),
-                        vendor=payload.get("vendor", ""),
-                        method=payload.get("method", ""),
-                        read_only=payload.get("read_only", "true") == "true",
-                        category=payload.get("category", ""),
-                        param_count=payload.get("param_count", 0),
-                    )
+                self._collect_payloads(payloads, intent.query, seen)
+                tier1_new = len(seen) - intent_seen_before
+                if tier1_new > 0:
+                    logger.info(f"ToolSelector: Tier 1 produced {tier1_new} candidates for '{category or 'none'}'")
             except Exception as e:
-                logger.warning(f"ToolSelector: Semantic search failed for '{intent.query[:50]}': {e}")
+                logger.warning(f"ToolSelector: Tier 1 search failed for '{intent.query[:50]}': {e}")
 
-        # Vendor fallback: retry without vendor filter if no results
+            # --- Tier 2: related categories ---
+            intent_count = len(seen) - intent_seen_before
+            if intent_count < tier1_min and category:
+                try:
+                    related = get_related_categories(category)
+                    expanded = [category] + related
+                    payloads = await vector_store.search_tool_catalog(
+                        intent=intent.query,
+                        customer_id=self.customer_id,
+                        limit=limit_per_intent,
+                        vendor=vendor_filter,
+                        read_only=True,
+                        categories=expanded,
+                    )
+                    before_t2 = len(seen)
+                    self._collect_payloads(payloads, intent.query, seen)
+                    tier2_new = len(seen) - before_t2
+                    if tier2_new > 0:
+                        logger.info(f"ToolSelector: Tier 2 produced {tier2_new} additional candidates for '{category}' + related")
+                except Exception as e:
+                    logger.warning(f"ToolSelector: Tier 2 search failed for '{intent.query[:50]}': {e}")
+
+            # --- Tier 3: unfiltered ---
+            intent_count = len(seen) - intent_seen_before
+            if intent_count < tier2_min:
+                try:
+                    payloads = await vector_store.search_tool_catalog(
+                        intent=intent.query,
+                        customer_id=self.customer_id,
+                        limit=limit_per_intent,
+                        vendor=vendor_filter,
+                        read_only=True,
+                    )
+                    before_t3 = len(seen)
+                    self._collect_payloads(payloads, intent.query, seen)
+                    tier3_new = len(seen) - before_t3
+                    if tier3_new > 0:
+                        logger.info(f"ToolSelector: Tier 3 (unfiltered) produced {tier3_new} additional candidates")
+                except Exception as e:
+                    logger.warning(f"ToolSelector: Tier 3 search failed for '{intent.query[:50]}': {e}")
+
+        # Vendor fallback: retry cascade without vendor filter if no results
         if not seen and vendor_filter:
             logger.info(f"ToolSelector: No vendor-specific results for '{vendor_filter}'. Retrying without vendor filter.")
             for intent in intents:
+                category = intent.category
+                cat_filter = [category] if category else None
                 try:
                     payloads = await vector_store.search_tool_catalog(
                         intent=intent.query,
                         customer_id=self.customer_id,
                         limit=limit_per_intent,
                         read_only=True,
+                        categories=cat_filter,
                     )
-                    for payload in payloads:
-                        t_name = payload.get("tool_name")
-                        if not t_name or t_name in seen:
-                            continue
-                        tool = CapabilityRegistry.get_tool(t_name)
-                        if not tool:
-                            continue
-                        if not CapabilityRegistry._is_safe(t_name):
-                            continue
-                        seen[t_name] = ToolCandidate(
-                            tool_name=t_name,
-                            description=tool.description or t_name,
-                            args_schema=(
-                                tool.args_schema.model_json_schema()
-                                if tool.args_schema else {}
-                            ),
-                            search_score=payload.get("score", 0.0),
-                            source_intent=intent.query,
-                            catalog_context=payload.get("page_content", ""),
-                            vendor=payload.get("vendor", ""),
-                            method=payload.get("method", ""),
-                            read_only=payload.get("read_only", "true") == "true",
-                            category=payload.get("category", ""),
-                            param_count=payload.get("param_count", 0),
-                        )
+                    self._collect_payloads(payloads, intent.query, seen)
                 except Exception as e:
                     logger.warning(f"ToolSelector: Vendor fallback search failed for '{intent.query[:50]}': {e}")
+
+            # If still empty after category-filtered no-vendor, try fully unfiltered
+            if not seen:
+                for intent in intents:
+                    try:
+                        payloads = await vector_store.search_tool_catalog(
+                            intent=intent.query,
+                            customer_id=self.customer_id,
+                            limit=limit_per_intent,
+                            read_only=True,
+                        )
+                        self._collect_payloads(payloads, intent.query, seen)
+                    except Exception as e:
+                        logger.warning(f"ToolSelector: Full fallback search failed for '{intent.query[:50]}': {e}")
 
         candidates = list(seen.values())
         logger.info(f"ToolSelector: {len(candidates)} unique candidates from {len(intents)} intents.")
         return candidates
+
+    @staticmethod
+    def _collect_payloads(
+        payloads: List[Dict[str, Any]], intent_query: str,
+        seen: Dict[str, "ToolCandidate"],
+    ) -> None:
+        """Add payloads to seen dict, deduplicating by tool_name."""
+        for payload in payloads:
+            t_name = payload.get("tool_name")
+            if not t_name or t_name in seen:
+                continue
+            tool = CapabilityRegistry.get_tool(t_name)
+            if not tool:
+                continue
+            if not CapabilityRegistry._is_safe(t_name):
+                continue
+            seen[t_name] = ToolCandidate(
+                tool_name=t_name,
+                description=tool.description or t_name,
+                args_schema=(
+                    tool.args_schema.model_json_schema()
+                    if tool.args_schema else {}
+                ),
+                search_score=payload.get("score", 0.0),
+                source_intent=intent_query,
+                catalog_context=payload.get("page_content", ""),
+                vendor=payload.get("vendor", ""),
+                method=payload.get("method", ""),
+                read_only=payload.get("read_only", "true") == "true",
+                categories=payload.get("categories", []),
+                param_count=payload.get("param_count", 0),
+            )
 
     # ------------------------------------------------------------------
     # Phase 3: Per-Tool Evaluation (batched)
@@ -264,7 +338,7 @@ class ToolSelector:
             context_line = f"\n   Catalog detail: {c.catalog_context}" if c.catalog_context else ""
             candidate_lines.append(
                 f"{idx}. {c.tool_name} (score: {c.search_score:.2f}, vendor: {c.vendor or 'generic'}, "
-                f"method: {c.method}, category: {c.category}): {c.description}{context_line}\n"
+                f"method: {c.method}, categories: {','.join(c.categories) or 'general'}): {c.description}{context_line}\n"
                 f"   Schema: {schema_str}"
             )
         candidates_block = "\n".join(candidate_lines)
@@ -1045,7 +1119,7 @@ Include "defaults" ONLY for parameters classified as "operational". Use sensible
                     vendor=meta["vendor"],
                     method=meta["method"],
                     read_only=meta["read_only"],
-                    category=meta["category"],
+                    categories=meta["categories"],
                     param_count=meta["param_count"],
                 ))
 
@@ -1075,27 +1149,35 @@ Include "defaults" ONLY for parameters classified as "operational". Use sensible
         if context.path_context:
             path_section = f"\nAlso address these evidence gaps:\n{context.path_context}\n"
 
+        taxonomy = get_categories_prompt_block()
+
         return f"""Ticket: "{context.ticket_text}"
 Component: {comp_id} (Role: {comp_role}). {vendor_ctx}
 All components: {all_components_str}
 
 Task: Generate 1-{max_intents} SHORT tool-search queries to find the right diagnostic tools for this component.
+For EACH query, assign exactly ONE IT domain category from the taxonomy below.
+
+## IT Domain Categories
+{taxonomy}
 
 RULES:
 1. Each query must be 2-6 words — like a search engine query, NOT a sentence.
-2. Do NOT include vendor or product names — vendor filtering is applied automatically. Focus on WHAT the tool does.
-3. Focus on the CATEGORY of tool needed (routing, policy, interface, performance, logs, database, deployment, container, api, authentication, storage, backup, etc.).
-4. Do NOT include IPs, subnets, or ticket-specific details — those are for tool arguments, not tool search.
+2. Do NOT include vendor or product names (appliance names) — vendor filtering is applied automatically. Focus on WHAT the tool does.
+3. Focus on the CATEGORY of tool needed or explicit feature names.
+4. Do NOT include specific tenant data, or ticket-specific details (Hostnames, IPs, IDs, etc)— those are for tool arguments, not tool search.
 5. Do NOT write sentences or descriptions — write search keywords only.
 6. CONFIGURATION-FIRST: Prefer tools that read existing configuration (routes, policies, rules, definitions) over live traffic tools (debug flows, captures, sniffers, sessions).
+7. The "category" must be a valid slug from the taxonomy above.
 {path_section}
-EXAMPLES (do not copy literally, adapt to the ticket and vendor):
-{{"intents": ["firewall routing table", "firewall policy rules"]}}
-{{"intents": ["database replication status", "connection pool metrics"]}}
-{{"intents": ["kubernetes pod health", "container resource usage"]}}
+EXAMPLES (do not copy literally, adapt to the ticket):
+{{"intents": [{{"query": "routing table", "category": "routing"}}, {{"query": "memory performance", "category": "performance"}}]}}
+{{"intents": [{{"query": "database replication status", "category": "database"}}, {{"query": "connection pool metrics", "category": "performance"}}]}}
+
+CRITICAL: Each intent MUST be a JSON object with "query" and "category" keys. Do NOT return plain strings.
 
 Return ONLY a JSON object:
-{{"intents": ["query 1", "query 2"]}}
+{{"intents": [{{"query": "query 1", "category": "slug"}}, {{"query": "query 2", "category": "slug"}}]}}
 """
 
     def _build_investigation_intent_prompt(self, context: ToolSelectionContext, max_intents: int) -> str:
@@ -1109,6 +1191,8 @@ Return ONLY a JSON object:
         if context.evidence_summaries:
             evidence_section = f"\nEvidence collected so far:\n{context.evidence_summaries}\n"
 
+        taxonomy = get_categories_prompt_block()
+
         return f"""Hypothesis: "{hyp.summary if hyp else 'unknown'}"
 Rationale: {hyp.rationale if hyp else 'N/A'}
 Components: {components_str}
@@ -1116,22 +1200,31 @@ Facts collected: {facts_keys}
 {evidence_section}
 Task: Generate 1-{max_intents} SHORT tool-search queries (2-6 words each) to find tools
 that verify or disprove this hypothesis.
+For EACH query, assign exactly ONE IT domain category from the taxonomy below.
+
+## IT Domain Categories
+{taxonomy}
 
 RULES:
 1. Each query must be 2-6 words — keyword-style, NOT a sentence.
 2. Do NOT include vendor or product names — vendor filtering is applied automatically.
-3. Focus on category of diagnostic tool needed.
+3. Focus on the CATEGORY of tool needed or explicit feature names.
 4. CONFIGURATION-FIRST: Prefer config-reading tools over live traffic tools.
 5. Do NOT include IPs or ticket-specific details.
+6. The "category" must be a valid slug from the taxonomy above.
+
+CRITICAL: Each intent MUST be a JSON object with "query" and "category" keys. Do NOT return plain strings.
 
 Return ONLY a JSON object:
-{{"intents": ["query 1", "query 2"]}}
+{{"intents": [{{"query": "query 1", "category": "slug"}}, {{"query": "query 2", "category": "slug"}}]}}
 """
 
     def _build_relational_intent_prompt(self, context: ToolSelectionContext, max_intents: int) -> str:
         src = context.source_component
         dst = context.target_component
         all_str = ", ".join(f"{c.id} ({c.role})" for c in context.components) if context.components else "none"
+
+        taxonomy = get_categories_prompt_block()
 
         return f"""Ticket: "{context.ticket_text}"
 Source component: {src.id if src else 'unknown'} (Role: {src.role if src else 'unknown'}, Vendor: {src.vendor or 'unknown' if src else 'unknown'})
@@ -1140,38 +1233,44 @@ All components: {all_str}
 
 Task: Generate 1-{max_intents} SHORT tool-search queries to find tools that check the RELATIONSHIP
 or REACHABILITY between source and destination.
+For EACH query, assign exactly ONE IT domain category from the taxonomy below.
+
+## IT Domain Categories
+{taxonomy}
 
 RULES:
 1. Each query must be 2-6 words — keyword-style, NOT a sentence.
 2. Do NOT include vendor or product names — vendor filtering is applied automatically.
-3. Focus on relational diagnostics: route lookup, policy check, NAT mapping, path trace, connectivity.
-4. CONFIGURATION-FIRST: Prefer config-based tools (routing table, policy rules) over live traffic tools.
-5. Do NOT include IPs or ticket-specific details.
+3. Focus on relational diagnostics.
+4. CONFIGURATION-FIRST: Prefer config-based tools (persistant or runtime) over live traffic tools.
+5. The "category" must be a valid slug from the taxonomy above.
+
+CRITICAL: Each intent MUST be a JSON object with "query" and "category" keys. Do NOT return plain strings.
 
 Return ONLY a JSON object:
-{{"intents": ["query 1", "query 2"]}}
+{{"intents": [{{"query": "query 1", "category": "slug"}}, {{"query": "query 2", "category": "slug"}}]}}
 """
 
     # ------------------------------------------------------------------
     # Fallback intents
     # ------------------------------------------------------------------
 
-    def _fallback_intents(self, context: ToolSelectionContext) -> List[ToolIntent]:
-        """Produce basic intents when LLM generation fails."""
-        if context.mode == "relational":
-            return [
-                ToolIntent(query="route lookup"),
-                ToolIntent(query="policy check"),
-            ]
-        elif context.mode == "investigation" and context.hypothesis:
-            return [
-                ToolIntent(query="system status health"),
-                ToolIntent(query="configuration check"),
-            ]
-        else:
-            comp = context.component
-            role = comp.role if comp else "system"
-            return [
-                ToolIntent(query=f"{role} status"),
-                ToolIntent(query=f"{role} configuration"),
-            ]
+    # def _fallback_intents(self, context: ToolSelectionContext) -> List[ToolIntent]:
+    #     """Produce basic intents when LLM generation fails."""
+    #     if context.mode == "relational":
+    #         return [
+    #             ToolIntent(query="route lookup"),
+    #             ToolIntent(query="policy check"),
+    #         ]
+    #     elif context.mode == "investigation" and context.hypothesis:
+    #         return [
+    #             ToolIntent(query="system status health"),
+    #             ToolIntent(query="configuration check"),
+    #         ]
+    #     else:
+    #         comp = context.component
+    #         role = comp.role if comp else "system"
+    #         return [
+    #             ToolIntent(query=f"{role} status"),
+    #             ToolIntent(query=f"{role} configuration"),
+    #         ]
