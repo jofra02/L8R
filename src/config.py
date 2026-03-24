@@ -10,6 +10,15 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_DIR: str = "logs"
     TEST_MODE_FAST: bool = False
+
+    # Pipeline Mode
+    PIPELINE_MODE: str = "engineer"  # "pipeline" (multi-agent) | "engineer" (single-agent)
+
+    # Engineer Agent Config
+    LLM_MODEL_ENGINEER: str = "gpt-5.4"
+    ENGINEER_MAX_TOOL_CALLS: int = 30
+    ENGINEER_MAX_ITERATIONS: int = 50
+    ENGINEER_TIMEOUT_SECONDS: int = 600
     
     # Database (Postgres)
     DB_HOST: str = "localhost"
@@ -79,7 +88,7 @@ class Settings(BaseSettings):
     LLM_MODEL_ADAPTIVE_FIX: str = "gpt-5-nano"
     
     # Global Tuning
-    LLM_REASONING_EFFORT: str = "low" # Can be injected into reasoning models to speed up tasks
+    LLM_REASONING_EFFORT: Optional[str] = None  # "low", "medium", "high", or None to skip
     LLM_TEMPERATURE_DEFAULT: float = 0.0
     
     # Safety & Governance

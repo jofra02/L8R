@@ -113,18 +113,36 @@ class LangfuseManager:
         return TraceRef(trace_id=trace_id, client=client)
 
     def get_callback_handler_for_span(
-        self, span: Any, metadata: Optional[Dict[str, Any]] = None
+        self, span_or_trace: Any, metadata: Optional[Dict[str, Any]] = None
     ) -> Optional[Any]:
-        """Return a LangChain CallbackHandler nested under the given span. None if unavailable."""
-        if not span or not hasattr(span, "trace_id") or not hasattr(span, "id"):
+        """Return a LangChain CallbackHandler nested under the given trace/span.
+
+        Uses langfuse.callback.CallbackHandler with stateful_client to nest
+        all LLM generations and tool calls under the parent trace or span.
+        """
+        if not span_or_trace:
+            return None
+
+        client = self.get_client()
+        if not client:
             return None
 
         try:
-            from langfuse.langchain import CallbackHandler
+            from langfuse.callback import CallbackHandler
 
-            handler = CallbackHandler(
-                trace_context={"trace_id": span.trace_id, "parent_span_id": span.id},
-            )
+            if isinstance(span_or_trace, TraceRef):
+                # Create a stateful trace client to nest handler under
+                trace_client = client.trace(id=span_or_trace.trace_id)
+                handler = CallbackHandler(
+                    stateful_client=trace_client,
+                    metadata=metadata,
+                )
+            else:
+                # Nest under an existing span/observation
+                handler = CallbackHandler(
+                    stateful_client=span_or_trace,
+                    metadata=metadata,
+                )
             return handler
         except Exception as e:
             logger.warning(f"Langfuse callback handler creation failed: {e}")

@@ -4,7 +4,7 @@ from src.core.models import Ticket, GlobalState
 from src.core.orm import TicketORM, AgentRunORM, PlatformTenant
 from src.ingestion.normalizers.generic import GenericNormalizer
 from src.core.audit import AuditService
-from src.agent_graph import app
+from src.config import settings
 from langchain_core.messages import HumanMessage
 from typing import Dict, Any, Type, Tuple, Optional, List
 from src.core.langfuse_integration import langfuse_manager, set_current_trace
@@ -97,7 +97,13 @@ class IngestionService:
         }
         
         try:
-            final_state = await app.ainvoke(
+            # Select pipeline based on PIPELINE_MODE feature flag
+            if settings.PIPELINE_MODE == "engineer":
+                from src.agent_graph_v2 import app_v2 as pipeline_app
+            else:
+                from src.agent_graph import app as pipeline_app
+
+            final_state = await pipeline_app.ainvoke(
                 initial_state,
                 config={"configurable": {"thread_id": f"thread_{ticket.id}"}}
             )
