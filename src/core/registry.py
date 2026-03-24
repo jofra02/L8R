@@ -280,16 +280,29 @@ class CapabilityRegistry:
                     "read_only": "true" if meta["read_only"] else "false",
                     "categories": [],  # filled by LLM below
                     "param_count": meta["param_count"],
+                    "tier": 0,  # filled by LLM below
+                    "provides_identifiers": [],
+                    "requires_identifiers": [],
+                    "scope_params": [],
                 })
                 ids.append(vector_store._generate_id(dedup_key))
             except Exception as e:
                 logger.warning(f"Registry: Failed to prepare tool {tool.name}: {e}")
 
-        # LLM-driven category assignment (batched 15-20 tools per prompt)
+        # LLM-driven classification: categories + tier in a single pass
         if metadatas:
-            llm_categories = await cls._assign_categories_via_llm(metadatas)
-            for i, cats in enumerate(llm_categories):
-                metadatas[i]["categories"] = cats
+            total_batches = (len(metadatas) + 14) // 15
+            logger.info(
+                f"Registry: Starting LLM classification for {len(metadatas)} tools "
+                f"({total_batches} batches)"
+            )
+            classifications = await cls._classify_tools_via_llm(metadatas)
+            for i, clf in enumerate(classifications):
+                metadatas[i]["categories"] = clf["categories"]
+                metadatas[i]["tier"] = clf["tier"]
+                metadatas[i]["provides_identifiers"] = clf["provides_identifiers"]
+                metadatas[i]["requires_identifiers"] = clf["requires_identifiers"]
+                metadatas[i]["scope_params"] = clf["scope_params"]
 
         if texts:
             await vector_store.batch_index_tools(
@@ -299,11 +312,15 @@ class CapabilityRegistry:
         logger.info(f"Registry: Indexed {len(texts)}/{len(new_tools)} new tools (global)")
 
     @classmethod
-    async def _assign_categories_via_llm(cls, metadatas: List[dict]) -> List[List[str]]:
-        """Batch-assign IT domain categories to tools via LLM.
+    async def _classify_tools_via_llm(cls, metadatas: List[dict]) -> List[dict]:
+        """Batch-classify tools: categories + tier + identifiers in a SINGLE LLM call per batch.
 
-        Sends batches of 15-20 tools, each with name + truncated description.
-        Returns a list of category lists, one per tool (same order as metadatas).
+        Combines what were previously two separate passes (categories, tiers) to halve
+        the number of LLM calls during indexing. Each batch includes tool name,
+        description, and parameter schema.
+
+        Returns list of dicts (same order as metadatas), each with:
+          categories, tier, provides_identifiers, requires_identifiers, scope_params
         """
         from langchain_core.messages import SystemMessage, HumanMessage
         from src.core.llm import LLMFactory
@@ -311,62 +328,106 @@ class CapabilityRegistry:
         llm = LLMFactory.get_model_for_agent("classifier")
         valid_slugs = get_all_category_slugs()
         taxonomy_block = get_categories_prompt_block()
-        batch_size = 18
-        all_categories: List[List[str]] = [[] for _ in metadatas]
+        batch_size = 15
+        total_batches = (len(metadatas) + batch_size - 1) // batch_size
+        default_entry = {
+            "categories": ["general"], "tier": 1,
+            "provides_identifiers": [], "requires_identifiers": [], "scope_params": [],
+        }
+        all_results: List[dict] = [dict(default_entry) for _ in metadatas]
 
         for batch_start in range(0, len(metadatas), batch_size):
             batch = metadatas[batch_start:batch_start + batch_size]
+            batch_num = batch_start // batch_size + 1
             tool_lines = []
             for m in batch:
-                desc = (m.get("description") or m["tool_name"])[:150]
-                tool_lines.append(f"- {m['tool_name']}: {desc}")
+                desc = (m.get("description") or m["tool_name"])[:200]
+                schema = m.get("args_schema", {})
+                props = schema.get("properties", {})
+                required = schema.get("required", [])
+                param_parts = []
+                for pname in required:
+                    pdesc = props.get(pname, {}).get("description", pname)
+                    param_parts.append(f"    {pname} (REQUIRED): {pdesc[:100]}")
+                for pname in props:
+                    if pname not in required:
+                        pdesc = props[pname].get("description", pname)
+                        param_parts.append(f"    {pname} (optional): {pdesc[:80]}")
+                params_block = "\n".join(param_parts) if param_parts else "    (no parameters)"
+                tool_lines.append(f"- {m['tool_name']}: {desc}\n  Parameters:\n{params_block}")
             tools_block = "\n".join(tool_lines)
 
             prompt = (
-                f"Assign 1-5 IT domain categories to each tool from the taxonomy below.\n\n"
-                f"## Taxonomy\n{taxonomy_block}\n\n"
+                "For each tool, provide TWO classifications:\n\n"
+                "## A) IT Domain Categories (1-5 slugs from taxonomy)\n"
+                f"{taxonomy_block}\n\n"
+                "## B) Discovery Tier\n"
+                "Tier 1: LIST/SUMMARIZE/OVERVIEW tools. Need zero resource-specific IDs, "
+                "or only scope params (device_ip, hostname). Output PROVIDES identifiers.\n"
+                "Tier 2: GET DETAIL/INSPECT/CHECK tools. Need resource-specific "
+                "identifiers (host_id, policy_id) that must be discovered first.\n\n"
+                "Key: SCOPE params = connection targets from ticket (device_ip, vcenter_host). "
+                "RESOURCE identifiers = specific IDs only from Tier 1 output.\n\n"
                 f"## Tools\n{tools_block}\n\n"
-                f"Return ONLY valid JSON array. Each element: "
-                f'{{\"tool\": \"<name>\", \"categories\": [\"<slug>\", ...]}}\n'
-                f"Rules:\n"
-                f"- Use ONLY slugs from the taxonomy above\n"
-                f"- Assign 1-5 categories per tool based on what IT domain the tool operates in\n"
-                f"- If uncertain, assign [\"general\"]\n"
-                f"- Output nothing except the JSON array"
+                "Return ONLY a valid JSON array. Each element:\n"
+                '{"tool": "<name>", "categories": ["slug1", ...], "tier": 1|2, '
+                '"provides_identifiers": [...], "requires_identifiers": [...], "scope_params": [...]}\n\n'
+                "Rules:\n"
+                "- categories: 1-5 slugs from taxonomy ONLY. If uncertain use [\"general\"]\n"
+                "- tier: 1 or 2. If uncertain default to 1\n"
+                "- provides_identifiers: what the tool OUTPUT makes available (max 10, lowercase)\n"
+                "- requires_identifiers: resource IDs in INPUT needing discovery (max 5, Tier 2 only)\n"
+                "- scope_params: connection-level INPUT params bindable from ticket/component (max 5)\n"
+                "- All identifier names lowercase snake_case\n"
+                "- Output nothing except the JSON array"
             )
 
             try:
                 response = await llm.ainvoke([
-                    SystemMessage(content="You are an IT tool classification specialist. Assign domain categories to tools."),
+                    SystemMessage(content="You are an IT tool classification specialist. Classify tools by domain category and discovery tier."),
                     HumanMessage(content=prompt),
                 ])
                 raw = response.content.strip().replace("```json", "").replace("```", "")
                 results = json.loads(raw)
 
-                # Build lookup: tool_name → categories
-                cat_map = {}
+                result_map = {}
                 for entry in results:
                     name = entry.get("tool", "")
+                    # Categories
                     cats = entry.get("categories", [])
-                    # Validate slugs, cap at 5
                     valid_cats = [c for c in cats if c in valid_slugs][:5]
-                    cat_map[name] = valid_cats if valid_cats else ["general"]
+                    # Tier
+                    tier_val = entry.get("tier", 1)
+                    if tier_val not in (1, 2):
+                        tier_val = 1
+                    result_map[name] = {
+                        "categories": valid_cats if valid_cats else ["general"],
+                        "tier": tier_val,
+                        "provides_identifiers": [
+                            s.lower().strip() for s in entry.get("provides_identifiers", [])
+                        ][:10],
+                        "requires_identifiers": [
+                            s.lower().strip() for s in entry.get("requires_identifiers", [])
+                        ][:5],
+                        "scope_params": [
+                            s.lower().strip() for s in entry.get("scope_params", [])
+                        ][:5],
+                    }
 
-                # Map back to batch positions
                 for i, m in enumerate(batch):
                     idx = batch_start + i
-                    all_categories[idx] = cat_map.get(m["tool_name"], ["general"])
+                    all_results[idx] = result_map.get(m["tool_name"], default_entry)
 
                 logger.info(
-                    f"Registry: LLM categorized batch {batch_start//batch_size + 1} "
+                    f"Registry: LLM classified batch {batch_num}/{total_batches} "
                     f"({len(batch)} tools)"
                 )
             except Exception as e:
-                logger.warning(f"Registry: LLM category assignment failed for batch: {e}")
-                for i in range(len(batch)):
-                    all_categories[batch_start + i] = ["general"]
+                logger.warning(
+                    f"Registry: LLM classification failed for batch {batch_num}/{total_batches}: {e}"
+                )
 
-        return all_categories
+        return all_results
 
     @classmethod
     async def semantic_search_tools(

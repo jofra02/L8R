@@ -44,7 +44,6 @@ class ToolSelector:
         self,
         context: ToolSelectionContext,
         max_intents: int = 3,
-        max_candidates_per_intent: int = 10,
     ) -> List[ToolSelection]:
         """Full pipeline: intents → retrieval → evaluation → arg binding."""
         # Phase 1
@@ -55,7 +54,7 @@ class ToolSelector:
         logger.info(f"ToolSelector: Intents generated: {[{'query': i.query, 'category': i.category or 'NONE'} for i in intents]}")
 
         # Phase 2
-        candidates = await self.retrieve_candidates(intents, context, max_candidates_per_intent)
+        candidates = await self.retrieve_candidates(intents, context)
         if not candidates:
             logger.warning("ToolSelector: Semantic search returned 0 candidates. Trying brute-force fallback.")
             candidates = self._get_brute_force_candidates(context)
@@ -128,7 +127,6 @@ class ToolSelector:
 
     async def retrieve_candidates(
         self, intents: List[ToolIntent], context: ToolSelectionContext,
-        limit_per_intent: int = 10,
     ) -> List[ToolCandidate]:
         """3-tier cascading search per intent, merge + deduplicate.
 
@@ -161,7 +159,7 @@ class ToolSelector:
                 payloads = await vector_store.search_tool_catalog(
                     intent=intent.query,
                     customer_id=self.customer_id,
-                    limit=limit_per_intent,
+
                     vendor=vendor_filter,
                     read_only=True,
                     categories=cat_filter,
@@ -182,7 +180,7 @@ class ToolSelector:
                     payloads = await vector_store.search_tool_catalog(
                         intent=intent.query,
                         customer_id=self.customer_id,
-                        limit=limit_per_intent,
+    
                         vendor=vendor_filter,
                         read_only=True,
                         categories=expanded,
@@ -202,7 +200,7 @@ class ToolSelector:
                     payloads = await vector_store.search_tool_catalog(
                         intent=intent.query,
                         customer_id=self.customer_id,
-                        limit=limit_per_intent,
+    
                         vendor=vendor_filter,
                         read_only=True,
                     )
@@ -224,7 +222,7 @@ class ToolSelector:
                     payloads = await vector_store.search_tool_catalog(
                         intent=intent.query,
                         customer_id=self.customer_id,
-                        limit=limit_per_intent,
+    
                         read_only=True,
                         categories=cat_filter,
                     )
@@ -239,7 +237,7 @@ class ToolSelector:
                         payloads = await vector_store.search_tool_catalog(
                             intent=intent.query,
                             customer_id=self.customer_id,
-                            limit=limit_per_intent,
+        
                             read_only=True,
                         )
                         self._collect_payloads(payloads, intent.query, seen)
@@ -280,6 +278,10 @@ class ToolSelector:
                 read_only=payload.get("read_only", "true") == "true",
                 categories=payload.get("categories", []),
                 param_count=payload.get("param_count", 0),
+                tier=payload.get("tier", 0),
+                provides_identifiers=payload.get("provides_identifiers", []),
+                requires_identifiers=payload.get("requires_identifiers", []),
+                scope_params=payload.get("scope_params", []),
             )
 
     # ------------------------------------------------------------------
@@ -547,9 +549,11 @@ Return ONLY a JSON list (one entry per approved tool):
                 selections.append(ToolSelection(
                     name=name, args=args, evaluation=ev,
                     missing_params=missing,
+                    requires_identifiers=cand.requires_identifiers if cand else [],
+                    tier=cand.tier if cand else 0,
                 ))
 
-            # Recover approved tools the LLM omitted — three-tier recovery
+            # Recover approved tools the LLM omitted — tier-aware recovery
             bound_names = {s.name for s in selections}
             omitted_count = 0
             for ev in approved:
@@ -561,34 +565,72 @@ Return ONLY a JSON list (one entry per approved tool):
                     required_fields = schema.get("required", [])
                     properties = schema.get("properties", {})
 
-                    # Tier 1: No required params — recover with empty args
+                    # Case A: No required params — recover with empty args
                     if not required_fields:
                         selections.append(ToolSelection(
                             name=ev.tool_name, args={}, evaluation=ev,
                             missing_params={},
+                            requires_identifiers=cand.requires_identifiers,
+                            tier=cand.tier,
                         ))
                         logger.info(f"ToolSelector: Recovered {ev.tool_name} (no required params)")
                         continue
 
-                    # Tier 2: All required params are operational — recover with defaults
-                    operational_defaults = await self._classify_params_as_operational(
-                        ev.tool_name, required_fields, properties, cand,
-                    )
-                    if operational_defaults is not None:
+                    scope_fields = set(cand.scope_params) & set(required_fields)
+                    identifier_fields = set(cand.requires_identifiers) & set(required_fields)
+                    unclassified_fields = set(required_fields) - scope_fields - identifier_fields
+
+                    # Case B: Tier 2 tool or has requires_identifiers — forward to prereq resolution
+                    if cand.tier == 2 or cand.requires_identifiers:
+                        partial_args = self._bind_scope_params_from_context(
+                            scope_fields, properties, context,
+                        )
+                        missing = {}
+                        for field in (identifier_fields | unclassified_fields):
+                            if field not in partial_args:
+                                prop = properties.get(field, {})
+                                missing[field] = prop.get("description", f"required parameter '{field}'")
                         selections.append(ToolSelection(
-                            name=ev.tool_name, args=operational_defaults, evaluation=ev,
-                            missing_params={},
+                            name=ev.tool_name, args=partial_args, evaluation=ev,
+                            missing_params=missing,
+                            requires_identifiers=cand.requires_identifiers,
+                            tier=cand.tier,
                         ))
                         logger.info(
-                            f"ToolSelector: Recovered {ev.tool_name} with operational defaults: "
-                            f"{operational_defaults}"
+                            f"ToolSelector: Tier 2 tool {ev.tool_name} promoted to prereq resolution "
+                            f"(missing: {list(missing.keys())})"
                         )
                         continue
 
-                    # Tier 3: Mixed/contextual params — trust LLM omission
+                    # Case C: Tier 1 tool — try deterministic scope binding
+                    if cand.tier == 1:
+                        partial_args = self._bind_scope_params_from_context(
+                            set(required_fields), properties, context,
+                        )
+                        missing = {}
+                        for field in required_fields:
+                            if field not in partial_args:
+                                prop = properties.get(field, {})
+                                missing[field] = prop.get("description", f"required parameter '{field}'")
+                        selections.append(ToolSelection(
+                            name=ev.tool_name, args=partial_args, evaluation=ev,
+                            missing_params=missing,
+                            requires_identifiers=cand.requires_identifiers,
+                            tier=cand.tier,
+                        ))
+                        if missing:
+                            logger.info(
+                                f"ToolSelector: Tier 1 tool {ev.tool_name} partially bound "
+                                f"(missing: {list(missing.keys())})"
+                            )
+                        else:
+                            logger.info(f"ToolSelector: Recovered Tier 1 tool {ev.tool_name} via scope binding")
+                        continue
+
+                    # Case D: Unclassified (tier==0, no metadata) — trust LLM omission
                     omitted_count += 1
                     logger.info(
-                        f"ToolSelector: LLM omitted {ev.tool_name} from binding "
+                        f"ToolSelector: LLM omitted unclassified tool {ev.tool_name} "
                         f"(required: {required_fields}) — not recovering"
                     )
 
@@ -616,159 +658,276 @@ Return ONLY a JSON list (one entry per approved tool):
         state: dict,
         store,
         executed_signatures: set,
-        max_prereqs: int = 2,
+        max_prereqs: int = 4,
     ) -> tuple:
         """
-        For tools with missing_params, attempt to find and execute a prereq tool
-        that can provide the missing data, then rebind.
+        2-tier execution orchestrator:
+        1. Execute Tier 1 tools (discovery/list) → collect output as context
+        2. Rebind Tier 2 tools using Tier 1 output
+        3. Fallback: search for additional Tier 1 tools if needed
 
         Returns (updated_selections, prereq_evidence_snapshots).
-        Single-depth only: prereq tools must be fully bindable.
+        Tier 1 tools are removed from selections (already executed, evidence captured).
         """
         from src.core.adaptive_executor import AdaptiveExecutor
+        from src.core.registry import CapabilityRegistry as _CR
         from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
+        import hashlib as _hl
 
-        needs_prereq = [s for s in selections if s.missing_params]
-        if not needs_prereq:
-            return selections, []
+        # --- Step 1: Separate selections by readiness ---
+        tier1_ready = []      # Tier 1, fully bound → execute now for context
+        needs_data = []       # Has missing_params → needs Tier 1 output
+        pass_through = []     # Fully bound, not Tier 1 → caller executes
 
-        # Change 3: Gate — only attempt prereq for tools missing exactly 1 param
-        eligible = []
-        for sel in needs_prereq:
-            if len(sel.missing_params) > 1:
-                logger.info(
-                    f"ToolSelector: Skipping prereq for {sel.name} — "
-                    f"{len(sel.missing_params)} missing params (max 1 for prereq resolution)"
-                )
+        for sel in selections:
+            if not sel.missing_params and sel.tier == 1:
+                tier1_ready.append(sel)
+            elif sel.missing_params:
+                needs_data.append(sel)
             else:
-                eligible.append(sel)
+                pass_through.append(sel)
 
-        if not eligible:
-            logger.info(
-                f"ToolSelector: Prereq resolution — 0 eligible (all had >1 missing params)"
-            )
+        if not needs_data:
+            # No tools waiting for data → Tier 1 tools pass to caller for normal execution
             return selections, []
 
-        # Change 4: Group by (missing_param_keys, component_id) for shared resolution
-        def _find_component(sel):
-            for c in components:
-                if c.id in str(sel.args.values()):
-                    return c
-            return components[0] if components else None
+        logger.info(
+            f"ToolSelector: 2-tier orchestration — {len(tier1_ready)} Tier 1 ready, "
+            f"{len(needs_data)} need data, {len(pass_through)} pass-through"
+        )
 
-        groups: Dict[tuple, list] = {}
-        for sel in eligible:
-            comp = _find_component(sel)
-            comp_id = comp.id if comp else "unknown"
-            key = (frozenset(sel.missing_params.keys()), comp_id)
-            groups.setdefault(key, []).append((sel, comp))
+        # --- Step 2: Execute Tier 1 tools → collect context ---
+        tier1_evidence = []
+        tier1_outputs: List[tuple] = []  # (tool_name, output_text)
 
-        prereq_evidence = []
-        resolved_count = 0
-
-        for (missing_keys, comp_id), group_entries in groups.items():
-            if resolved_count >= max_prereqs:
-                break
-
-            representative_sel, target_comp = group_entries[0]
-            missing_desc = "; ".join(
-                f"{k}: {v}" for k, v in representative_sel.missing_params.items()
-            )
-            tool_names_in_group = [s.name for s, _ in group_entries]
-            logger.info(
-                f"ToolSelector: Resolving prereq group — missing: {list(missing_keys)}, "
-                f"tools: {tool_names_in_group}"
-            )
-
-            prereq_ctx = ToolSelectionContext(
-                ticket_text=f"Need to discover: {missing_desc}",
-                component=target_comp,
-                components=components,
-                facts=state.get("facts", {}),
-                mode="evidence",
-            )
-
-            try:
-                prereq_selections = await self.select_tools(
-                    prereq_ctx, max_intents=1
-                )
-            except Exception as e:
-                logger.warning(f"ToolSelector: Prereq search failed for group {tool_names_in_group}: {e}")
+        for sel in tier1_ready:
+            sig_norm = json.dumps(sel.args or {}, sort_keys=True, default=str)
+            sig = f"{sel.name}::{_hl.sha256(sig_norm.encode()).hexdigest()[:16]}"
+            if sig in executed_signatures:
+                logger.info(f"ToolSelector: Tier 1 {sel.name} already executed, skipping")
                 continue
 
-            # Filter to fully-bindable prereq tools only (single-depth)
-            prereq_selections = [p for p in prereq_selections if not p.missing_params]
-            if not prereq_selections:
-                logger.info(f"ToolSelector: No fully-bindable prereq found for group {tool_names_in_group}")
+            tool = _CR.get_tool(sel.name)
+            if not tool:
                 continue
-
-            # Execute the best prereq tool
-            prereq_sel = prereq_selections[0]
-            prereq_tool_name = prereq_sel.name
-            prereq_tool_args = prereq_sel.args
-
-            # Dedup check
-            import hashlib as _hl
-            sig_norm = json.dumps(prereq_tool_args or {}, sort_keys=True, default=str)
-            prereq_sig = f"{prereq_tool_name}::{_hl.sha256(sig_norm.encode()).hexdigest()[:16]}"
-            if prereq_sig in executed_signatures:
-                logger.info(f"ToolSelector: Prereq {prereq_tool_name} already executed, skipping")
+            if not is_safe_tool(sel.name, sel.args):
                 continue
-
-            from src.core.registry import CapabilityRegistry as _CR
-            prereq_tool = _CR.get_tool(prereq_tool_name)
-            if not prereq_tool:
-                continue
-            if not is_safe_tool(prereq_tool_name, prereq_tool_args):
-                continue
-            if not await is_tool_allowed_for_tenant(prereq_tool_name, self.customer_id):
+            if not await is_tool_allowed_for_tenant(sel.name, self.customer_id):
                 continue
 
             try:
                 executor = AdaptiveExecutor(customer_id=self.customer_id, run_id=self.run_id)
-                comp_meta = json.dumps(target_comp.metadata, default=str) if target_comp and target_comp.metadata else "{}"
+                comp = self._find_component_for_sel(sel, components)
+                comp_meta = json.dumps(comp.metadata, default=str) if comp and comp.metadata else "{}"
                 exec_context = (
                     f"Ticket: {state.get('ticket', {})}\n"
-                    f"Component: {target_comp.id if target_comp else 'unknown'} (metadata={comp_meta})\n"
-                    f"Goal: Fetch prerequisite data for {tool_names_in_group}: {missing_desc}"
+                    f"Component: {comp.id if comp else 'unknown'} (metadata={comp_meta})\n"
+                    f"Goal: Tier 1 discovery — gather identifiers for Tier 2 tools"
                 )
                 output = await executor.execute(
-                    prereq_tool, prereq_tool_args, exec_context,
-                    intent=f"Prerequisite for {tool_names_in_group}"
+                    tool, sel.args, exec_context, intent=sel.evaluation.reasoning,
                 )
-
                 snapshot = await store.save_evidence(
-                    tool_name=prereq_tool_name,
-                    tool_args=prereq_tool_args,
-                    content=output,
-                    summary=f"Prerequisite for {tool_names_in_group}: {missing_desc}"
+                    tool_name=sel.name, tool_args=sel.args, content=output,
+                    summary=f"Tier 1 discovery: {sel.evaluation.reasoning}",
                 )
-                prereq_evidence.append(snapshot)
-                executed_signatures.add(prereq_sig)
-                logger.info(f"ToolSelector: Prereq {prereq_tool_name} executed successfully")
-
-                # Rebind ALL tools in the group with the prereq output
-                for sel, sel_comp in group_entries:
-                    updated_sel = await self._rebind_with_prereq_data(
-                        sel, output, sel_comp or target_comp
-                    )
-                    for i, s in enumerate(selections):
-                        if s.name == sel.name and s is sel:
-                            selections[i] = updated_sel
-                            break
-
-                resolved_count += 1
-
+                tier1_evidence.append(snapshot)
+                executed_signatures.add(sig)
+                tier1_outputs.append((sel.name, output))
+                logger.info(
+                    f"ToolSelector: Tier 1 executed {sel.name} → "
+                    f"context for {len(needs_data)} tools needing data"
+                )
             except Exception as e:
-                logger.warning(f"ToolSelector: Prereq execution failed for {prereq_tool_name}: {e}")
+                logger.warning(f"ToolSelector: Tier 1 execution failed for {sel.name}: {e}")
 
-        # Change 5: Metrics logging
+        # --- Step 3: Rebind needs_data tools with aggregated Tier 1 context ---
+        if tier1_outputs:
+            tier1_context = "\n\n".join(
+                f"=== {name} output ===\n{out[:3000]}" for name, out in tier1_outputs
+            )
+            for i, sel in enumerate(needs_data):
+                comp = self._find_component_for_sel(sel, components)
+                needs_data[i] = await self._rebind_with_prereq_data(
+                    sel, tier1_context, comp or (components[0] if components else None),
+                )
+
+        # --- Step 4: Fallback — search for additional Tier 1 tools for STILL-missing ---
+        still_missing = [s for s in needs_data if s.missing_params and len(s.missing_params) <= 3]
+        if still_missing:
+            resolved_count = 0
+            # Group by (requires_identifiers or missing_params, component_id)
+            groups: Dict[tuple, list] = {}
+            for sel in still_missing:
+                comp = self._find_component_for_sel(sel, components)
+                comp_id = comp.id if comp else "unknown"
+                if sel.requires_identifiers:
+                    group_key = frozenset(sel.requires_identifiers)
+                else:
+                    group_key = frozenset(sel.missing_params.keys())
+                groups.setdefault((group_key, comp_id), []).append((sel, comp))
+
+            for (id_keys, comp_id), group_entries in groups.items():
+                if resolved_count >= max_prereqs:
+                    break
+
+                representative_sel, target_comp = group_entries[0]
+                search_identifiers = list(id_keys)
+                missing_desc = "; ".join(
+                    f"{k}: {v}" for k, v in representative_sel.missing_params.items()
+                )
+                tool_names_in_group = [s.name for s, _ in group_entries]
+                logger.info(
+                    f"ToolSelector: Fallback prereq search — identifiers: {search_identifiers}, "
+                    f"tools: {tool_names_in_group}"
+                )
+
+                # Strategy A: Identifier-based Qdrant search for Tier 1 tools
+                prereq_selections = []
+                try:
+                    from src.core.qdrant import vector_store
+                    vendor_filter = target_comp.vendor.lower() if target_comp and target_comp.vendor else None
+
+                    payloads = await vector_store.search_tool_catalog(
+                        intent=f"list discover {' '.join(search_identifiers)}",
+                        customer_id=self.customer_id,
+                        limit=5,
+                        vendor=vendor_filter,
+                        read_only=True,
+                        tier=1,
+                        provides_identifiers=search_identifiers,
+                    )
+                    if payloads:
+                        logger.info(
+                            f"ToolSelector: Found {len(payloads)} Tier 1 candidates "
+                            f"for {search_identifiers}"
+                        )
+                        tier1_candidates = []
+                        for p in payloads:
+                            t_name = p.get("tool_name")
+                            tool = _CR.get_tool(t_name)
+                            if not tool or not _CR._is_safe(t_name):
+                                continue
+                            tier1_candidates.append(ToolCandidate(
+                                tool_name=t_name,
+                                description=tool.description or t_name,
+                                args_schema=tool.args_schema.model_json_schema() if tool.args_schema else {},
+                                vendor=p.get("vendor", ""),
+                                tier=p.get("tier", 1),
+                                provides_identifiers=p.get("provides_identifiers", []),
+                                scope_params=p.get("scope_params", []),
+                            ))
+                        if tier1_candidates:
+                            tier1_ctx = ToolSelectionContext(
+                                ticket_text=f"Need to discover: {missing_desc}",
+                                component=target_comp,
+                                components=components,
+                                facts=state.get("facts", {}),
+                                mode="evidence",
+                            )
+                            evals = await self.evaluate_candidates(tier1_candidates, tier1_ctx)
+                            approved_evals = [e for e in evals if e.relevant]
+                            if approved_evals:
+                                approved_evals.sort(key=lambda e: e.priority)
+                                prereq_selections = await self.bind_arguments(
+                                    approved_evals, tier1_candidates, tier1_ctx,
+                                )
+                                prereq_selections = [p for p in prereq_selections if not p.missing_params]
+                except Exception as e:
+                    logger.warning(f"ToolSelector: Fallback identifier search failed: {e}")
+
+                # Strategy B: Generic select_tools() fallback
+                if not prereq_selections:
+                    prereq_ctx = ToolSelectionContext(
+                        ticket_text=f"Need to discover: {missing_desc}",
+                        component=target_comp,
+                        components=components,
+                        facts=state.get("facts", {}),
+                        mode="evidence",
+                    )
+                    try:
+                        prereq_selections = await self.select_tools(prereq_ctx, max_intents=1)
+                    except Exception as e:
+                        logger.warning(f"ToolSelector: Prereq search failed for {tool_names_in_group}: {e}")
+                        continue
+                    prereq_selections = [p for p in prereq_selections if not p.missing_params]
+
+                if not prereq_selections:
+                    logger.info(f"ToolSelector: No fully-bindable prereq found for {tool_names_in_group}")
+                    continue
+
+                # Execute best prereq tool
+                prereq_sel = prereq_selections[0]
+                sig_norm = json.dumps(prereq_sel.args or {}, sort_keys=True, default=str)
+                prereq_sig = f"{prereq_sel.name}::{_hl.sha256(sig_norm.encode()).hexdigest()[:16]}"
+                if prereq_sig in executed_signatures:
+                    logger.info(f"ToolSelector: Prereq {prereq_sel.name} already executed, skipping")
+                    continue
+
+                prereq_tool = _CR.get_tool(prereq_sel.name)
+                if not prereq_tool:
+                    continue
+                if not is_safe_tool(prereq_sel.name, prereq_sel.args):
+                    continue
+                if not await is_tool_allowed_for_tenant(prereq_sel.name, self.customer_id):
+                    continue
+
+                try:
+                    executor = AdaptiveExecutor(customer_id=self.customer_id, run_id=self.run_id)
+                    comp_meta = json.dumps(target_comp.metadata, default=str) if target_comp and target_comp.metadata else "{}"
+                    exec_context = (
+                        f"Ticket: {state.get('ticket', {})}\n"
+                        f"Component: {target_comp.id if target_comp else 'unknown'} (metadata={comp_meta})\n"
+                        f"Goal: Fetch prerequisite data for {tool_names_in_group}: {missing_desc}"
+                    )
+                    output = await executor.execute(
+                        prereq_tool, prereq_sel.args, exec_context,
+                        intent=f"Prerequisite for {tool_names_in_group}",
+                    )
+                    snapshot = await store.save_evidence(
+                        tool_name=prereq_sel.name, tool_args=prereq_sel.args,
+                        content=output,
+                        summary=f"Prerequisite for {tool_names_in_group}: {missing_desc}",
+                    )
+                    tier1_evidence.append(snapshot)
+                    executed_signatures.add(prereq_sig)
+                    logger.info(
+                        f"ToolSelector: Fallback discovery {prereq_sel.name} executed → "
+                        f"enables: {tool_names_in_group}"
+                    )
+
+                    # Rebind all tools in group with prereq output
+                    for sel, sel_comp in group_entries:
+                        updated = await self._rebind_with_prereq_data(
+                            sel, output, sel_comp or target_comp,
+                        )
+                        for idx, s in enumerate(needs_data):
+                            if s.name == sel.name and s is sel:
+                                needs_data[idx] = updated
+                                break
+                    resolved_count += 1
+
+                except Exception as e:
+                    logger.warning(f"ToolSelector: Fallback prereq execution failed for {prereq_sel.name}: {e}")
+
+        # --- Step 5: Return ---
+        # Tier 1 tools removed from selections (already executed, evidence captured)
+        final_selections = pass_through + needs_data
+        bound_count = len([s for s in final_selections if not s.missing_params])
+        still_count = len([s for s in final_selections if s.missing_params])
         logger.info(
-            f"ToolSelector: Prereq resolution — {len(groups)} groups, "
-            f"{resolved_count} resolved, {len(prereq_evidence)} evidence collected"
+            f"ToolSelector: 2-tier resolution complete — "
+            f"{len(tier1_evidence)} Tier 1 executed, "
+            f"{bound_count} fully bound, {still_count} still missing params"
         )
+        return final_selections, tier1_evidence
 
-        return selections, prereq_evidence
+    def _find_component_for_sel(self, sel: ToolSelection, components: list):
+        """Find the component associated with a tool selection."""
+        for c in components:
+            if c.id in str(sel.args.values()):
+                return c
+        return components[0] if components else None
 
     async def resolve_runtime_dependency(
         self,
@@ -976,6 +1135,8 @@ If no values can be extracted, return: {{"extracted": {{}}}}
                     args=new_args,
                     evaluation=sel.evaluation,
                     missing_params=new_missing,
+                    requires_identifiers=sel.requires_identifiers,
+                    tier=sel.tier,
                 )
             return sel
 
@@ -986,85 +1147,6 @@ If no values can be extracted, return: {{"extracted": {{}}}}
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-
-    async def _classify_params_as_operational(
-        self,
-        tool_name: str,
-        required_fields: list,
-        properties: dict,
-        candidate: Optional[ToolCandidate],
-    ) -> Optional[Dict[str, Any]]:
-        """
-        LLM check: are ALL required fields operational (API-mechanical)?
-        Returns a defaults dict if yes, None if any param is contextual.
-        """
-        param_lines = []
-        for field in required_fields:
-            prop = properties.get(field, {})
-            param_lines.append(
-                f"- {field} (type: {prop.get('type', 'unknown')}): "
-                f"{prop.get('description', 'no description')}"
-            )
-        params_block = "\n".join(param_lines)
-
-        tool_desc = candidate.description if candidate else tool_name
-
-        prompt = f"""Classify each required parameter of the tool "{tool_name}" as OPERATIONAL or CONTEXTUAL.
-
-Tool description: {tool_desc}
-
-Required parameters:
-{params_block}
-
-DEFINITIONS:
-- OPERATIONAL: Controls API behavior — result limits, pagination, timeouts, sort order, output format, batch size, count of items to return. These do NOT identify what to query. Any sensible value works.
-- CONTEXTUAL: Identifies WHAT to query — IPs, hostnames, policy names, interfaces, resource IDs, device names, filter expressions that reference specific resources.
-
-Be conservative: if uncertain, classify as CONTEXTUAL.
-
-Return ONLY a JSON object:
-{{"classification": {{"param_name": "operational" | "contextual", ...}}, "defaults": {{"param_name": value, ...}}}}
-
-Include "defaults" ONLY for parameters classified as "operational". Use sensible values (e.g., 100 for counts/limits, 30 for timeouts, 0 for offsets).
-"""
-
-        try:
-            response = await self.llm.ainvoke([
-                SystemMessage(content="You classify API parameters. Be conservative — when unsure, classify as contextual."),
-                HumanMessage(content=prompt),
-            ])
-            raw = json.loads(
-                response.content.strip().replace("```json", "").replace("```", "")
-            )
-            classification = raw.get("classification", {})
-            defaults = raw.get("defaults", {})
-
-            # ALL required fields must be operational for recovery
-            for field in required_fields:
-                if classification.get(field) != "operational":
-                    logger.info(
-                        f"ToolSelector: Param '{field}' of {tool_name} classified as "
-                        f"contextual — cannot recover with defaults"
-                    )
-                    return None
-
-            # Ensure every operational field has a default
-            result = {}
-            for field in required_fields:
-                if field in defaults and defaults[field] is not None:
-                    result[field] = defaults[field]
-                else:
-                    logger.info(
-                        f"ToolSelector: No default provided for operational param '{field}' "
-                        f"of {tool_name} — cannot recover"
-                    )
-                    return None
-
-            return result
-
-        except Exception as e:
-            logger.warning(f"ToolSelector: Operational classification failed for {tool_name}: {e}")
-            return None
 
     @staticmethod
     def _format_component_for_binding(comp: Component) -> str:
@@ -1080,6 +1162,48 @@ Include "defaults" ONLY for parameters classified as "operational". Use sensible
             for k, v in comp.metadata.items():
                 lines.append(f"  {k}: {v}")
         return "\n".join(lines)
+
+    @staticmethod
+    def _bind_scope_params_from_context(
+        scope_fields: set,
+        properties: dict,
+        context: "ToolSelectionContext",
+    ) -> Dict[str, Any]:
+        """
+        Deterministic scope-param binding from Component metadata.
+        Maps common scope param names (host, device, ip, hostname, etc.)
+        to values from the component's id, ref, or metadata dict.
+        No LLM call — pure metadata lookup.
+        """
+        comp = context.component or context.source_component
+        if not comp:
+            return {}
+
+        pool: Dict[str, str] = {}
+        pool["device"] = comp.id
+        pool["host"] = comp.id
+        pool["hostname"] = comp.id
+        ip_val = comp.metadata.get("ip", comp.metadata.get("management_ip", ""))
+        if ip_val:
+            pool["ip"] = ip_val
+            pool["device_ip"] = ip_val
+        for k, v in comp.metadata.items():
+            if isinstance(v, str) and v:
+                pool[k.lower()] = v
+        if comp.ref:
+            pool.setdefault("name", comp.ref)
+
+        bound: Dict[str, Any] = {}
+        for field in scope_fields:
+            fl = field.lower()
+            if fl in pool and pool[fl]:
+                bound[field] = pool[fl]
+            else:
+                for pk, pv in pool.items():
+                    if pk in fl and pv:
+                        bound[field] = pv
+                        break
+        return bound
 
     # ------------------------------------------------------------------
     # Brute-force fallback
@@ -1123,7 +1247,7 @@ Include "defaults" ONLY for parameters classified as "operational". Use sensible
                     param_count=meta["param_count"],
                 ))
 
-        return candidates[:10]
+        return candidates
 
     # ------------------------------------------------------------------
     # Intent prompt builders

@@ -57,6 +57,8 @@ COLLECTION_INDEXES: Dict[str, List[tuple]] = {
         ("method", models.PayloadSchemaType.KEYWORD),
         ("read_only", models.PayloadSchemaType.KEYWORD),
         ("categories", models.PayloadSchemaType.KEYWORD),
+        ("tier", models.PayloadSchemaType.INTEGER),
+        ("provides_identifiers", models.PayloadSchemaType.KEYWORD),
         ("source_type", models.PayloadSchemaType.KEYWORD),
     ],
 }
@@ -617,12 +619,14 @@ class VectorStore:
 
     @rag_telemetry(operation_name="search_tool_catalog")
     async def search_tool_catalog(
-        self, intent: str, customer_id: str, limit: int = 8,
+        self, intent: str, customer_id: str, limit: int = 100,
         score_threshold: float = None,
         vendor: str = None,
         method: str = None,
         read_only: bool = None,
         categories: List[str] = None,
+        tier: int = None,
+        provides_identifiers: List[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Semantic search for tools by INTENT description.
@@ -651,8 +655,17 @@ class VectorStore:
                 key="categories",
                 match=models.MatchAny(any=[c.lower() for c in categories]),
             ))
+        if tier is not None:
+            extra_filter.append(models.FieldCondition(
+                key="tier", match=models.MatchValue(value=tier)
+            ))
+        if provides_identifiers:
+            extra_filter.append(models.FieldCondition(
+                key="provides_identifiers",
+                match=models.MatchAny(any=[p.lower() for p in provides_identifiers]),
+            ))
 
-        logger.debug(f"search_tool_catalog: query='{intent}', vendor={vendor}, read_only={read_only}, categories={categories}")
+        logger.debug(f"search_tool_catalog: query='{intent}', vendor={vendor}, read_only={read_only}, categories={categories}, tier={tier}")
         results = await self.search(
             "tool_catalog", intent, customer_id, limit,
             score_threshold=threshold,
@@ -668,7 +681,7 @@ class VectorStore:
             collection_name="tool_catalog",
             scroll_filter=tenant_filter,
             limit=1,
-            with_payload=["vendor", "categories"],
+            with_payload=["vendor", "categories", "tier"],
             with_vectors=False,
         )
         if not results:
@@ -678,6 +691,8 @@ class VectorStore:
         if "vendor" not in payload or payload.get("vendor") == "":
             return True
         if "categories" not in payload or isinstance(payload.get("categories"), str):
+            return True
+        if "tier" not in payload or payload.get("tier") == 0:
             return True
         return False
 

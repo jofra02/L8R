@@ -304,6 +304,10 @@ class ToolCandidate(BaseModel):
     read_only: bool = True
     categories: List[str] = Field(default_factory=list)
     param_count: int = 0
+    tier: int = 0  # 1=discovery/list, 2=specific/detail, 0=unclassified
+    provides_identifiers: List[str] = Field(default_factory=list)
+    requires_identifiers: List[str] = Field(default_factory=list)
+    scope_params: List[str] = Field(default_factory=list)
 
 class ToolEvaluation(BaseModel):
     """LLM judgment on a single candidate tool."""
@@ -321,6 +325,8 @@ class ToolSelection(BaseModel):
         default_factory=dict,
         description="Mandatory params not bound from context. key=param, value=description from schema"
     )
+    requires_identifiers: List[str] = Field(default_factory=list)
+    tier: int = 0
 
 
 @dataclass
