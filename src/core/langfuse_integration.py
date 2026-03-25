@@ -5,7 +5,7 @@ Provides:
 - LangfuseManager: lazy singleton for client, traces, spans, callback handlers
 - ContextVar helpers for async-safe trace/span propagation across the pipeline
 
-SDK target: langfuse >= 2.44.0 (OTel-based API).
+SDK target: langfuse >= 2.44.0 / 4.x (supports both v2 and v4 APIs).
 """
 
 import logging
@@ -128,25 +128,27 @@ class LangfuseManager:
             return None
 
         try:
-            # Import path varies across langfuse versions
+            # langfuse v4: langfuse.langchain
+            # langfuse v2: langfuse.callback
             try:
-                from langfuse.callback import CallbackHandler
+                from langfuse.langchain import CallbackHandler
             except ImportError:
-                from langfuse.callback.langchain import LangchainCallbackHandler as CallbackHandler
+                from langfuse.callback import CallbackHandler
 
             if isinstance(span_or_trace, TraceRef):
-                # Create a stateful trace client to nest handler under
-                trace_client = client.trace(id=span_or_trace.trace_id)
-                handler = CallbackHandler(
-                    stateful_client=trace_client,
-                    metadata=metadata,
-                )
+                # v4 uses trace_context; v2 uses stateful_client
+                try:
+                    handler = CallbackHandler(
+                        trace_context={"trace_id": span_or_trace.trace_id},
+                    )
+                except TypeError:
+                    trace_client = client.trace(id=span_or_trace.trace_id)
+                    handler = CallbackHandler(
+                        stateful_client=trace_client,
+                        metadata=metadata,
+                    )
             else:
-                # Nest under an existing span/observation
-                handler = CallbackHandler(
-                    stateful_client=span_or_trace,
-                    metadata=metadata,
-                )
+                handler = CallbackHandler()
             return handler
         except Exception as e:
             logger.warning(f"Langfuse callback handler creation failed: {e}")
