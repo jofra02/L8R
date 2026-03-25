@@ -109,8 +109,9 @@ class EvidenceStore:
             try:
                 from src.core.database import async_session_factory
                 from src.core.orm import EvidenceRefORM
+                from sqlalchemy.dialects.postgresql import insert as pg_insert
                 async with async_session_factory() as session:
-                    ref = EvidenceRefORM(
+                    stmt = pg_insert(EvidenceRefORM).values(
                         id=snapshot.id,
                         ticket_id=self.ticket_id,
                         customer_id=self.customer_id,
@@ -118,8 +119,8 @@ class EvidenceStore:
                         content_hash=snapshot.content_hash,
                         storage_ref=snapshot.storage_ref,
                         summary=snapshot.summary,
-                    )
-                    await session.merge(ref)
+                    ).on_conflict_do_nothing(index_elements=["id"])
+                    await session.execute(stmt)
                     await session.commit()
             except Exception as e:
                 logger.error(f"EvidenceStore: Failed to persist EvidenceRefORM {snapshot_id}: {e}")
