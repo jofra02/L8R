@@ -128,7 +128,11 @@ class LangfuseManager:
             return None
 
         try:
-            from langfuse.callback import CallbackHandler
+            # Import path varies across langfuse versions
+            try:
+                from langfuse.callback import CallbackHandler
+            except ImportError:
+                from langfuse.callback.langchain import LangchainCallbackHandler as CallbackHandler
 
             if isinstance(span_or_trace, TraceRef):
                 # Create a stateful trace client to nest handler under
