@@ -135,7 +135,7 @@ servers:
 | `LLM_MODEL_PLANNER` | `str` | `gpt-5.4` | Model for resolution plan generation |
 | `LLM_MODEL_RESPONSE` | `str` | `gpt-5.4-nano` | Model for final report generation |
 | `LLM_MODEL_ADAPTIVE_FIX` | `str` | `gpt-5-nano` | Model for adaptive executor self-healing |
-| `LLM_REASONING_EFFORT` | `str` | `low` | Reasoning effort level for compatible models |
+| `LLM_REASONING_EFFORT` | `str?` | `None` | Reasoning effort level for compatible models (`low`, `medium`, `high`, or `null` to skip) |
 | `LLM_TEMPERATURE_DEFAULT` | `float` | `0.0` | Default temperature for all LLM calls |
 
 ### Safety and Governance
