@@ -9,7 +9,6 @@ import { TimeAgo } from "@/components/common/TimeAgo";
 import type { UserCreateRequest, UserResponse } from "@/api/types";
 
 export function UsersPage() {
-  const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data: users, isLoading } = useQuery({
