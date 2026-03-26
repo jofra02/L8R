@@ -17,12 +17,11 @@ import {
 } from "@/api/endpoints";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { TimeAgo } from "@/components/common/TimeAgo";
-import type { TenantUpdate, EndpointUpsert, ScopeCreate, ScopeUpdate, TenantScopeResponse, CascadeWarning } from "@/api/types";
+import type { TenantUpdate, EndpointUpsert, ScopeCreate, ScopeUpdate, TenantScopeResponse } from "@/api/types";
 
 export function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const qc = useQueryClient();
 
   const { data: tenant, isLoading } = useQuery({
     queryKey: ["tenants", id],
@@ -445,7 +444,6 @@ function DangerZone({ customerId }: { customerId: string }) {
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
-  const [warning, setWarning] = useState<CascadeWarning | null>(null);
 
   const warningQuery = useQuery({
     queryKey: ["tenants", customerId, "cascade"],

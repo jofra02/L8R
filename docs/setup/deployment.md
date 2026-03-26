@@ -76,29 +76,100 @@ The entrypoint script automatically runs:
 2. `python -m src.utils.init_qdrant` -- Qdrant collection initialization (idempotent)
 3. `uvicorn` -- application server
 
-### With Langfuse (Optional)
+### With Langfuse Observability
+
+Langfuse requires a bootstrap sequence — the API keys are generated **after** Langfuse is running, so the app starts with tracing disabled first.
+
+#### 1. Generate secrets and configure `.env`
 
 ```bash
-docker compose --profile observability up -d
-
-# Explicit form (equivalent — references both compose files):
-# docker compose --profile observability -f docker-compose.yml -f docker-compose.observability.yml up -d
+# Generate three secrets
+openssl rand -base64 32   # → LANGFUSE_NEXTAUTH_SECRET
+openssl rand -base64 32   # → LANGFUSE_SALT
+openssl rand -base64 32   # → JWT_SECRET_KEY (if not already set)
 ```
 
-Langfuse will be available at `http://localhost:3000`. Set `LANGFUSE_ENABLED=true` in `.env` and configure the Langfuse keys after initial setup. The `docker-compose.observability.yml` override adds a startup dependency so the app waits for Langfuse.
+Set these in `.env`:
+
+```env
+LANGFUSE_ENABLED=false                          # disabled until keys are obtained
+LANGFUSE_HOST=http://localhost:3000              # docker-compose overrides to http://langfuse:3000
+LANGFUSE_DB=langfuse
+LANGFUSE_NEXTAUTH_SECRET=<generated-secret>
+LANGFUSE_SALT=<generated-salt>
+```
+
+#### 2. Create the Langfuse database
+
+Langfuse uses a separate database in the same postgres instance. The postgres container only auto-creates the app database (`DB_NAME`), so create the Langfuse DB manually:
+
+```bash
+docker compose up -d postgres
+docker compose exec postgres pg_isready -U ${DB_USER:-postgres}
+docker compose exec postgres createdb -U ${DB_USER:-postgres} langfuse
+```
+
+#### 3. Start the full stack
+
+Compose is idempotent -- postgres from Step 2 stays running; only new services are started.
+
+```bash
+docker compose --profile observability \
+  -f docker-compose.yml \
+  -f docker-compose.observability.yml \
+  up -d
+```
+
+> **Without the override file**: `docker compose --profile observability up -d` also works, but the `app` container starts without waiting for Langfuse. The override file (`docker-compose.observability.yml`) adds `depends_on langfuse: condition: service_started` to the `app` service, ensuring Langfuse is up before the app starts.
+
+Verify all services:
+
+```bash
+docker compose ps
+curl http://localhost:8000/health    # backend
+curl http://localhost:3001           # frontend
+curl http://localhost:3000           # langfuse UI
+```
+
+#### 4. Create Langfuse project and API keys
+
+1. Open `http://<your-host>:3000` in your browser
+2. Create an account (first user becomes admin)
+3. Create a new **project**
+4. Go to **Settings → API Keys** → create new keys
+5. Copy the **Public Key** (`pk-lf-...`) and **Secret Key** (`sk-lf-...`)
+
+#### 5. Enable tracing
+
+Update `.env`:
+
+```env
+LANGFUSE_ENABLED=true
+LANGFUSE_PUBLIC_KEY=pk-lf-<your-key>
+LANGFUSE_SECRET_KEY=sk-lf-<your-key>
+```
+
+Restart only the app:
+
+```bash
+docker compose restart app
+```
+
+Submit a test ticket — traces should appear in the Langfuse dashboard.
 
 ## Service Configuration
 
 ### PostgreSQL
 
-The compose file uses `postgres:16-alpine`. Connection settings:
+The compose file uses `postgres:16-alpine`. The `DB_*` variables are the canonical credentials — docker-compose maps them to the postgres container automatically (`DB_USER` → `POSTGRES_USER`, etc.):
 
-| Variable | Docker Default | Description |
+| Variable | Default | Description |
 |---|---|---|
-| `POSTGRES_USER` | `postgres` | Superuser name (used by compose + app) |
-| `POSTGRES_PASSWORD` | `change_me` | Superuser password |
-| `POSTGRES_DB` | `support_agent_db` | Default database |
-| `DB_HOST` | `postgres` (overridden in compose) | Hostname |
+| `DB_USER` | `postgres` | Database user (mapped to `POSTGRES_USER` in compose) |
+| `DB_PASS` | `change_me` | Database password (mapped to `POSTGRES_PASSWORD`) |
+| `DB_NAME` | `support_agent_db` | Database name (mapped to `POSTGRES_DB`) |
+| `DB_HOST` | `localhost` | Overridden to `postgres` inside compose |
+| `DB_PORT` | `5432` | Database port |
 
 **Managed database alternative**: Set `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` to point at your managed instance (RDS, Cloud SQL, Azure Database). Remove or stop the `postgres` service in compose.
 
@@ -106,7 +177,7 @@ The compose file uses `postgres:16-alpine`. Connection settings:
 
 ### Qdrant
 
-The compose file uses `qdrant/qdrant:latest` with persistent storage.
+The compose file uses `qdrant/qdrant:v1.14.0` with persistent storage.
 
 | Variable | Docker Default | Description |
 |---|---|---|
@@ -160,14 +231,20 @@ See `data/mcp/servers.example.yaml` for SSE and stdio transport examples. The YA
 
 ### Langfuse
 
-Langfuse runs under the `observability` profile and shares the PostgreSQL instance (separate database).
+Langfuse runs under the `observability` profile and shares the PostgreSQL instance (separate database). See [With Langfuse Observability](#with-langfuse-observability) above for the full bootstrap sequence.
 
 | Variable | Default | Description |
 |---|---|---|
-| `LANGFUSE_DB` | `langfuse` | Langfuse database name |
-| `LANGFUSE_NEXTAUTH_SECRET` | (must change) | NextAuth session secret |
-| `LANGFUSE_SALT` | (must change) | Encryption salt |
+| `LANGFUSE_ENABLED` | `false` | Enable trace collection in the app |
+| `LANGFUSE_PUBLIC_KEY` | — | Obtained from Langfuse UI after project creation |
+| `LANGFUSE_SECRET_KEY` | — | Obtained from Langfuse UI after project creation |
+| `LANGFUSE_HOST` | `http://localhost:3000` | Overridden to `http://langfuse:3000` in compose |
+| `LANGFUSE_DB` | `langfuse` | Langfuse database name (must be created manually) |
+| `LANGFUSE_NEXTAUTH_SECRET` | (must generate) | `openssl rand -base64 32` |
+| `LANGFUSE_SALT` | (must generate) | `openssl rand -base64 32` |
 | `LANGFUSE_PORT` | `3000` | Host port mapping |
+
+> **Note**: The compose file always sets `LANGFUSE_HOST=http://langfuse:3000` in the `app` service environment, even when the Langfuse container is not running. This is harmless -- when `LANGFUSE_ENABLED=false`, the Langfuse client is never initialized and no connection is attempted.
 
 **Langfuse Cloud alternative**: Set `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, and `LANGFUSE_SECRET_KEY` to your cloud project values. Do not start the `langfuse` profile.
 
@@ -211,7 +288,7 @@ All services define Docker health checks:
 | `postgres` | `pg_isready` | 5s |
 | `qdrant` | `GET /readyz` | 5s |
 | `app` | `GET /health` | 10s (30s start period) |
-| `frontend` | (depends on `app` healthy) | — |
+| `frontend` | `curl -sf http://localhost:80/` | 10s |
 
 The `app` service uses `depends_on` with `condition: service_healthy` for `postgres` and `qdrant`, ensuring migrations only run after dependencies are ready.
 
@@ -303,7 +380,7 @@ See [Configuration Reference](configuration.md) for the full environment variabl
 | `UVICORN_WORKERS` | Match to available CPU cores |
 | `LOG_LEVEL=WARNING` | Reduce log noise |
 | `OPENAI_API_KEY` | Required for LLM inference |
-| `POSTGRES_PASSWORD` / `DB_PASS` | Must be strong, must match |
+| `DB_PASS` | Must be strong (mapped to postgres container automatically) |
 | `QDRANT_API_KEY` | Required if using Qdrant Cloud |
 | `LANGFUSE_ENABLED` | Enable trace collection |
 
