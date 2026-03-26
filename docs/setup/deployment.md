@@ -80,9 +80,12 @@ The entrypoint script automatically runs:
 
 ```bash
 docker compose --profile observability up -d
+
+# Explicit form (equivalent — references both compose files):
+# docker compose --profile observability -f docker-compose.yml -f docker-compose.observability.yml up -d
 ```
 
-Langfuse will be available at `http://localhost:3000`. Set `LANGFUSE_ENABLED=true` in `.env` and configure the Langfuse keys after initial setup.
+Langfuse will be available at `http://localhost:3000`. Set `LANGFUSE_ENABLED=true` in `.env` and configure the Langfuse keys after initial setup. The `docker-compose.observability.yml` override adds a startup dependency so the app waits for Langfuse.
 
 ## Service Configuration
 
