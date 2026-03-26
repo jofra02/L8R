@@ -1,5 +1,48 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
+from pathlib import Path
+import yaml
+import logging
+
+logger = logging.getLogger(__name__)
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_MCP_SERVERS_PATH = _PROJECT_ROOT / "data" / "mcp" / "servers.yaml"
+
+
+def _load_mcp_config() -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
+    """Load MCP server definitions from data/mcp/servers.yaml.
+
+    Returns (servers_dict, vendor_map) where vendor_map is extracted
+    from per-server 'vendor' fields.  Falls back to empty dicts if
+    the file is missing or malformed.
+    """
+    servers: Dict[str, Dict[str, Any]] = {}
+    vendor_map: Dict[str, str] = {}
+
+    if not _MCP_SERVERS_PATH.exists():
+        return servers, vendor_map
+
+    try:
+        raw = yaml.safe_load(_MCP_SERVERS_PATH.read_text(encoding="utf-8")) or {}
+        servers = raw.get("servers", {})
+        if not isinstance(servers, dict):
+            logger.warning("MCP servers.yaml: 'servers' key is not a dict, ignoring")
+            return {}, {}
+
+        # Extract vendor fields into a separate map and remove from server config
+        for name, cfg in servers.items():
+            vendor = cfg.pop("vendor", None)
+            if vendor:
+                vendor_map[name] = vendor
+
+    except Exception as e:
+        logger.warning(f"Failed to load {_MCP_SERVERS_PATH}: {e}")
+
+    return servers, vendor_map
+
+
+_mcp_servers, _mcp_vendor_map = _load_mcp_config()
 
 class Settings(BaseSettings):
     """Global application settings."""
@@ -54,23 +97,12 @@ class Settings(BaseSettings):
     QDRANT_HYBRID_ENABLED: bool = False
     QDRANT_HYBRID_COLLECTIONS: List[str] = ["tool_catalog", "adaptive_fixes", "knowledge_base"]
     
-    # MCP Server → Vendor mapping (config-driven, primary vendor extraction)
-    MCP_SERVER_VENDOR_MAP: Dict[str, str] = {}
+    # MCP Server → Vendor mapping (extracted from data/mcp/servers.yaml vendor fields)
+    MCP_SERVER_VENDOR_MAP: Dict[str, str] = _mcp_vendor_map
 
-    # MCP
+    # MCP — loaded from data/mcp/servers.yaml (env var override still works)
     MCP_SERVER_TIMEOUT: int = 30
-    MCP_SERVERS: Dict[str, Dict[str, Any]] = {
-        # --- Examples ---
-        # "filesystem": {
-        #     "transport": "stdio",
-        #     "command": "npx",
-        #     "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
-        # },
-         "remote-server": {
-             "transport": "sse",
-             "url": "http://localhost:8001/sse"
-         }
-    }
+    MCP_SERVERS: Dict[str, Dict[str, Any]] = _mcp_servers
     
     # --- LLM Profiles (Governance) ---
     

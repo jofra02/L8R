@@ -1,0 +1,42 @@
+# MCP Server Configuration — Examples
+#
+# Each server entry requires:
+#   transport: "sse" or "stdio"
+#
+# SSE transport requires:
+#   url: HTTP endpoint URL
+#
+# Stdio transport requires:
+#   command: executable name
+#   args: list of arguments
+#   env: (optional) environment variables dict
+#
+# Optional fields (any transport):
+#   vendor: vendor name for tool metadata extraction (e.g., "fortinet", "cisco")
+#   timeout: per-server timeout in seconds (overrides MCP_SERVER_TIMEOUT)
+
+servers:
+  # ── SSE (HTTP) transport ──
+  network-tools:
+    transport: sse
+    url: http://10.0.1.50:8001/sse
+    vendor: fortinet
+    timeout: 45
+
+  cloud-tools:
+    transport: sse
+    url: http://localhost:8002/sse
+    vendor: aws
+
+  # ── Stdio (subprocess) transport ──
+  filesystem:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+
+  github:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: "ghp_..."

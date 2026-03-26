@@ -3,7 +3,10 @@
 __pycache__
 *.pyc
 *.pyo
-data/
+# Exclude runtime data but keep config YAML files
+data/evidence/
+data/tenants/
+data/rollback_*.md
 .env
 .env.*
 !.env.example
