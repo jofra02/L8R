@@ -143,11 +143,18 @@ The compose file includes a `frontend` service that builds from `./frontend`.
 
 MCP servers are external processes that provide read-only tool access. They are **not** containerized in this compose stack because they must be deployed near the target infrastructure.
 
-Configure via `MCP_SERVERS` (JSON) in `.env`:
+Configure in `data/mcp/servers.yaml`:
 
-```json
-MCP_SERVERS={"remote-server": {"transport": "sse", "url": "http://mcp-host:8000/sse"}}
+```yaml
+servers:
+  network-tools:
+    transport: sse
+    url: http://mcp-host:8001/sse
+    vendor: fortinet        # optional — used for tool metadata extraction
+    timeout: 45             # optional — overrides MCP_SERVER_TIMEOUT
 ```
+
+See `data/mcp/servers.example.yaml` for SSE and stdio transport examples. The YAML is loaded at startup by `src/config.py`; see [Configuration > MCP](configuration.md#mcp-model-context-protocol) for the full field reference.
 
 **Docker networking note**: If MCP servers run on the Docker host, use `host.docker.internal` (Docker Desktop) or the host's IP address as the hostname. `localhost` inside the container refers to the container itself.
 
