@@ -2,66 +2,73 @@
 
 ## Project Overview
 
-Multi-agent L1/L2 technical support framework. Receives IT support tickets (incidents/changes), orchestrates a LangGraph pipeline of specialized agents to diagnose, enrich, hypothesize, and generate resolution plans — without executing any write actions on external systems. Domain-agnostic: works across networking, infrastructure, cloud, application, database, security, and any IT domain.
+Single-agent L1/L2 technical support framework. Receives IT support tickets (incidents/changes), runs a single Engineer ReAct agent that autonomously investigates using 6 meta-tools, then produces structured findings — without executing any write actions on external systems. Domain-agnostic: works across networking, infrastructure, cloud, application, database, security, and any IT domain.
 
-- **Orchestration**: LangGraph (stateful, checkpointed)
-- **Tool access**: MCP client (read-only enforcement)
-- **Persistence**: PostgreSQL (state, audit, checkpoints) + Qdrant (vector KB)
+- **Architecture**: Single Engineer ReAct agent (`PIPELINE_MODE=engineer`)
+- **Orchestration**: LangGraph (StateGraph, single node → END)
+- **Tool access**: MCP client (read-only enforcement), 6 meta-tools
+- **Persistence**: PostgreSQL (state, audit, checkpoints) + Qdrant (vector KB, tool catalog, evidence)
 - **LLM layer**: OpenAI-compatible models via `src/core/llm.py` (`LLMFactory`)
+- **Frontend**: React dashboard (`frontend/`)
 
 ## Key Directories
 
 ```
 src/
-  agents/         # LangGraph nodes (supervisor, classifier, evidence_collector, etc.)
+  agents/
+    engineer.py           # ReAct agent LangGraph node
+    engineer_prompts.py   # System prompt + embedded base skill
+    engineer_tools.py     # 6 meta-tools factory (query_client_db, load_domain_skill, search_tool_catalog, search_knowledge_base, execute_tool, submit_findings)
+    skills/               # Investigation methodology skills (base, networking, tool_catalog, etc.)
   core/           # Models, interfaces, audit, context/evidence stores, LLM factory
-  ingestion/      # Webhook API (FastAPI) + REST/MCP pollers
+  api/            # Platform API (FastAPI) — serves frontend + programmatic clients
+  ingestion/      # Webhook ingestion + background execution service
   mcp/            # MCP client wrapper
   plugins/        # Capability packs (generic/, future vendor-specific packs)
   utils/          # Logging, helpers
+frontend/         # React dashboard (Vite + TypeScript)
 docs/
-  agents/         # Per-agent documentation
-  architecture/   # Architecture design documents (adaptive execution, data layer, etc.)
-  planning/       # Implementation plan + framework spec
-data/             # Runtime artifacts (gitignored): paused_state.json, needs.json
+  agents/         # Engineer agent documentation
+  architecture/   # Architecture design documents
+  setup/          # Quickstart, configuration, deployment guides
+  integrations/   # API reference, MCP tools, webhooks
+  planning/       # Design specs (skills, data layer, model governance)
+  legacy/         # Old 13-agent pipeline documentation (archived)
+data/             # Runtime artifacts (gitignored)
 ```
 
-## Agent Pipeline
+## Engineer Agent
 
-| Agent | Key Output |
+The Engineer agent replaces the previous 13-agent supervisor pipeline with a single ReAct reasoning loop.
+
+**Meta-Tools:**
+
+| Tool | Purpose |
 |---|---|
-| ContextAgent | `client_context`, seeded `topology_nodes/edges` |
-| Classifier | `classification` (domains, confidence) |
-| Mapper | `components` (with vendor, reconciled against inventory) |
-| EvidenceCollector | `evidence_refs` (via keyword intent -> semantic tool search) |
-| Enricher | `facts`, `structured_facts` (with provenance), `topology_nodes/edges` |
-| HypothesisAgent | `hypotheses` (ranked, with `evidence_refs`), `path_analysis` |
-| InvestigationPlanner | `open_questions` (structured question-driven investigation) |
-| GoalDecomposer | `fulfillment_goals` (change/request ticket decomposition) |
-| Scoring | `scoring` (deterministic decision gate + stagnation detection, no LLM) |
-| Investigator | `evidence_refs` (targeted, consumes `open_questions`) |
-| ResolutionPlanner | `plan` (diagnosis, remediation, validation, rollback) |
-| Response | `final_answer`, `handoff` |
+| `query_client_db` | Load tenant context (devices, topology, baselines, recent changes) |
+| `load_domain_skill` | Load domain-specific investigation methodology on-demand |
+| `search_tool_catalog` | Semantic search over 2000+ indexed MCP tools |
+| `search_knowledge_base` | Search vendor docs, runbooks, known issues |
+| `execute_tool` | Execute MCP tools against live devices (read-only, direct — no AdaptiveExecutor) |
+| `submit_findings` | Submit structured output (summary, hypotheses, facts, plan, case_status) |
+
+**Mandatory sequence:** `query_client_db → load_domain_skill → search_tool_catalog → execute_tool (1+) → submit_findings`
+
+**Skills system:** Base investigation methodology always embedded in system prompt. Domain skills (networking, firewall, vpn, etc.) loaded on-demand via `load_domain_skill`. 42 keyword mappings in `DOMAIN_SKILL_MAP`.
 
 ## Current Implementation State
 
-**Phases 1–18 complete.** Active work: **beta-0.0.8** (spec alignment, structured investigation, case lifecycle).
+**Active branch:** `0.3.0-agent_refactor_plus_skills`
 
 Completed this cycle:
-- Tenant isolation audit & remediation (all runtime + schema findings)
-- Alembic migrations for FK constraints, cascade deletes, compound indexes
-- Mapper inventory reconciliation (deterministic post-processing)
-- Evidence collector intent system rewrite (keyword queries for semantic search)
-- Domain bias audit & remediation across all agent prompts
-- Configuration-first principle (prefer config analysis over live traffic)
-- Safety keywords expansion (database, deployment, permission operations)
-- InvestigationPlanner agent (structured OpenQuestion-driven investigation)
-- GoalDecomposer agent (fulfillment path for change/request tickets)
-- CaseStatus lifecycle tracking across all agents
-- Structured Fact model with provenance (source_evidence_id, confidence)
-- Evidence-to-Hypothesis linking (evidence_refs on Hypothesis)
-- Stagnation detection in Scoring agent
-- Planner renamed to ResolutionPlanner (post-diagnosis)
+- Single Engineer ReAct agent replacing 13-agent pipeline
+- Skills system (Pattern 1: pre-fetch base, Pattern 3: on-demand domain skills)
+- Langfuse v4 observability fix (import, API, callback propagation)
+- AdaptiveExecutor bypass in engineer mode (direct tool execution)
+- submit_findings tool (structured output within reasoning chain, no post-hoc extraction)
+- Semantic tool catalog search guidance in system prompt
+- Evidence store ON CONFLICT DO NOTHING fix for re-runs
+- Documentation overhaul (legacy docs archived)
 
 ## Design Principles
 
@@ -87,19 +94,17 @@ Completed this cycle:
 
 | File | Purpose |
 |---|---|
-| `src/core/models.py` | `Ticket`, `ClientContext`, `GlobalState`, `Hypothesis`, `OpenQuestion`, `Fact`, `FulfillmentGoal`, `CaseStatus`, `TopologyNode/Edge`, etc. |
-| `src/core/interfaces.py` | `PluginInterface`, `MCPToolInterface`, `IngestorInterface` |
-| `src/core/audit.py` | `AuditService` (tenant-aware) |
+| `src/agents/engineer.py` | Engineer ReAct agent node |
+| `src/agents/engineer_prompts.py` | System prompt with embedded base skill |
+| `src/agents/engineer_tools.py` | 6 meta-tools factory + EngineerToolState |
+| `src/agents/skills/` | Investigation methodology skills |
+| `src/agent_graph_v2.py` | LangGraph graph (Engineer → END) |
+| `src/core/models.py` | `Ticket`, `ClientContext`, `GlobalState`, `Hypothesis`, `Fact`, `Plan`, `CaseStatus`, etc. |
 | `src/core/llm.py` | `LLMFactory` |
-| `src/core/adaptive_executor.py` | Self-healing tool execution with learning |
+| `src/core/evidence_store.py` | Content-addressable evidence (disk + Qdrant + PostgreSQL) |
+| `src/core/langfuse_integration.py` | Langfuse v2/v4 observability |
 | `src/core/orm.py` | SQLAlchemy ORM (TenantMixin with FK, cascade deletes) |
-| `src/agent_graph.py` | LangGraph workflow + edges |
-| `src/config.py` | Pydantic Settings, LLM profiles, MCP server config, safety keywords |
-| `src/ingestion/api.py` | FastAPI webhook endpoint |
-| `src/ingestion/service.py` | Ingestion service logic |
+| `src/config.py` | Pydantic Settings, engineer config, MCP server config, safety keywords |
+| `src/api/app.py` | Platform API (FastAPI) |
+| `src/ingestion/service.py` | Ingestion + background execution service |
 | `docs/README.md` | Master documentation index |
-| `docs/agents/` | Per-agent documentation (with Mermaid diagrams) |
-| `docs/architecture/` | Architecture design documents |
-| `docs/setup/` | Quickstart, configuration, deployment guides |
-| `docs/integrations/` | API reference, MCP tools, webhooks |
-| `docs/planning/framework_spec.md` | Detailed framework spec (architecture bible) |

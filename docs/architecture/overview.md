@@ -1,10 +1,10 @@
 # Architecture Overview
 
-> System-level design of the multi-agent L1/L2 technical support framework.
+> System-level design of the single-agent L1/L2 technical support framework.
 
 ## Overview
 
-The system receives IT support tickets (incidents, changes, requests) via webhooks or API, orchestrates a pipeline of 13 specialized LangGraph agents to diagnose, enrich, hypothesize, and generate resolution plans. No write actions are executed on external systems without human approval.
+The system receives IT support tickets (incidents, changes, requests) via webhooks, REST API, or the React dashboard. A single Engineer ReAct agent processes each ticket through an autonomous reasoning loop, using six meta-tools to gather context, load domain methodology, discover and execute tools, and produce a structured resolution report. No write actions are executed on external systems without human approval.
 
 The architecture follows three core principles:
 - **Configuration-First**: Verify via existing configuration before live traffic analysis
@@ -16,16 +16,20 @@ The architecture follows three core principles:
 ```mermaid
 graph TD
     subgraph "Ingestion Layer"
-        WH["Webhook / REST API"] -->|"HTTP 202"| API["FastAPI + Background Tasks"]
-        UI["Streamlit UI"] --> API
+        WH["Webhook / REST API"] -->|"HTTP 202"| API["FastAPI"]
+        UI["React Dashboard"] --> API
     end
 
     API -->|"Normalized Ticket"| CORE
 
-    subgraph CORE["Agentic Core — LangGraph"]
-        SV["Supervisor"] -->|route| AGENTS["13 Specialist Agents"]
-        AGENTS -->|state update| SV
-        SC["Scoring Engine"] -->|decision gate| SV
+    subgraph CORE["Agentic Core"]
+        ENG["Engineer ReAct Agent"]
+        ENG -->|invoke| MT1["query_client_db"]
+        ENG -->|invoke| MT2["load_domain_skill"]
+        ENG -->|invoke| MT3["search_tool_catalog"]
+        ENG -->|invoke| MT4["search_knowledge_base"]
+        ENG -->|invoke| MT5["execute_tool"]
+        ENG -->|invoke| MT6["submit_findings"]
     end
 
     subgraph DATA["Data Layer"]
@@ -36,12 +40,12 @@ graph TD
     end
 
     CORE -->|"state, audit"| PG
-    CORE -->|"KB, evidence, CBR"| QD
+    CORE -->|"KB, evidence, tools, CBR"| QD
     CORE -->|"read-only tools"| MCP_S
     CORE -->|"evidence snapshots"| FS
 
     subgraph OBS["Observability"]
-        LF["Langfuse"]
+        LF["Langfuse v4"]
     end
 
     CORE -->|"traces, spans"| LF
@@ -50,29 +54,42 @@ graph TD
 ## Components
 
 ### Ingestion Layer
-- **FastAPI server** (`src/ingestion/api.py`): Receives tickets via webhook (HTTP 202 async pattern). Returns `ticket_id` + `job_id` for polling.
-- **Streamlit UI** (`streamlit_app.py`): Interactive frontend for ticket submission and result viewing.
+- **FastAPI server** (`src/api/app.py`): Receives tickets via webhook (HTTP 202 async pattern). Returns `ticket_id` + `run_id` for polling.
+- **React frontend** (`frontend/`): Dashboard for ticket submission, run monitoring, and report viewing.
 - **Normalizers**: Convert source-specific payloads into the standard `Ticket` model.
 
 ### Agentic Core
-- **LangGraph StateGraph** (`src/agent_graph.py`): Stateful, checkpointed graph with 13 nodes. The Supervisor acts as the entry point and router.
-- **Sub-chains**: `evidence_collector → enricher → hypothesis → scoring` and `investigator → enricher → hypothesis → scoring` bypass the supervisor for tightly coupled sequences.
-- **Scoring Engine**: Deterministic decision gate (no LLM) that computes risk, confidence, and routes to plan/investigate/escalate.
+- **LangGraph StateGraph** (`src/agent_graph_v2.py`): Single-node graph containing the Engineer agent. Built using `langgraph.prebuilt.create_react_agent` for autonomous ReAct reasoning.
+- **Engineer ReAct Agent**: Operates in a think-act-observe loop. Six meta-tools provide structured access to all system capabilities:
+  - `query_client_db` -- retrieve tenant context, topology, and configuration
+  - `load_domain_skill` -- load domain-specific methodology (investigation steps, key questions, common patterns)
+  - `search_tool_catalog` -- semantic search over available MCP tools
+  - `search_knowledge_base` -- search KB articles, resolved tickets, and evidence
+  - `execute_tool` -- invoke an MCP tool with parameters (read-only enforcement)
+  - `submit_findings` -- finalize the structured report (diagnosis, remediation, validation, rollback)
+- **Skills system**: Domain-specific methodology files loaded on demand. Each skill provides investigation guidance, key questions, and common failure patterns for a given domain.
 
 ### Data Layer
-- **PostgreSQL**: Relational state (cases, audit logs, tenant config, LangGraph checkpoints). All tables enforce `customer_id` FK.
-- **Qdrant**: 5 vector collections (`knowledge_base`, `evidence`, `tool_knowledge`, `resolved_tickets`, `adaptive_fixes`). All queries filter by `customer_id`.
+- **PostgreSQL**: Relational state (cases, audit logs, tenant config, runs). All tables enforce `customer_id` FK constraints with cascade deletes.
+- **Qdrant**: 6 vector collections:
+  - `knowledge_base` -- KB articles and documentation
+  - `evidence` -- evidence snapshots from tool executions
+  - `tool_catalog` -- MCP tool descriptions for semantic discovery
+  - `tool_knowledge` -- learned tool usage patterns
+  - `resolved_tickets` -- past resolutions for case-based reasoning
+  - `adaptive_fixes` -- self-healing parameter corrections
+  - All queries filter by `customer_id`.
 - **Evidence Store**: Content-addressable disk storage for immutable evidence snapshots. Namespaced by tenant.
 - **MCP Servers**: External tool providers (stdio or SSE transport). Auto-discovered at startup via `CapabilityRegistry`.
 
 ### Observability
-- **Langfuse**: Optional trace/span integration for pipeline visibility. Each agent node creates a span; tool calls create child spans.
+- **Langfuse v4**: Trace and span integration for full pipeline visibility. Callbacks propagated to the react agent via `react_agent.ainvoke` config. Each tool invocation creates a child span.
 
 ## Tech Stack
 
 | Component | Technology |
 |---|---|
-| Orchestration | LangGraph (StateGraph) |
+| Orchestration | LangGraph (StateGraph + `create_react_agent`) |
 | API | FastAPI |
 | LLM | OpenAI-compatible models via `LLMFactory` |
 | Relational DB | PostgreSQL + SQLAlchemy (async) |
@@ -80,20 +97,23 @@ graph TD
 | Tool Protocol | MCP (Model Context Protocol) via FastMCP |
 | Migrations | Alembic |
 | Package Manager | uv |
-| Observability | Langfuse (SDK >= 2.44.0) |
+| Observability | Langfuse v4 |
+| Frontend | React |
 
 ## Data Flow
 
-1. Ticket arrives via webhook → normalized to `Ticket` model → HTTP 202 returned
-2. Background task launches LangGraph pipeline with `GlobalState`
-3. Supervisor routes through agents based on state completeness
-4. Evidence collection → enrichment → hypothesis → scoring loop repeats until confident
-5. Resolution plan generated → final report compiled → stored in PostgreSQL
-6. Client polls `/api/v1/tickets/{id}/report` for the result
+1. Ticket arrives via webhook or dashboard submission, normalized to `Ticket` model, HTTP 202 returned
+2. Background task creates a run and launches the Engineer ReAct agent with initial state
+3. Engineer queries tenant context (`query_client_db`)
+4. Engineer loads the appropriate domain skill (`load_domain_skill`)
+5. Engineer searches for relevant tools (`search_tool_catalog`) and knowledge (`search_knowledge_base`)
+6. Engineer executes tools to gather evidence (`execute_tool`), repeating as needed
+7. Engineer submits structured findings (`submit_findings`) -- diagnosis, remediation steps, validation, rollback
+8. Report stored in PostgreSQL; client polls for the result
 
 ## See Also
 
-- [Agent Pipeline](../agents/README.md) - Detailed agent routing and I/O contracts
+- [Engineer Agent](../agents/engineer.md) - Meta-tools, skills system, reasoning loop
 - [Data Layer](data_layer.md) - Schema and collections
 - [Observability](observability.md) - Langfuse integration
 - [Safety and Governance](safety_and_governance.md) - Tool safety model

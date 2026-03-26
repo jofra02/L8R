@@ -17,6 +17,16 @@ All configuration is managed through environment variables, loaded via Pydantic 
 | `LOG_LEVEL` | `str` | `INFO` | Python logging level |
 | `TEST_MODE_FAST` | `bool` | `False` | Reduces iterations (8 vs 15) and retries (1 vs 2) for testing |
 
+### Engineer Agent (Single-Agent Mode)
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `PIPELINE_MODE` | `str` | `engineer` | Pipeline mode: `engineer` (single-agent) or `pipeline` (legacy multi-agent) |
+| `LLM_MODEL_ENGINEER` | `str` | `gpt-5.4` | LLM model for the Engineer ReAct agent |
+| `ENGINEER_MAX_TOOL_CALLS` | `int` | `30` | Maximum tool executions per investigation |
+| `ENGINEER_MAX_ITERATIONS` | `int` | `50` | Maximum ReAct loop iterations (LangGraph recursion limit) |
+| `ENGINEER_TIMEOUT_SECONDS` | `int` | `600` | Total timeout for the investigation in seconds |
+
 ### PostgreSQL
 
 | Variable | Type | Default | Description |
@@ -90,7 +100,9 @@ MCP servers are configured as a JSON dict. Each entry defines a transport (`stdi
 }
 ```
 
-### LLM Profiles (Per-Agent Model Governance)
+### LLM Profiles (Legacy Multi-Agent Mode)
+
+> These settings only apply when `PIPELINE_MODE=pipeline`. In engineer mode, only `LLM_MODEL_ENGINEER` is used.
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
