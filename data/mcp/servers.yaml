@@ -1,0 +1,10 @@
+# MCP Server Configuration
+# Each server defines a transport (sse or stdio) and connection params.
+# Optional fields: vendor, timeout (per-server override of MCP_SERVER_TIMEOUT)
+#
+# See servers.example.yaml for more examples.
+
+servers:
+  remote-server:
+    transport: sse
+    url: http://localhost:8001/sse

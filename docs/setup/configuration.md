@@ -83,22 +83,40 @@ Minimum similarity score for results to be returned. Set per collection to tune 
 
 ### MCP (Model Context Protocol)
 
+MCP servers are configured in `data/mcp/servers.yaml` (not in `.env`). The YAML file is loaded at startup by `src/config.py`. See `data/mcp/servers.example.yaml` for full examples.
+
+```yaml
+# data/mcp/servers.yaml
+servers:
+  network-tools:
+    transport: sse
+    url: http://10.0.1.50:8001/sse
+    vendor: fortinet          # optional — used for tool metadata extraction
+    timeout: 45               # optional — overrides MCP_SERVER_TIMEOUT
+
+  filesystem:
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+```
+
+**Per-server fields:**
+
+| Field | Required | Description |
+|---|---|---|
+| `transport` | Yes | `"sse"` (HTTP) or `"stdio"` (subprocess) |
+| `url` | SSE only | HTTP endpoint URL |
+| `command` | stdio only | Executable name |
+| `args` | stdio only | List of command arguments |
+| `env` | No | Environment variables dict (stdio only) |
+| `vendor` | No | Vendor name for tool metadata (replaces `MCP_SERVER_VENDOR_MAP`) |
+| `timeout` | No | Per-server timeout override in seconds |
+
+**Global env var:**
+
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| `MCP_SERVER_TIMEOUT` | `int` | `30` | Timeout in seconds for MCP tool calls |
-| `MCP_SERVERS` | `dict` | `{}` | MCP server connection definitions (JSON) |
-| `MCP_SERVER_VENDOR_MAP` | `dict` | `{}` | Maps MCP server names to vendor names for component extraction |
-
-MCP servers are configured as a JSON dict. Each entry defines a transport (`stdio` or `sse`) and connection params:
-
-```json
-{
-  "remote-server": {
-    "transport": "sse",
-    "url": "http://localhost:8000/sse"
-  }
-}
-```
+| `MCP_SERVER_TIMEOUT` | `int` | `30` | Default timeout for MCP tool calls (overridden by per-server `timeout`) |
 
 ### LLM Profiles (Legacy Multi-Agent Mode)
 
