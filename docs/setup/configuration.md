@@ -140,6 +140,19 @@ Default blocked keywords include: `debug flow`, `sniffer`, `packet capture`, `pc
 | `LANGFUSE_FLUSH_AT` | `int` | `15` | Batch size before flushing to Langfuse |
 | `LANGFUSE_FLUSH_INTERVAL` | `int` | `5` | Flush interval in seconds |
 
+### JWT / Authentication
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `JWT_SECRET_KEY` | `str` | `CHANGE-ME-IN-PRODUCTION` | JWT signing secret (must change for production) |
+| `JWT_ALGORITHM` | `str` | `HS256` | JWT algorithm |
+| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | `int` | `30` | Access token expiry |
+| `JWT_REFRESH_TOKEN_EXPIRE_DAYS` | `int` | `7` | Refresh token expiry |
+| `PASSWORD_MIN_LENGTH` | `int` | `12` | Minimum password length |
+| `PASSWORD_REQUIRE_UPPERCASE` | `bool` | `True` | Require uppercase characters |
+| `PASSWORD_REQUIRE_SYMBOL` | `bool` | `True` | Require symbol characters |
+| `BOOTSTRAP_ADMIN_EMAIL` | `str` | `admin@localhost` | First super admin email |
+
 ### API Keys
 
 | Variable | Type | Default | Description |
@@ -154,6 +167,59 @@ Settings are loaded in this order (later overrides earlier):
 3. Environment variables
 
 The `extra="ignore"` setting means unknown env vars are silently ignored.
+
+## Docker Compose
+
+### Env Var Centralization
+
+All configuration lives in a single `.env` file. The `DB_*` variables are the canonical database credentials — `docker-compose.yml` maps them to the postgres container's expected `POSTGRES_*` vars automatically:
+
+```yaml
+# docker-compose.yml (excerpt)
+postgres:
+  environment:
+    POSTGRES_USER: ${DB_USER:-postgres}      # ← reads from DB_USER
+    POSTGRES_PASSWORD: ${DB_PASS:-change_me}  # ← reads from DB_PASS
+    POSTGRES_DB: ${DB_NAME:-support_agent_db} # ← reads from DB_NAME
+```
+
+There is no need to define `POSTGRES_USER`, `POSTGRES_PASSWORD`, or `POSTGRES_DB` in `.env`. Only `DB_*` vars are needed.
+
+Inside containers, `DB_HOST` and `QDRANT_URL` are overridden to Docker service names (`postgres`, `qdrant`).
+
+### Running the Stack
+
+```bash
+# Basic stack (postgres, qdrant, app, frontend)
+docker compose up -d
+
+# With Langfuse observability
+docker compose --profile observability \
+  -f docker-compose.yml \
+  -f docker-compose.observability.yml \
+  up -d
+
+# View logs
+docker compose logs -f app
+
+# Rebuild after code changes
+docker compose build app frontend
+docker compose up -d
+```
+
+### Docker Compose Port Overrides
+
+These variables only affect `docker-compose.yml` port mappings, not the application:
+
+| Variable | Default | Service |
+|---|---|---|
+| `APP_PORT` | `8000` | Backend API |
+| `FRONTEND_PORT` | `3001` | Frontend (nginx) |
+| `POSTGRES_PORT` | `5432` | PostgreSQL |
+| `QDRANT_PORT` | `6333` | Qdrant HTTP |
+| `QDRANT_GRPC_PORT` | `6334` | Qdrant gRPC |
+| `LANGFUSE_PORT` | `3000` | Langfuse |
+| `UVICORN_WORKERS` | `1` (dev) / `2` (prod) | Backend workers |
 
 ## See Also
 

@@ -1,0 +1,7 @@
+# Override file for observability profile.
+# Usage: docker compose --profile observability -f docker-compose.yml -f docker-compose.observability.yml up -d
+services:
+  app:
+    depends_on:
+      langfuse:
+        condition: service_started

@@ -1,28 +1,37 @@
+x-restart: &restart
+  restart: unless-stopped
+
 services:
   postgres:
     image: postgres:16-alpine
+    <<: *restart
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
-      POSTGRES_DB: ${POSTGRES_DB:-support_agent_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-change_me}
+      POSTGRES_DB: ${DB_NAME:-support_agent_db}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 5s
       timeout: 3s
       retries: 5
 
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.14.0
+    <<: *restart
     ports:
       - "${QDRANT_PORT:-6333}:6333"
       - "${QDRANT_GRPC_PORT:-6334}:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:6333/readyz || exit 1"]
       interval: 5s
@@ -31,6 +40,7 @@ services:
 
   app:
     build: .
+    <<: *restart
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,11 +48,16 @@ services:
         condition: service_healthy
     env_file: .env
     environment:
-      # Override DB/Qdrant hosts to use Docker service names
+      # Override hosts to Docker service names
       DB_HOST: postgres
       QDRANT_URL: http://qdrant:6333
+      LANGFUSE_HOST: http://langfuse:3000
     ports:
       - "${APP_PORT:-8000}:8000"
+    volumes:
+      - evidence_data:/app/data
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
       interval: 10s
@@ -52,26 +67,42 @@ services:
 
   frontend:
     build: ./frontend
+    <<: *restart
     depends_on:
       app:
         condition: service_healthy
     ports:
       - "${FRONTEND_PORT:-3001}:80"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:80/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   langfuse:
     image: langfuse/langfuse:2
+    <<: *restart
     profiles: [observability]
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-change_me}@postgres:5432/${LANGFUSE_DB:-langfuse}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASS:-change_me}@postgres:5432/${LANGFUSE_DB:-langfuse}
       NEXTAUTH_URL: http://localhost:${LANGFUSE_PORT:-3000}
       NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-changeme-generate-a-secret}
       SALT: ${LANGFUSE_SALT:-changeme-generate-a-salt}
     ports:
       - "${LANGFUSE_PORT:-3000}:3000"
+    networks:
+      - backend
 
 volumes:
   pgdata:
   qdrant_data:
+  evidence_data:
+
+networks:
+  backend:
+    driver: bridge
