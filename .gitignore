@@ -97,7 +97,3 @@ src/utils/state_formatters.py
 # ─── Script artifacts ───
 tool_catalog_dump_*.json
 tool_catalog_report_*.json
-
-# ─── Lock files ───
-# uv.lock is auto-generated, exclude to keep diffs clean
-uv.lock
