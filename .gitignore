@@ -91,9 +91,6 @@ run_mock_debug.log
 # ─── Manual / temporary plans ───
 Implementation Plan*.md
 
-# ─── Pending implementation (not ready for commit) ───
-src/utils/state_formatters.py
-
 # ─── Script artifacts ───
 tool_catalog_dump_*.json
 tool_catalog_report_*.json

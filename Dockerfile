@@ -32,6 +32,9 @@ COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
+# Pre-create volume mount-points so Docker seeds named volumes with correct ownership
+RUN mkdir -p /app/data/evidence
+
 RUN chown -R appuser:appuser /app
 USER appuser
 
