@@ -21,8 +21,9 @@ from .inventory.models import Device
 GATEWAY_ROOT = Path(__file__).resolve().parents[1]
 
 # Load mcp_gateway/.env (harmless no-op when absent, e.g. inside the container
-# where everything arrives via compose environment)
-load_dotenv(dotenv_path=GATEWAY_ROOT / ".env", override=True, encoding="utf-8")
+# where everything arrives via compose environment). Real environment variables
+# take precedence over the file.
+load_dotenv(dotenv_path=GATEWAY_ROOT / ".env", override=False, encoding="utf-8")
 
 log = logging.getLogger("gateway.config")
 

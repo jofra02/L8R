@@ -42,8 +42,10 @@ class RoutingClient(httpx.AsyncClient):
         auth: AuthStrategy,
         settings: GatewaySettings,
     ) -> None:
-        self._registry = registry
-        self._auth = auth
+        # Note: httpx.AsyncClient owns `_auth`; use distinct names to avoid
+        # having __init__ overwrite them.
+        self._device_registry = registry
+        self._auth_strategy = auth
 
         conn: Dict[str, object] = registry.resolve_primary_connection()
         host = conn.get("host") or _UNCONFIGURED_HOST
@@ -51,7 +53,7 @@ class RoutingClient(httpx.AsyncClient):
         verify_ssl = bool(conn.get("verify_ssl", False))
 
         headers = {"Content-Type": "application/json"}
-        headers.update(self._auth.headers(conn))
+        headers.update(auth.headers(conn))
 
         super().__init__(
             base_url=f"https://{host}:{port}",
@@ -82,7 +84,7 @@ class RoutingClient(httpx.AsyncClient):
             del request.headers["x-target-device"]
 
         if target_device_id:
-            device = self._registry.get(target_device_id)
+            device = self._device_registry.get(target_device_id)
             if device:
                 conn = device.connection
                 host = conn.get("host")
@@ -91,7 +93,7 @@ class RoutingClient(httpx.AsyncClient):
                 # httpx.URL is immutable; swap scheme/host/port via copy_with
                 request.url = request.url.copy_with(scheme="https", host=host, port=port)
 
-                for name, value in self._auth.headers(conn).items():
+                for name, value in self._auth_strategy.headers(conn).items():
                     request.headers[name] = value
 
                 log.info("Routing: switched target to device '%s' (host: %s)", target_device_id, host)
