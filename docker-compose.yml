@@ -38,6 +38,33 @@ services:
       timeout: 3s
       retries: 5
 
+  mcp-gateway:
+    build: ./mcp_gateway
+    <<: *restart
+    environment:
+      ACTIVE_CUSTOMER_ID: ${ACTIVE_CUSTOMER_ID:-fake_client}
+      INVENTORY_MASTER_KEY: ${INVENTORY_MASTER_KEY:-}
+      SERVER_PORT: 8000
+      SERVER_TRANSPORT: sse
+      LOG_LEVEL: ${MCP_GATEWAY_LOG_LEVEL:-info}
+    ports:
+      - "${MCP_GATEWAY_PORT:-8001}:8000"
+    volumes:
+      - ./mcp_gateway/inventory:/app/inventory:ro
+    networks:
+      - support-ai
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/sse/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
   app:
     build: .
     <<: *restart
@@ -46,12 +73,15 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_healthy
+      mcp-gateway:
+        condition: service_healthy
     env_file: .env
     environment:
       # Override hosts to Docker service names
       DB_HOST: postgres
       QDRANT_URL: http://qdrant:6333
       LANGFUSE_HOST: http://langfuse:3000
+      MCP_GATEWAY_URL: http://mcp-gateway:8000/sse
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:

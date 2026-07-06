@@ -1,0 +1,163 @@
+{
+  "info": {
+    "title": "FortiOS Monitor",
+    "description": "REST API for configuring FortiOS objects and settings",
+    "version": "v2",
+    "termsOfService": "http://fortinet.com/terms/",
+    "contact": {
+      "name": "FortiOS Web Application Team",
+      "email": "fosguiqateam@fortinet.com",
+      "url": "http://modskristensen.net"
+    }
+  },
+  "host": "172.16.177.65",
+  "basePath": "/api/v2/monitor",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "APIKeyQueryParam": []
+    }
+  ],
+  "paths": {
+    "/webcache/stats": {
+      "get": {
+        "tags": [
+          "webcache"
+        ],
+        "summary": "Retrieve webcache statistics.\nAccess Group: Not Specified",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "description": "Statistics period [10min|hour|day|month].",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "operationId": "get_webcache_stats"
+      }
+    },
+    "/webcache/stats/reset": {
+      "post": {
+        "tags": [
+          "webcache"
+        ],
+        "summary": "Reset all webcache statistics.\nAccess Group: Not Specified",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "operationId": "post_webcache_stats_reset"
+      }
+    }
+  },
+  "definitions": {},
+  "securityDefinitions": {
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "access_token"
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "parameters": {},
+    "responses": {
+      "400": {
+        "description": "Bad Request: Request cannot be processed by the API"
+      },
+      "401": {
+        "description": "Not Authorized: Request without successful login session"
+      },
+      "403": {
+        "description": "Forbidden: Request is missing CSRF token or administrator is missing access profile permissions."
+      },
+      "404": {
+        "description": "Resource Not Found: Unable to find the specified resource."
+      },
+      "405": {
+        "description": "Method Not Allowed: Specified HTTP method is not allowed for this resource. "
+      },
+      "413": {
+        "description": "Request Entity Too Large: Request cannot be processed due to large entity "
+      },
+      "424": {
+        "description": "Failed Dependency: Fail dependency can be duplicate resource, missing required parameter, missing required attribute, invalid attribute value"
+      },
+      "429": {
+        "description": "Access temporarily blocked: Maximum failed authentications reached. The offended source is temporarily blocked for certain amount of time."
+      },
+      "500": {
+        "description": "Internal Server Error: Internal error when processing the request "
+      }
+    }
+  }
+}

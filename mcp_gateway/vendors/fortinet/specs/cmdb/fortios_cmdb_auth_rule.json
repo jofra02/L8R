@@ -1,0 +1,2793 @@
+{
+  "info": {
+    "title": "FortiOS CMDB",
+    "description": "REST API for configuring FortiOS objects and settings",
+    "version": "v2",
+    "termsOfService": "http://fortinet.com/terms/",
+    "contact": {
+      "name": "FortiOS Web Application Team",
+      "email": "fosguiqateam@fortinet.com",
+      "url": "http://modskristensen.net"
+    }
+  },
+  "host": "172.16.177.65",
+  "basePath": "/api/v2/cmdb",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "APIKeyQueryParam": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "authentication/rule",
+      "description": "Configure Authentication Rules."
+    },
+    {
+      "name": "authentication/scheme",
+      "description": "Configure Authentication Schemes."
+    },
+    {
+      "name": "authentication/setting",
+      "description": "Configure authentication setting."
+    }
+  ],
+  "paths": {
+    "/authentication/rule/{name}": {
+      "get": {
+        "tags": [
+          "authentication/rule"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Authentication rule name.",
+                  "maxLength": 35
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Enable/disable this authentication rule.   \nenable:Enable this authentication rule.   \ndisable:Disable this authentication rule.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "protocol": {
+                  "type": "string",
+                  "description": "Authentication is required for the selected protocol (default = HTTP).   \nhttp:HTTP traffic is matched and authentication is required.   \nftp:FTP traffic is matched and authentication is required.   \nsocks:SOCKS traffic is matched and authentication is required.   \nssh:SSH traffic is matched and authentication is required.",
+                  "enum": [
+                    "http",
+                    "ftp",
+                    "socks",
+                    "ssh"
+                  ]
+                },
+                "srcintf": {
+                  "description": "Incoming (ingress) interface.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Interface name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "srcaddr": {
+                  "description": "Authentication is required for the selected IPv4 source address.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "dstaddr": {
+                  "description": "Select an IPv4 destination address from available options. Required for web proxy authentication.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "srcaddr6": {
+                  "description": "Authentication is required for the selected IPv6 source address.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "dstaddr6": {
+                  "description": "Select an IPv6 destination address from available options. Required for web proxy authentication.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "ip-based": {
+                  "type": "string",
+                  "description": "Enable/disable IP-based authentication. When enabled, previously authenticated users from the same IP address will be exempted.   \nenable:Enable IP-based authentication.   \ndisable:Disable IP-based authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "active-auth-method": {
+                  "type": "string",
+                  "description": "Select an active authentication method.",
+                  "maxLength": 35
+                },
+                "sso-auth-method": {
+                  "type": "string",
+                  "description": "Select a single-sign on (SSO) authentication method.",
+                  "maxLength": 35
+                },
+                "web-auth-cookie": {
+                  "type": "string",
+                  "description": "Enable/disable Web authentication cookies (default = disable).   \nenable:Enable Web authentication cookie.   \ndisable:Disable Web authentication cookie.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "cors-stateful": {
+                  "type": "string",
+                  "description": "Enable/disable allowance of CORS access (default = disable).   \nenable:Enable allowance of CORS access   \ndisable:Disable allowance of CORS access",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "cors-depth": {
+                  "type": "integer",
+                  "description": "Depth to allow CORS access (default = 3).",
+                  "maximum": 8,
+                  "minimum": 1
+                },
+                "cert-auth-cookie": {
+                  "type": "string",
+                  "description": "Enable/disable to use device certificate as authentication cookie (default = enable).   \nenable:Enable device certificate as authentication cookie.   \ndisable:Disable device certificate as authentication cookie.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "transaction-based": {
+                  "type": "string",
+                  "description": "Enable/disable transaction based authentication (default = disable).   \nenable:Enable transaction based authentication.   \ndisable:Disable transaction based authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "web-portal": {
+                  "type": "string",
+                  "description": "Enable/disable web portal for proxy transparent policy (default = enable).   \nenable:Enable web-portal.   \ndisable:Disable web-portal.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "comments": {
+                  "type": "string",
+                  "description": "Comment.",
+                  "maxLength": 1023
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_authentication_rule_{name}"
+      },
+      "put": {
+        "tags": [
+          "authentication/rule"
+        ],
+        "summary": "Update this specific resource.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "If *action=move*, use *before* to specify the ID of the resource that this resource will be moved before.\nFor example, to move `object 1` to before `object 2`, use:\n__action=move&before=2__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "If *action=move*, use *after* to specify the ID of the resource that this resource will be moved after.\nFor example, to move `object 1` to after `object 3`, use:\n__action=move&after=3__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Authentication rule name.",
+                    "maxLength": 35
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Enable/disable this authentication rule.   \nenable:Enable this authentication rule.   \ndisable:Disable this authentication rule.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "description": "Authentication is required for the selected protocol (default = HTTP).   \nhttp:HTTP traffic is matched and authentication is required.   \nftp:FTP traffic is matched and authentication is required.   \nsocks:SOCKS traffic is matched and authentication is required.   \nssh:SSH traffic is matched and authentication is required.",
+                    "enum": [
+                      "http",
+                      "ftp",
+                      "socks",
+                      "ssh"
+                    ]
+                  },
+                  "srcintf": {
+                    "description": "Incoming (ingress) interface.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Interface name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "srcaddr": {
+                    "description": "Authentication is required for the selected IPv4 source address.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "dstaddr": {
+                    "description": "Select an IPv4 destination address from available options. Required for web proxy authentication.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "srcaddr6": {
+                    "description": "Authentication is required for the selected IPv6 source address.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "dstaddr6": {
+                    "description": "Select an IPv6 destination address from available options. Required for web proxy authentication.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "ip-based": {
+                    "type": "string",
+                    "description": "Enable/disable IP-based authentication. When enabled, previously authenticated users from the same IP address will be exempted.   \nenable:Enable IP-based authentication.   \ndisable:Disable IP-based authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "active-auth-method": {
+                    "type": "string",
+                    "description": "Select an active authentication method.",
+                    "maxLength": 35
+                  },
+                  "sso-auth-method": {
+                    "type": "string",
+                    "description": "Select a single-sign on (SSO) authentication method.",
+                    "maxLength": 35
+                  },
+                  "web-auth-cookie": {
+                    "type": "string",
+                    "description": "Enable/disable Web authentication cookies (default = disable).   \nenable:Enable Web authentication cookie.   \ndisable:Disable Web authentication cookie.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "cors-stateful": {
+                    "type": "string",
+                    "description": "Enable/disable allowance of CORS access (default = disable).   \nenable:Enable allowance of CORS access   \ndisable:Disable allowance of CORS access",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "cors-depth": {
+                    "type": "integer",
+                    "description": "Depth to allow CORS access (default = 3).",
+                    "maximum": 8,
+                    "minimum": 1
+                  },
+                  "cert-auth-cookie": {
+                    "type": "string",
+                    "description": "Enable/disable to use device certificate as authentication cookie (default = enable).   \nenable:Enable device certificate as authentication cookie.   \ndisable:Disable device certificate as authentication cookie.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "transaction-based": {
+                    "type": "string",
+                    "description": "Enable/disable transaction based authentication (default = disable).   \nenable:Enable transaction based authentication.   \ndisable:Disable transaction based authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "web-portal": {
+                    "type": "string",
+                    "description": "Enable/disable web portal for proxy transparent policy (default = enable).   \nenable:Enable web-portal.   \ndisable:Disable web-portal.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "comments": {
+                    "type": "string",
+                    "description": "Comment.",
+                    "maxLength": 1023
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "put_authentication_rule_{name}"
+      },
+      "delete": {
+        "tags": [
+          "authentication/rule"
+        ],
+        "summary": "Delete this specific resource.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "operationId": "delete_authentication_rule_{name}"
+      }
+    },
+    "/authentication/rule": {
+      "get": {
+        "tags": [
+          "authentication/rule"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Authentication rule name.",
+                  "maxLength": 35
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Enable/disable this authentication rule.   \nenable:Enable this authentication rule.   \ndisable:Disable this authentication rule.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "protocol": {
+                  "type": "string",
+                  "description": "Authentication is required for the selected protocol (default = HTTP).   \nhttp:HTTP traffic is matched and authentication is required.   \nftp:FTP traffic is matched and authentication is required.   \nsocks:SOCKS traffic is matched and authentication is required.   \nssh:SSH traffic is matched and authentication is required.",
+                  "enum": [
+                    "http",
+                    "ftp",
+                    "socks",
+                    "ssh"
+                  ]
+                },
+                "srcintf": {
+                  "description": "Incoming (ingress) interface.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Interface name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "srcaddr": {
+                  "description": "Authentication is required for the selected IPv4 source address.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "dstaddr": {
+                  "description": "Select an IPv4 destination address from available options. Required for web proxy authentication.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "srcaddr6": {
+                  "description": "Authentication is required for the selected IPv6 source address.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "dstaddr6": {
+                  "description": "Select an IPv6 destination address from available options. Required for web proxy authentication.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "ip-based": {
+                  "type": "string",
+                  "description": "Enable/disable IP-based authentication. When enabled, previously authenticated users from the same IP address will be exempted.   \nenable:Enable IP-based authentication.   \ndisable:Disable IP-based authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "active-auth-method": {
+                  "type": "string",
+                  "description": "Select an active authentication method.",
+                  "maxLength": 35
+                },
+                "sso-auth-method": {
+                  "type": "string",
+                  "description": "Select a single-sign on (SSO) authentication method.",
+                  "maxLength": 35
+                },
+                "web-auth-cookie": {
+                  "type": "string",
+                  "description": "Enable/disable Web authentication cookies (default = disable).   \nenable:Enable Web authentication cookie.   \ndisable:Disable Web authentication cookie.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "cors-stateful": {
+                  "type": "string",
+                  "description": "Enable/disable allowance of CORS access (default = disable).   \nenable:Enable allowance of CORS access   \ndisable:Disable allowance of CORS access",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "cors-depth": {
+                  "type": "integer",
+                  "description": "Depth to allow CORS access (default = 3).",
+                  "maximum": 8,
+                  "minimum": 1
+                },
+                "cert-auth-cookie": {
+                  "type": "string",
+                  "description": "Enable/disable to use device certificate as authentication cookie (default = enable).   \nenable:Enable device certificate as authentication cookie.   \ndisable:Disable device certificate as authentication cookie.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "transaction-based": {
+                  "type": "string",
+                  "description": "Enable/disable transaction based authentication (default = disable).   \nenable:Enable transaction based authentication.   \ndisable:Disable transaction based authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "web-portal": {
+                  "type": "string",
+                  "description": "Enable/disable web portal for proxy transparent policy (default = enable).   \nenable:Enable web-portal.   \ndisable:Disable web-portal.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "comments": {
+                  "type": "string",
+                  "description": "Comment.",
+                  "maxLength": 1023
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_authentication_rule"
+      },
+      "post": {
+        "tags": [
+          "authentication/rule"
+        ],
+        "summary": "Create object(s) in this table.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "nkey",
+            "in": "query",
+            "description": " If *action=clone*, use *nkey* to specify the ID for the new resource to be created.\nFor example, to clone `address1` to `address1_clone`, use:\n__action=clone&nkey=address1_clone__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *clone*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Authentication rule name.",
+                    "maxLength": 35
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Enable/disable this authentication rule.   \nenable:Enable this authentication rule.   \ndisable:Disable this authentication rule.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "description": "Authentication is required for the selected protocol (default = HTTP).   \nhttp:HTTP traffic is matched and authentication is required.   \nftp:FTP traffic is matched and authentication is required.   \nsocks:SOCKS traffic is matched and authentication is required.   \nssh:SSH traffic is matched and authentication is required.",
+                    "enum": [
+                      "http",
+                      "ftp",
+                      "socks",
+                      "ssh"
+                    ]
+                  },
+                  "srcintf": {
+                    "description": "Incoming (ingress) interface.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Interface name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "srcaddr": {
+                    "description": "Authentication is required for the selected IPv4 source address.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "dstaddr": {
+                    "description": "Select an IPv4 destination address from available options. Required for web proxy authentication.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "srcaddr6": {
+                    "description": "Authentication is required for the selected IPv6 source address.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "dstaddr6": {
+                    "description": "Select an IPv6 destination address from available options. Required for web proxy authentication.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "ip-based": {
+                    "type": "string",
+                    "description": "Enable/disable IP-based authentication. When enabled, previously authenticated users from the same IP address will be exempted.   \nenable:Enable IP-based authentication.   \ndisable:Disable IP-based authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "active-auth-method": {
+                    "type": "string",
+                    "description": "Select an active authentication method.",
+                    "maxLength": 35
+                  },
+                  "sso-auth-method": {
+                    "type": "string",
+                    "description": "Select a single-sign on (SSO) authentication method.",
+                    "maxLength": 35
+                  },
+                  "web-auth-cookie": {
+                    "type": "string",
+                    "description": "Enable/disable Web authentication cookies (default = disable).   \nenable:Enable Web authentication cookie.   \ndisable:Disable Web authentication cookie.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "cors-stateful": {
+                    "type": "string",
+                    "description": "Enable/disable allowance of CORS access (default = disable).   \nenable:Enable allowance of CORS access   \ndisable:Disable allowance of CORS access",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "cors-depth": {
+                    "type": "integer",
+                    "description": "Depth to allow CORS access (default = 3).",
+                    "maximum": 8,
+                    "minimum": 1
+                  },
+                  "cert-auth-cookie": {
+                    "type": "string",
+                    "description": "Enable/disable to use device certificate as authentication cookie (default = enable).   \nenable:Enable device certificate as authentication cookie.   \ndisable:Disable device certificate as authentication cookie.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "transaction-based": {
+                    "type": "string",
+                    "description": "Enable/disable transaction based authentication (default = disable).   \nenable:Enable transaction based authentication.   \ndisable:Disable transaction based authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "web-portal": {
+                    "type": "string",
+                    "description": "Enable/disable web portal for proxy transparent policy (default = enable).   \nenable:Enable web-portal.   \ndisable:Disable web-portal.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "comments": {
+                    "type": "string",
+                    "description": "Comment.",
+                    "maxLength": 1023
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "post_authentication_rule"
+      }
+    },
+    "/authentication/scheme/{name}": {
+      "get": {
+        "tags": [
+          "authentication/scheme"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Authentication scheme name.",
+                  "maxLength": 35
+                },
+                "method": {
+                  "type": "string",
+                  "description": "Authentication methods (default = basic).   \nntlm:NTLM authentication.   \nbasic:Basic HTTP authentication.   \ndigest:Digest HTTP authentication.   \nform:Form-based HTTP authentication.   \nnegotiate:Negotiate authentication.   \nfsso:Fortinet Single Sign-On (FSSO) authentication.   \nrsso:RADIUS Single Sign-On (RSSO) authentication.   \nssh-publickey:Public key based SSH authentication.   \ncert:Client certificate authentication.   \nsaml:SAML authentication.",
+                  "enum": [
+                    "ntlm",
+                    "basic",
+                    "digest",
+                    "form",
+                    "negotiate",
+                    "fsso",
+                    "rsso",
+                    "ssh-publickey",
+                    "cert",
+                    "saml"
+                  ]
+                },
+                "negotiate-ntlm": {
+                  "type": "string",
+                  "description": "Enable/disable negotiate authentication for NTLM (default = disable).   \nenable:Enable negotiate authentication for NTLM.   \ndisable:Disable negotiate authentication for NTLM.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "kerberos-keytab": {
+                  "type": "string",
+                  "description": "Kerberos keytab setting.",
+                  "maxLength": 35
+                },
+                "domain-controller": {
+                  "type": "string",
+                  "description": "Domain controller setting.",
+                  "maxLength": 35
+                },
+                "saml-server": {
+                  "type": "string",
+                  "description": "SAML configuration.",
+                  "maxLength": 35
+                },
+                "saml-timeout": {
+                  "type": "integer",
+                  "description": "SAML authentication timeout in seconds.",
+                  "maximum": 1200,
+                  "minimum": 30
+                },
+                "fsso-agent-for-ntlm": {
+                  "type": "string",
+                  "description": "FSSO agent to use for NTLM authentication.",
+                  "maxLength": 35
+                },
+                "require-tfa": {
+                  "type": "string",
+                  "description": "Enable/disable two-factor authentication (default = disable).   \nenable:Enable two-factor authentication.   \ndisable:Disable two-factor authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "fsso-guest": {
+                  "type": "string",
+                  "description": "Enable/disable user fsso-guest authentication (default = disable).   \nenable:Enable user fsso-guest authentication.   \ndisable:Disable user fsso-guest authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "user-cert": {
+                  "type": "string",
+                  "description": "Enable/disable authentication with user certificate (default = disable).   \nenable:Enable client certificate field authentication.   \ndisable:Disable client certificate field authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "user-database": {
+                  "description": "Authentication server to contain user information; \"local\" (default) or \"123\" (for LDAP).",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Authentication server name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "ssh-ca": {
+                  "type": "string",
+                  "description": "SSH CA name.",
+                  "maxLength": 35
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_authentication_scheme_{name}"
+      },
+      "put": {
+        "tags": [
+          "authentication/scheme"
+        ],
+        "summary": "Update this specific resource.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "If *action=move*, use *before* to specify the ID of the resource that this resource will be moved before.\nFor example, to move `object 1` to before `object 2`, use:\n__action=move&before=2__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "If *action=move*, use *after* to specify the ID of the resource that this resource will be moved after.\nFor example, to move `object 1` to after `object 3`, use:\n__action=move&after=3__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Authentication scheme name.",
+                    "maxLength": 35
+                  },
+                  "method": {
+                    "type": "string",
+                    "description": "Authentication methods (default = basic).   \nntlm:NTLM authentication.   \nbasic:Basic HTTP authentication.   \ndigest:Digest HTTP authentication.   \nform:Form-based HTTP authentication.   \nnegotiate:Negotiate authentication.   \nfsso:Fortinet Single Sign-On (FSSO) authentication.   \nrsso:RADIUS Single Sign-On (RSSO) authentication.   \nssh-publickey:Public key based SSH authentication.   \ncert:Client certificate authentication.   \nsaml:SAML authentication.",
+                    "enum": [
+                      "ntlm",
+                      "basic",
+                      "digest",
+                      "form",
+                      "negotiate",
+                      "fsso",
+                      "rsso",
+                      "ssh-publickey",
+                      "cert",
+                      "saml"
+                    ]
+                  },
+                  "negotiate-ntlm": {
+                    "type": "string",
+                    "description": "Enable/disable negotiate authentication for NTLM (default = disable).   \nenable:Enable negotiate authentication for NTLM.   \ndisable:Disable negotiate authentication for NTLM.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "kerberos-keytab": {
+                    "type": "string",
+                    "description": "Kerberos keytab setting.",
+                    "maxLength": 35
+                  },
+                  "domain-controller": {
+                    "type": "string",
+                    "description": "Domain controller setting.",
+                    "maxLength": 35
+                  },
+                  "saml-server": {
+                    "type": "string",
+                    "description": "SAML configuration.",
+                    "maxLength": 35
+                  },
+                  "saml-timeout": {
+                    "type": "integer",
+                    "description": "SAML authentication timeout in seconds.",
+                    "maximum": 1200,
+                    "minimum": 30
+                  },
+                  "fsso-agent-for-ntlm": {
+                    "type": "string",
+                    "description": "FSSO agent to use for NTLM authentication.",
+                    "maxLength": 35
+                  },
+                  "require-tfa": {
+                    "type": "string",
+                    "description": "Enable/disable two-factor authentication (default = disable).   \nenable:Enable two-factor authentication.   \ndisable:Disable two-factor authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "fsso-guest": {
+                    "type": "string",
+                    "description": "Enable/disable user fsso-guest authentication (default = disable).   \nenable:Enable user fsso-guest authentication.   \ndisable:Disable user fsso-guest authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "user-cert": {
+                    "type": "string",
+                    "description": "Enable/disable authentication with user certificate (default = disable).   \nenable:Enable client certificate field authentication.   \ndisable:Disable client certificate field authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "user-database": {
+                    "description": "Authentication server to contain user information; \"local\" (default) or \"123\" (for LDAP).",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Authentication server name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "ssh-ca": {
+                    "type": "string",
+                    "description": "SSH CA name.",
+                    "maxLength": 35
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "put_authentication_scheme_{name}"
+      },
+      "delete": {
+        "tags": [
+          "authentication/scheme"
+        ],
+        "summary": "Delete this specific resource.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "operationId": "delete_authentication_scheme_{name}"
+      }
+    },
+    "/authentication/scheme": {
+      "get": {
+        "tags": [
+          "authentication/scheme"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Authentication scheme name.",
+                  "maxLength": 35
+                },
+                "method": {
+                  "type": "string",
+                  "description": "Authentication methods (default = basic).   \nntlm:NTLM authentication.   \nbasic:Basic HTTP authentication.   \ndigest:Digest HTTP authentication.   \nform:Form-based HTTP authentication.   \nnegotiate:Negotiate authentication.   \nfsso:Fortinet Single Sign-On (FSSO) authentication.   \nrsso:RADIUS Single Sign-On (RSSO) authentication.   \nssh-publickey:Public key based SSH authentication.   \ncert:Client certificate authentication.   \nsaml:SAML authentication.",
+                  "enum": [
+                    "ntlm",
+                    "basic",
+                    "digest",
+                    "form",
+                    "negotiate",
+                    "fsso",
+                    "rsso",
+                    "ssh-publickey",
+                    "cert",
+                    "saml"
+                  ]
+                },
+                "negotiate-ntlm": {
+                  "type": "string",
+                  "description": "Enable/disable negotiate authentication for NTLM (default = disable).   \nenable:Enable negotiate authentication for NTLM.   \ndisable:Disable negotiate authentication for NTLM.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "kerberos-keytab": {
+                  "type": "string",
+                  "description": "Kerberos keytab setting.",
+                  "maxLength": 35
+                },
+                "domain-controller": {
+                  "type": "string",
+                  "description": "Domain controller setting.",
+                  "maxLength": 35
+                },
+                "saml-server": {
+                  "type": "string",
+                  "description": "SAML configuration.",
+                  "maxLength": 35
+                },
+                "saml-timeout": {
+                  "type": "integer",
+                  "description": "SAML authentication timeout in seconds.",
+                  "maximum": 1200,
+                  "minimum": 30
+                },
+                "fsso-agent-for-ntlm": {
+                  "type": "string",
+                  "description": "FSSO agent to use for NTLM authentication.",
+                  "maxLength": 35
+                },
+                "require-tfa": {
+                  "type": "string",
+                  "description": "Enable/disable two-factor authentication (default = disable).   \nenable:Enable two-factor authentication.   \ndisable:Disable two-factor authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "fsso-guest": {
+                  "type": "string",
+                  "description": "Enable/disable user fsso-guest authentication (default = disable).   \nenable:Enable user fsso-guest authentication.   \ndisable:Disable user fsso-guest authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "user-cert": {
+                  "type": "string",
+                  "description": "Enable/disable authentication with user certificate (default = disable).   \nenable:Enable client certificate field authentication.   \ndisable:Disable client certificate field authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "user-database": {
+                  "description": "Authentication server to contain user information; \"local\" (default) or \"123\" (for LDAP).",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Authentication server name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "ssh-ca": {
+                  "type": "string",
+                  "description": "SSH CA name.",
+                  "maxLength": 35
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_authentication_scheme"
+      },
+      "post": {
+        "tags": [
+          "authentication/scheme"
+        ],
+        "summary": "Create object(s) in this table.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "nkey",
+            "in": "query",
+            "description": " If *action=clone*, use *nkey* to specify the ID for the new resource to be created.\nFor example, to clone `address1` to `address1_clone`, use:\n__action=clone&nkey=address1_clone__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *clone*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Authentication scheme name.",
+                    "maxLength": 35
+                  },
+                  "method": {
+                    "type": "string",
+                    "description": "Authentication methods (default = basic).   \nntlm:NTLM authentication.   \nbasic:Basic HTTP authentication.   \ndigest:Digest HTTP authentication.   \nform:Form-based HTTP authentication.   \nnegotiate:Negotiate authentication.   \nfsso:Fortinet Single Sign-On (FSSO) authentication.   \nrsso:RADIUS Single Sign-On (RSSO) authentication.   \nssh-publickey:Public key based SSH authentication.   \ncert:Client certificate authentication.   \nsaml:SAML authentication.",
+                    "enum": [
+                      "ntlm",
+                      "basic",
+                      "digest",
+                      "form",
+                      "negotiate",
+                      "fsso",
+                      "rsso",
+                      "ssh-publickey",
+                      "cert",
+                      "saml"
+                    ]
+                  },
+                  "negotiate-ntlm": {
+                    "type": "string",
+                    "description": "Enable/disable negotiate authentication for NTLM (default = disable).   \nenable:Enable negotiate authentication for NTLM.   \ndisable:Disable negotiate authentication for NTLM.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "kerberos-keytab": {
+                    "type": "string",
+                    "description": "Kerberos keytab setting.",
+                    "maxLength": 35
+                  },
+                  "domain-controller": {
+                    "type": "string",
+                    "description": "Domain controller setting.",
+                    "maxLength": 35
+                  },
+                  "saml-server": {
+                    "type": "string",
+                    "description": "SAML configuration.",
+                    "maxLength": 35
+                  },
+                  "saml-timeout": {
+                    "type": "integer",
+                    "description": "SAML authentication timeout in seconds.",
+                    "maximum": 1200,
+                    "minimum": 30
+                  },
+                  "fsso-agent-for-ntlm": {
+                    "type": "string",
+                    "description": "FSSO agent to use for NTLM authentication.",
+                    "maxLength": 35
+                  },
+                  "require-tfa": {
+                    "type": "string",
+                    "description": "Enable/disable two-factor authentication (default = disable).   \nenable:Enable two-factor authentication.   \ndisable:Disable two-factor authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "fsso-guest": {
+                    "type": "string",
+                    "description": "Enable/disable user fsso-guest authentication (default = disable).   \nenable:Enable user fsso-guest authentication.   \ndisable:Disable user fsso-guest authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "user-cert": {
+                    "type": "string",
+                    "description": "Enable/disable authentication with user certificate (default = disable).   \nenable:Enable client certificate field authentication.   \ndisable:Disable client certificate field authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "user-database": {
+                    "description": "Authentication server to contain user information; \"local\" (default) or \"123\" (for LDAP).",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Authentication server name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "ssh-ca": {
+                    "type": "string",
+                    "description": "SSH CA name.",
+                    "maxLength": 35
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "post_authentication_scheme"
+      }
+    },
+    "/authentication/setting": {
+      "get": {
+        "tags": [
+          "authentication/setting"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "active-auth-scheme": {
+                  "type": "string",
+                  "description": "Active authentication method (scheme name).",
+                  "maxLength": 35
+                },
+                "sso-auth-scheme": {
+                  "type": "string",
+                  "description": "Single-Sign-On authentication method (scheme name).",
+                  "maxLength": 35
+                },
+                "update-time": {
+                  "type": "string",
+                  "description": "Time of the last update."
+                },
+                "persistent-cookie": {
+                  "type": "string",
+                  "description": "Enable/disable persistent cookie on web portal authentication (default = enable).   \nenable:Enable persistent cookie.   \ndisable:Disable persistent cookie.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "ip-auth-cookie": {
+                  "type": "string",
+                  "description": "Enable/disable persistent cookie on IP based web portal authentication (default = disable).   \nenable:Enable persistent cookie for IP-based authentication.   \ndisable:Disable persistent cookie for IP-based authentication.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "cookie-max-age": {
+                  "type": "integer",
+                  "description": "Persistent web portal cookie maximum age in minutes (30 - 10080 (1 week), default = 480 (8 hours)).",
+                  "maximum": 10080,
+                  "minimum": 30
+                },
+                "cookie-refresh-div": {
+                  "type": "integer",
+                  "description": "Refresh rate divider of persistent web portal cookie (default = 2). Refresh value = cookie-max-age/cookie-refresh-div.",
+                  "maximum": 4,
+                  "minimum": 2
+                },
+                "captive-portal-type": {
+                  "type": "string",
+                  "description": "Captive portal type.   \nfqdn:Use FQDN for captive portal.   \nip:Use an IP address for captive portal.",
+                  "enum": [
+                    "fqdn",
+                    "ip"
+                  ]
+                },
+                "captive-portal-ip": {
+                  "type": "string",
+                  "format": "ipv4",
+                  "description": "Captive portal IP address."
+                },
+                "captive-portal-ip6": {
+                  "type": "string",
+                  "format": "ipv6",
+                  "description": "Captive portal IPv6 address."
+                },
+                "captive-portal": {
+                  "type": "string",
+                  "description": "Captive portal host name.",
+                  "maxLength": 255
+                },
+                "captive-portal6": {
+                  "type": "string",
+                  "description": "IPv6 captive portal host name.",
+                  "maxLength": 255
+                },
+                "cert-auth": {
+                  "type": "string",
+                  "description": "Enable/disable redirecting certificate authentication to HTTPS portal.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "cert-captive-portal": {
+                  "type": "string",
+                  "description": "Certificate captive portal host name.",
+                  "maxLength": 255
+                },
+                "cert-captive-portal-ip": {
+                  "type": "string",
+                  "format": "ipv4",
+                  "description": "Certificate captive portal IP address."
+                },
+                "cert-captive-portal-port": {
+                  "type": "integer",
+                  "description": "Certificate captive portal port number (1 - 65535, default = 7832).",
+                  "maximum": 65535,
+                  "minimum": 1
+                },
+                "captive-portal-port": {
+                  "type": "integer",
+                  "description": "Captive portal port number (1 - 65535, default = 7830).",
+                  "maximum": 65535,
+                  "minimum": 1
+                },
+                "auth-https": {
+                  "type": "string",
+                  "description": "Enable/disable redirecting HTTP user authentication to HTTPS.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "captive-portal-ssl-port": {
+                  "type": "integer",
+                  "description": "Captive portal SSL port number (1 - 65535, default = 7831).",
+                  "maximum": 65535,
+                  "minimum": 1
+                },
+                "user-cert-ca": {
+                  "description": "CA certificate used for client certificate verification.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "CA certificate list.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "dev-range": {
+                  "description": "Address range for the IP based device query.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Address name.",
+                        "maxLength": 79
+                      }
+                    }
+                  },
+                  "maxItems": null
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_authentication_setting"
+      },
+      "put": {
+        "tags": [
+          "authentication/setting"
+        ],
+        "summary": "Update this specific resource.\n Access Group: authgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "If *action=move*, use *before* to specify the ID of the resource that this resource will be moved before.\nFor example, to move `object 1` to before `object 2`, use:\n__action=move&before=2__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "If *action=move*, use *after* to specify the ID of the resource that this resource will be moved after.\nFor example, to move `object 1` to after `object 3`, use:\n__action=move&after=3__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "active-auth-scheme": {
+                    "type": "string",
+                    "description": "Active authentication method (scheme name).",
+                    "maxLength": 35
+                  },
+                  "sso-auth-scheme": {
+                    "type": "string",
+                    "description": "Single-Sign-On authentication method (scheme name).",
+                    "maxLength": 35
+                  },
+                  "update-time": {
+                    "type": "string",
+                    "description": "Time of the last update."
+                  },
+                  "persistent-cookie": {
+                    "type": "string",
+                    "description": "Enable/disable persistent cookie on web portal authentication (default = enable).   \nenable:Enable persistent cookie.   \ndisable:Disable persistent cookie.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "ip-auth-cookie": {
+                    "type": "string",
+                    "description": "Enable/disable persistent cookie on IP based web portal authentication (default = disable).   \nenable:Enable persistent cookie for IP-based authentication.   \ndisable:Disable persistent cookie for IP-based authentication.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "cookie-max-age": {
+                    "type": "integer",
+                    "description": "Persistent web portal cookie maximum age in minutes (30 - 10080 (1 week), default = 480 (8 hours)).",
+                    "maximum": 10080,
+                    "minimum": 30
+                  },
+                  "cookie-refresh-div": {
+                    "type": "integer",
+                    "description": "Refresh rate divider of persistent web portal cookie (default = 2). Refresh value = cookie-max-age/cookie-refresh-div.",
+                    "maximum": 4,
+                    "minimum": 2
+                  },
+                  "captive-portal-type": {
+                    "type": "string",
+                    "description": "Captive portal type.   \nfqdn:Use FQDN for captive portal.   \nip:Use an IP address for captive portal.",
+                    "enum": [
+                      "fqdn",
+                      "ip"
+                    ]
+                  },
+                  "captive-portal-ip": {
+                    "type": "string",
+                    "format": "ipv4",
+                    "description": "Captive portal IP address."
+                  },
+                  "captive-portal-ip6": {
+                    "type": "string",
+                    "format": "ipv6",
+                    "description": "Captive portal IPv6 address."
+                  },
+                  "captive-portal": {
+                    "type": "string",
+                    "description": "Captive portal host name.",
+                    "maxLength": 255
+                  },
+                  "captive-portal6": {
+                    "type": "string",
+                    "description": "IPv6 captive portal host name.",
+                    "maxLength": 255
+                  },
+                  "cert-auth": {
+                    "type": "string",
+                    "description": "Enable/disable redirecting certificate authentication to HTTPS portal.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "cert-captive-portal": {
+                    "type": "string",
+                    "description": "Certificate captive portal host name.",
+                    "maxLength": 255
+                  },
+                  "cert-captive-portal-ip": {
+                    "type": "string",
+                    "format": "ipv4",
+                    "description": "Certificate captive portal IP address."
+                  },
+                  "cert-captive-portal-port": {
+                    "type": "integer",
+                    "description": "Certificate captive portal port number (1 - 65535, default = 7832).",
+                    "maximum": 65535,
+                    "minimum": 1
+                  },
+                  "captive-portal-port": {
+                    "type": "integer",
+                    "description": "Captive portal port number (1 - 65535, default = 7830).",
+                    "maximum": 65535,
+                    "minimum": 1
+                  },
+                  "auth-https": {
+                    "type": "string",
+                    "description": "Enable/disable redirecting HTTP user authentication to HTTPS.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "captive-portal-ssl-port": {
+                    "type": "integer",
+                    "description": "Captive portal SSL port number (1 - 65535, default = 7831).",
+                    "maximum": 65535,
+                    "minimum": 1
+                  },
+                  "user-cert-ca": {
+                    "description": "CA certificate used for client certificate verification.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "CA certificate list.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "dev-range": {
+                    "description": "Address range for the IP based device query.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Address name.",
+                          "maxLength": 79
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "put_authentication_setting"
+      }
+    }
+  },
+  "definitions": {},
+  "securityDefinitions": {
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "access_token"
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "parameters": {
+      "attr": {
+        "name": "attr",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "Attribute name that references other table"
+      },
+      "count": {
+        "name": "count",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "Maximum number of entries to return."
+      },
+      "skip_to": {
+        "name": "skip_to",
+        "in": "query",
+        "required": false,
+        "type": "object",
+        "description": "Skip to provided table's Nth entry. E.g {datasource: 'firewall.address', pos: 10, global_entry: false}"
+      },
+      "acs": {
+        "name": "acs",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "If true, returned result are in ascending order."
+      },
+      "search": {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "If present, the objects will be filtered by the search value."
+      },
+      "scope": {
+        "name": "scope",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "Scope [global|vdom|both*]"
+      },
+      "datasource": {
+        "name": "datasource",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to include datasource information for each linked object."
+      },
+      "with_meta": {
+        "name": "with_meta",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to include meta information about each object (type id, references, etc)."
+      },
+      "skip": {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to call CLI skip operator to hide skipped properties."
+      },
+      "format": {
+        "name": "format",
+        "in": "query",
+        "description": "List of property names to include in results, separated by | (i.e. policyid|srcintf).",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "pipes",
+        "items": {
+          "type": "string"
+        }
+      },
+      "action": {
+        "name": "action",
+        "in": "query",
+        "description": "datasource: Return all applicable datasource entries for a specific attribute based on simulate data.\nstats: Return CMDB aggregated statistics.\nfind-index: Return indexes of provided primary keys with respect to filter.\ndefault: Return the CLI default values for this object type.\njson-schema: Return the JSON Schema for this object type.\nschema: Return the CLI schema for this object type.\nrevision: Return the CMDB revision for this object type.\ntransaction-list: List all configuration transaction(s).\ntransaction-show: Show the content of the configuration transaction by transcation ID.\n",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "default",
+          "schema",
+          "revision"
+        ]
+      },
+      "vdom": {
+        "name": "vdom",
+        "in": "query",
+        "description": "Specify the Virtual Domain(s) from which results are returned or changes are applied to. If this parameter is not provided, the management VDOM will be used. If the admin does not have access to the VDOM, a permission error will be returned.\nThe URL parameter is one of:\nvdom=root (Single VDOM)\nvdom=vdom1,vdom2 (Multiple VDOMs)\nvdom=* (All VDOMs)\n",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "csv",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Bad Request: Request cannot be processed by the API"
+      },
+      "401": {
+        "description": "Not Authorized: Request without successful login session"
+      },
+      "403": {
+        "description": "Forbidden: Request is missing CSRF token or administrator is missing access profile permissions."
+      },
+      "404": {
+        "description": "Resource Not Found: Unable to find the specified resource."
+      },
+      "405": {
+        "description": "Method Not Allowed: Specified HTTP method is not allowed for this resource. "
+      },
+      "413": {
+        "description": "Request Entity Too Large: Request cannot be processed due to large entity "
+      },
+      "424": {
+        "description": "Failed Dependency: Fail dependency can be duplicate resource, missing required parameter, missing required attribute, invalid attribute value"
+      },
+      "429": {
+        "description": "Access temporarily blocked: Maximum failed authentications reached. The offended source is temporarily blocked for certain amount of time."
+      },
+      "500": {
+        "description": "Internal Server Error: Internal error when processing the request "
+      }
+    }
+  }
+}

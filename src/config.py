@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, Dict, Any, List, Tuple
 from pathlib import Path
+import os
+import re
 import yaml
 import logging
 
@@ -8,6 +10,26 @@ logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _MCP_SERVERS_PATH = _PROJECT_ROOT / "data" / "mcp" / "servers.yaml"
+
+_ENV_VAR_PATTERN = re.compile(r"\$\{(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?::-(?P<default>[^}]*))?\}")
+
+
+def _expand_env_vars(value: Any) -> Any:
+    """Expand ${VAR} / ${VAR:-default} placeholders in strings, recursively.
+
+    Lets servers.yaml point at different hosts per environment (e.g.
+    MCP_GATEWAY_URL is http://mcp-gateway:8000/sse inside compose but
+    defaults to localhost:8001 for host-run dev).
+    """
+    if isinstance(value, str):
+        return _ENV_VAR_PATTERN.sub(
+            lambda m: os.getenv(m.group("name"), m.group("default") or ""), value
+        )
+    if isinstance(value, dict):
+        return {k: _expand_env_vars(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_expand_env_vars(v) for v in value]
+    return value
 
 
 def _load_mcp_config() -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
@@ -25,6 +47,7 @@ def _load_mcp_config() -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
 
     try:
         raw = yaml.safe_load(_MCP_SERVERS_PATH.read_text(encoding="utf-8")) or {}
+        raw = _expand_env_vars(raw)
         servers = raw.get("servers", {})
         if not isinstance(servers, dict):
             logger.warning("MCP servers.yaml: 'servers' key is not a dict, ignoring")

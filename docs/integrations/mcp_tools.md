@@ -32,12 +32,14 @@ Servers are defined in `MCP_SERVERS` (env var or `src/config.py`):
 
 ```json
 {
-  "remote-server": {
+  "mcp-gateway": {
     "transport": "sse",
-    "url": "http://your-mcp-server:8000/sse"
+    "url": "http://localhost:8001/sse"
   }
 }
 ```
+
+The default entry points at the bundled [MCP Gateway](../architecture/mcp_gateway.md) (`mcp_gateway/`), which generates its tools from vendor OpenAPI specs.
 
 ### Stdio Transport (Local)
 

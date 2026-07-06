@@ -1,0 +1,29 @@
+[project]
+name = "mcp-gateway"
+version = "0.1.0"
+description = "Generic OpenAPI/Swagger to MCP gateway (support_ai_agent tool-execution service)"
+requires-python = ">=3.12"
+dependencies = [
+    # Pinned exactly: FastMCP's from_openapi drives tool naming, and the Qdrant
+    # tool_catalog index depends on those names staying stable. Bumping this
+    # requires running the name-freeze test and planning a re-index.
+    "fastmcp==2.14.5",
+    "uvicorn[standard]>=0.30.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.3.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+    "cryptography>=42.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["gateway/tests"]

@@ -94,3 +94,10 @@ Implementation Plan*.md
 # ─── Script artifacts ───
 tool_catalog_dump_*.json
 tool_catalog_report_*.json
+
+# ─── MCP Gateway ───
+# Live device inventory (real hosts + Fernet-encrypted API tokens).
+# Only anonymized *.example.yaml files are tracked.
+mcp_gateway/inventory/**
+!mcp_gateway/inventory/**/
+!mcp_gateway/inventory/**/*.example.yaml

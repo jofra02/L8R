@@ -212,18 +212,24 @@ The compose file includes a `frontend` service that builds from `./frontend`.
 
 ### MCP Servers
 
-MCP servers are external processes that provide read-only tool access. They are **not** containerized in this compose stack because they must be deployed near the target infrastructure.
+MCP servers provide read-only tool access. The platform ships its own: the **MCP Gateway** (`mcp_gateway/`), a generic OpenAPI→MCP server included in this compose stack as the `mcp-gateway` service (see [MCP Gateway architecture](../architecture/mcp_gateway.md)). Additional external MCP servers can be registered alongside it — e.g. when they must be deployed near the target infrastructure.
 
-Configure in `data/mcp/servers.yaml`:
+Configure in `data/mcp/servers.yaml`. `${VAR:-default}` placeholders are expanded from the environment:
 
 ```yaml
 servers:
+  mcp-gateway:
+    transport: sse
+    url: ${MCP_GATEWAY_URL:-http://localhost:8001/sse}   # compose sets MCP_GATEWAY_URL
+
   network-tools:
     transport: sse
     url: http://mcp-host:8001/sse
     vendor: fortinet        # optional — used for tool metadata extraction
     timeout: 45             # optional — overrides MCP_SERVER_TIMEOUT
 ```
+
+The `mcp-gateway` compose service needs `INVENTORY_MASTER_KEY` and `ACTIVE_CUSTOMER_ID` in `.env`, and mounts `./mcp_gateway/inventory` read-only (device credentials never enter the image).
 
 See `data/mcp/servers.example.yaml` for SSE and stdio transport examples. The YAML is loaded at startup by `src/config.py`; see [Configuration > MCP](configuration.md#mcp-model-context-protocol) for the full field reference.
 

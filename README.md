@@ -84,7 +84,7 @@ Content-addressable, immutable snapshots. Each piece of evidence is hashed and s
 
 ### MCP (Tool Execution)
 
-Tools are served by external MCP servers (stdio or SSE transport). The system indexes tool descriptions at startup for semantic catalog search. See [MCP Integration Guide](docs/integrations/mcp_tools.md).
+Tools are served by MCP servers (stdio or SSE transport). The platform bundles its own: the **MCP Gateway** (`mcp_gateway/`), a generic OpenAPI→MCP service whose first vendor pack converts 62 FortiOS specs into ~2,500 read-only tools. The system indexes tool descriptions at startup for semantic catalog search. See [MCP Integration Guide](docs/integrations/mcp_tools.md) and [MCP Gateway](docs/architecture/mcp_gateway.md).
 
 ---
 
@@ -169,6 +169,10 @@ src/
 ├── mcp/                     # MCP client
 └── plugins/                 # Capability packs
 frontend/                    # React dashboard
+mcp_gateway/                 # Generic OpenAPI→MCP gateway service (tool execution)
+├── gateway/                 # Vendor-agnostic engine
+├── vendors/fortinet/        # Fortinet vendor pack (manifest + FortiOS specs + hooks)
+└── inventory/               # Per-tenant device inventory (gitignored, encrypted tokens)
 docs/
 ├── setup/                   # Quickstart, configuration, deployment
 ├── architecture/            # Overview, data layer, observability, safety

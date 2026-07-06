@@ -83,11 +83,15 @@ Minimum similarity score for results to be returned. Set per collection to tune 
 
 ### MCP (Model Context Protocol)
 
-MCP servers are configured in `data/mcp/servers.yaml` (not in `.env`). The YAML file is loaded at startup by `src/config.py`. See `data/mcp/servers.example.yaml` for full examples.
+MCP servers are configured in `data/mcp/servers.yaml` (not in `.env`). The YAML file is loaded at startup by `src/config.py`, which expands `${VAR}` / `${VAR:-default}` placeholders from the environment. See `data/mcp/servers.example.yaml` for full examples and [MCP Gateway architecture](../architecture/mcp_gateway.md) for the bundled gateway.
 
 ```yaml
 # data/mcp/servers.yaml
 servers:
+  mcp-gateway:                # the bundled OpenAPI→MCP gateway (mcp_gateway/)
+    transport: sse
+    url: ${MCP_GATEWAY_URL:-http://localhost:8001/sse}
+
   network-tools:
     transport: sse
     url: http://10.0.1.50:8001/sse
