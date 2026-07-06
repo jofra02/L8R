@@ -1,11 +1,13 @@
-"""Vendor pack discovery and loading.
+"""Appliance pack discovery and loading.
 
-A vendor pack is a directory under ``vendors/`` with:
+Packs are organized as ``vendors/<vendor>/<appliance>/`` — a vendor is a
+manufacturer (fortinet, cisco, paloalto) and each of its appliances/products
+(fortigate, fortianalyzer, ios_xe, panos, ...) is a self-contained pack:
 
-    vendors/<name>/
-        manifest.yaml     # required — see VendorManifest for the schema
+    vendors/<vendor>/<appliance>/
+        manifest.yaml     # required — see ApplianceManifest for the schema
         specs/<group>/*.json  # OpenAPI/Swagger specs, one sub-server per group
-        hooks.py          # optional vendor-specific transforms
+        hooks.py          # optional appliance-specific transforms
 
 ``hooks.py`` may expose:
 - ``SPEC_FIXES``: list of ``(spec: dict) -> dict`` callables run after the
@@ -31,10 +33,11 @@ DEFAULT_DEVICE_PARAM_DESCRIPTION = (
 )
 
 
-class VendorManifest(BaseModel):
-    """Schema of ``vendors/<name>/manifest.yaml``."""
+class ApplianceManifest(BaseModel):
+    """Schema of ``vendors/<vendor>/<appliance>/manifest.yaml``."""
 
-    name: str = Field(..., description="Vendor slug (matches the directory name)")
+    vendor: str = Field(..., description="Vendor slug (matches the parent directory name)")
+    name: str = Field(..., description="Appliance/product slug (matches the directory name)")
     display_name: str = Field(..., description="Human readable server name")
     prefix: str = Field(..., description="Mount prefix — first token of every tool name")
     device_type: str = Field(..., description="Inventory device type served by this pack")
@@ -57,10 +60,10 @@ class VendorManifest(BaseModel):
     )
 
 
-class VendorPack:
-    """A loaded vendor pack: manifest + paths + optional hooks."""
+class AppliancePack:
+    """A loaded appliance pack: manifest + paths + optional hooks."""
 
-    def __init__(self, manifest: VendorManifest, root: Path):
+    def __init__(self, manifest: ApplianceManifest, root: Path):
         self.manifest = manifest
         self.root = root
         self.specs_dir = root / "specs"
@@ -74,7 +77,7 @@ class VendorPack:
             return
 
         spec = importlib.util.spec_from_file_location(
-            f"vendors.{self.manifest.name}.hooks", hooks_path
+            f"vendors.{self.manifest.vendor}.{self.manifest.name}.hooks", hooks_path
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -82,7 +85,7 @@ class VendorPack:
         self.spec_fixes = list(getattr(module, "SPEC_FIXES", []))
         self.parameter_doc_appends = dict(getattr(module, "PARAMETER_DOC_APPENDS", {}))
         log.info(
-            f"Vendor '{self.manifest.name}': loaded {len(self.spec_fixes)} spec fixes, "
+            f"Pack '{self.qualified_name}': loaded {len(self.spec_fixes)} spec fixes, "
             f"{len(self.parameter_doc_appends)} parameter doc appends from hooks.py"
         )
 
@@ -90,6 +93,14 @@ class VendorPack:
     @property
     def name(self) -> str:
         return self.manifest.name
+
+    @property
+    def vendor(self) -> str:
+        return self.manifest.vendor
+
+    @property
+    def qualified_name(self) -> str:
+        return f"{self.manifest.vendor}/{self.manifest.name}"
 
     @property
     def prefix(self) -> str:
@@ -113,7 +124,8 @@ class VendorPack:
         return safe_name
 
 
-def load_vendor_pack(pack_dir: Path) -> Optional[VendorPack]:
+def load_appliance_pack(pack_dir: Path) -> Optional[AppliancePack]:
+    """Load one appliance pack from ``vendors/<vendor>/<appliance>/``."""
     manifest_path = pack_dir / "manifest.yaml"
     if not manifest_path.exists():
         return None
@@ -121,26 +133,39 @@ def load_vendor_pack(pack_dir: Path) -> Optional[VendorPack]:
     with open(manifest_path, "r", encoding="utf-8") as f:
         data: Dict[str, Any] = yaml.safe_load(f) or {}
 
+    data.setdefault("vendor", pack_dir.parent.name)
     data.setdefault("name", pack_dir.name)
-    manifest = VendorManifest(**data)
-    return VendorPack(manifest, pack_dir)
+    manifest = ApplianceManifest(**data)
+    return AppliancePack(manifest, pack_dir)
 
 
-def discover_vendor_packs(vendors_root: Path) -> List[VendorPack]:
-    """Load every valid vendor pack under ``vendors_root``, sorted by name."""
-    packs: List[VendorPack] = []
+def discover_packs(vendors_root: Path) -> List[AppliancePack]:
+    """Load every appliance pack under ``vendors/<vendor>/<appliance>/``.
+
+    Sorted by vendor then appliance so mount order (and therefore any name
+    collision resolution) is deterministic.
+    """
+    packs: List[AppliancePack] = []
     if not vendors_root.exists():
         log.warning(f"Vendors directory not found: {vendors_root}")
         return packs
 
-    for pack_dir in sorted(p for p in vendors_root.iterdir() if p.is_dir()):
-        try:
-            pack = load_vendor_pack(pack_dir)
-            if pack:
-                packs.append(pack)
-            else:
-                log.warning(f"Skipping '{pack_dir.name}': no manifest.yaml")
-        except Exception as e:
-            log.error(f"Failed to load vendor pack '{pack_dir.name}': {e}")
+    for vendor_dir in sorted(p for p in vendors_root.iterdir() if p.is_dir()):
+        appliance_dirs = sorted(p for p in vendor_dir.iterdir() if p.is_dir())
+        if not appliance_dirs:
+            log.warning(f"Vendor '{vendor_dir.name}' has no appliance directories — skipping")
+            continue
+
+        for pack_dir in appliance_dirs:
+            try:
+                pack = load_appliance_pack(pack_dir)
+                if pack:
+                    packs.append(pack)
+                else:
+                    log.warning(
+                        f"Skipping '{vendor_dir.name}/{pack_dir.name}': no manifest.yaml"
+                    )
+            except Exception as e:
+                log.error(f"Failed to load pack '{vendor_dir.name}/{pack_dir.name}': {e}")
 
     return packs

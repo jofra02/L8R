@@ -29,7 +29,7 @@ src/
 frontend/         # React dashboard (Vite + TypeScript)
 mcp_gateway/      # Generic OpenAPI→MCP gateway service (own uv project + Dockerfile)
   gateway/        # Vendor-agnostic engine (spec pipeline, routing client, inventory)
-  vendors/        # Vendor packs (fortinet: manifest + 62 FortiOS specs + hooks)
+  vendors/        # Appliance packs: vendors/<vendor>/<appliance>/ (fortinet/fortigate: manifest + 62 FortiOS specs + hooks)
   inventory/      # Device inventory per customer_id (gitignored; Fernet-encrypted tokens)
 docs/
   agents/         # Engineer agent documentation
@@ -112,6 +112,6 @@ Completed this cycle:
 | `src/api/app.py` | Platform API (FastAPI) |
 | `src/ingestion/service.py` | Ingestion + background execution service |
 | `mcp_gateway/gateway/spec_pipeline.py` | OpenAPI→MCP build pipeline (tool-name freeze contract) |
-| `mcp_gateway/vendors/fortinet/manifest.yaml` | Fortinet vendor pack definition |
+| `mcp_gateway/vendors/fortinet/fortigate/manifest.yaml` | FortiGate appliance pack definition |
 | `docs/architecture/mcp_gateway.md` | MCP Gateway architecture + vendor pack contract |
 | `docs/README.md` | Master documentation index |

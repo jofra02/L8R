@@ -7,7 +7,7 @@ It originated as the standalone `fortinet_ai_suite` repository and was merged he
 ```
 Ticket → Engineer agent → execute_tool ──SSE──> mcp-gateway ──HTTPS──> FortiGate / appliance
                                                     │
-                                       vendors/<pack>/specs/*.json
+                                       vendors/<vendor>/<appliance>/specs/*.json
                                        inventory/tenants/<customer_id>/devices/*.yaml
 ```
 
@@ -30,27 +30,29 @@ mcp_gateway/
 │   ├── middleware.py       # Tracing + optional Prometheus histogram
 │   ├── inventory/          # Tenant/device YAML registry + Fernet secrets
 │   └── tests/test_name_freeze.py
-├── vendors/
-│   └── fortinet/           # First vendor pack
-│       ├── manifest.yaml   # prefix fgt, auth, glob, name rules
-│       ├── hooks.py        # SD-WAN monolith split + filter syntax help
-│       └── specs/{cmdb,monitor,log}/  # 62 FortiOS OpenAPI specs (~25 MB)
+├── vendors/                # vendors/<vendor>/<appliance>/ — one pack per product
+│   └── fortinet/           # Vendor (manufacturer)
+│       └── fortigate/      # Appliance pack (fortianalyzer, fortimanager... go next to it)
+│           ├── manifest.yaml   # prefix fgt, auth, glob, name rules
+│           ├── hooks.py        # SD-WAN monolith split + filter syntax help
+│           └── specs/{cmdb,monitor,log}/  # 62 FortiOS OpenAPI specs (~25 MB)
 ├── inventory/              # GITIGNORED except *.example.yaml
 │   └── tenants/<customer_id>/devices/*.yaml
 └── scripts/                # dump_tools.py, encrypt_secret.py, rotate_master_key.py
 ```
 
-## Vendor pack contract
+## Appliance pack contract
 
-A vendor pack is a directory under `vendors/` — **adding a vendor requires no engine code**:
+Packs live at `vendors/<vendor>/<appliance>/` — the **vendor** is the manufacturer (fortinet, cisco, paloalto) and each of its **appliances/products** (fortigate, fortianalyzer, ios_xe, panos, ...) is a self-contained pack. This keeps one vendor's multiple product lines separate: each appliance has its own API family, prefix, auth style and device type. **Adding a pack requires no engine code**:
 
-1. `mkdir vendors/<vendor>/specs/<group>/` and drop OpenAPI/Swagger JSON files in. Each `<group>` directory becomes a sub-server (e.g. `cmdb`, `monitor`).
-2. Write `vendors/<vendor>/manifest.yaml`:
+1. `mkdir -p vendors/<vendor>/<appliance>/specs/<group>/` and drop OpenAPI/Swagger JSON files in. Each `<group>` directory becomes a sub-server (e.g. `cmdb`, `monitor`).
+2. Write `vendors/<vendor>/<appliance>/manifest.yaml`:
 
 ```yaml
-name: acme                    # slug (defaults to the directory name)
-display_name: Acme Firewall   # server display name
-prefix: acme                  # first token of every tool name
+vendor: acme                  # manufacturer slug (defaults to the parent directory name)
+name: firewall_x              # appliance slug (defaults to the directory name)
+display_name: Acme Firewall X # server display name
+prefix: acmefw                # first token of every tool name
 device_type: acme_fw          # inventory devices served by this pack
 auth: bearer_header           # strategy from gateway/auth.py
 spec_glob: "*.json"           # spec files inside each group dir
@@ -60,11 +62,13 @@ inventory_tool: true          # expose <prefix>_get_inventory_tree
 device_param_description: "Optional: target device name. Defaults to primary."
 ```
 
-3. Optional `hooks.py` for vendor-specific transforms:
-   - `SPEC_FIXES: list[callable]` — run per spec after the generic fixes (see `vendors/fortinet/hooks.py:fix_sdwan_monolith`).
+3. Optional `hooks.py` for appliance-specific transforms:
+   - `SPEC_FIXES: list[callable]` — run per spec after the generic fixes (see `vendors/fortinet/fortigate/hooks.py:fix_sdwan_monolith`).
    - `PARAMETER_DOC_APPENDS: dict[param_name, help_text]` — appended to matching parameter descriptions (e.g. FortiOS `filter` syntax help).
 4. Add devices of that `device_type` to `inventory/tenants/<customer_id>/devices/` (see `firewalls.example.yaml`).
 5. If the vendor slug isn't recognized by `src/core/registry.py:_VENDOR_PATTERNS`, tag the server with `vendor:` in `data/mcp/servers.yaml`.
+
+Each pack mounts at its own `prefix`, so prefixes must be unique across packs (e.g. `fgt` for FortiGate, `faz` for a future FortiAnalyzer pack).
 
 Tool names follow the mount chain: `{prefix}_{group}_{spec_mount_name}_{operationId}`.
 
@@ -114,5 +118,5 @@ Verification: `uv run pytest gateway/tests/` (offline name freeze) and `uv run p
 ## Future work
 
 - **SSE authentication**: the endpoint is currently unauthenticated — anyone who can reach the port can execute all tools. Acceptable only on trusted networks; add a bearer/API-key check before exposing beyond the compose network.
-- Second vendor pack (FortiAnalyzer or another appliance) to exercise the multi-pack path.
+- Second appliance pack (`vendors/fortinet/fortianalyzer/` or another vendor's product) to exercise the multi-pack path.
 - Optional pagination/filtering of the tool listing for clients that can't handle ~2.5k tools.

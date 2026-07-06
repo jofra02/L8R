@@ -1,8 +1,8 @@
-"""OpenAPI → MCP build pipeline for one vendor pack.
+"""OpenAPI → MCP build pipeline for one appliance pack.
 
-For each group directory under ``vendors/<name>/specs/`` a sub-server is
-created; every spec file in it becomes a mounted FastMCP server whose tools
-are the spec's operations. Tool names follow the mount chain:
+For each group directory under ``vendors/<vendor>/<appliance>/specs/`` a
+sub-server is created; every spec file in it becomes a mounted FastMCP server
+whose tools are the spec's operations. Tool names follow the mount chain:
 
     {pack.prefix}_{group}_{spec_mount_name}_{operationId}
 
@@ -26,25 +26,25 @@ from . import schema_fixes
 from .config import DeviceRegistry
 from .middleware import TracingMiddleware
 from .routing_client import RoutingClient
-from .vendor_pack import VendorPack
+from .vendor_pack import AppliancePack
 
 log = logging.getLogger("gateway.pipeline")
 
 _HTTP_METHODS = ("get", "post", "put", "delete", "patch")
 
 
-def build_vendor_server(
-    pack: VendorPack,
+def build_appliance_server(
+    pack: AppliancePack,
     registry: DeviceRegistry,
     client: RoutingClient,
 ) -> FastMCP:
-    """Build the FastMCP server tree for a vendor pack."""
-    vendor_server = FastMCP(pack.manifest.display_name)
-    vendor_server.add_middleware(TracingMiddleware())
+    """Build the FastMCP server tree for an appliance pack."""
+    appliance_server = FastMCP(pack.manifest.display_name)
+    appliance_server.add_middleware(TracingMiddleware())
 
     if not pack.specs_dir.exists():
-        log.warning(f"Vendor '{pack.name}': specs directory missing at {pack.specs_dir}")
-        return vendor_server
+        log.warning(f"Pack '{pack.qualified_name}': specs directory missing at {pack.specs_dir}")
+        return appliance_server
 
     for subdir in sorted(p for p in pack.specs_dir.iterdir() if p.is_dir()):
         group_name = subdir.name.lower()  # e.g. monitor | cmdb | log
@@ -118,16 +118,16 @@ def build_vendor_server(
                 log.error(f"ERROR loading {spec_path.name}: {e}")
                 traceback.print_exc()
 
-        vendor_server.mount(group_server, prefix=group_name)
+        appliance_server.mount(group_server, prefix=group_name)
 
     if pack.manifest.inventory_tool:
-        _register_inventory_tool(vendor_server, registry)
+        _register_inventory_tool(appliance_server, registry)
 
-    return vendor_server
+    return appliance_server
 
 
-def _register_inventory_tool(vendor_server: FastMCP, registry: DeviceRegistry) -> None:
-    @vendor_server.tool()
+def _register_inventory_tool(appliance_server: FastMCP, registry: DeviceRegistry) -> None:
+    @appliance_server.tool()
     def get_inventory_tree() -> str:
         """
         Returns a tree structure of the available inventory devices.

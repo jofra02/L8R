@@ -1,6 +1,6 @@
-"""FortiOS-specific spec transforms for the fortinet vendor pack.
+"""FortiOS-specific spec transforms for the fortinet/fortigate appliance pack.
 
-Loaded by the gateway via ``vendor_pack.VendorPack._load_hooks``:
+Loaded by the gateway via ``vendor_pack.AppliancePack._load_hooks``:
 - ``SPEC_FIXES`` runs after the generic schema fixes, per spec file.
 - ``PARAMETER_DOC_APPENDS`` extends parameter descriptions in every operation.
 """

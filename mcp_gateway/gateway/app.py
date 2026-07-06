@@ -16,8 +16,8 @@ from fastmcp import FastMCP
 from .auth import get_auth_strategy
 from .config import DeviceRegistry, GATEWAY_ROOT, get_settings
 from .routing_client import RoutingClient
-from .spec_pipeline import build_vendor_server
-from .vendor_pack import discover_vendor_packs
+from .spec_pipeline import build_appliance_server
+from .vendor_pack import discover_packs
 
 # Basic logging bootstrap so client hooks (gateway.http) reach the console
 logging.basicConfig(
@@ -35,16 +35,16 @@ def build_gateway(vendors_root: Path = VENDORS_ROOT) -> FastMCP:
     settings = get_settings()
     gateway = FastMCP("MCP Gateway")
 
-    packs = discover_vendor_packs(vendors_root)
+    packs = discover_packs(vendors_root)
     if not packs:
-        log.warning("No vendor packs found — the gateway will expose no tools.")
+        log.warning("No appliance packs found — the gateway will expose no tools.")
 
     for pack in packs:
         registry = DeviceRegistry(settings.active_customer_id, pack.manifest.device_type)
         client = RoutingClient(registry, get_auth_strategy(pack.manifest.auth), settings)
-        vendor_server = build_vendor_server(pack, registry, client)
-        gateway.mount(vendor_server, prefix=pack.prefix)
-        log.info(f"Mounted vendor pack '{pack.name}' at prefix '{pack.prefix}'.")
+        appliance_server = build_appliance_server(pack, registry, client)
+        gateway.mount(appliance_server, prefix=pack.prefix)
+        log.info(f"Mounted appliance pack '{pack.qualified_name}' at prefix '{pack.prefix}'.")
 
     return gateway
 

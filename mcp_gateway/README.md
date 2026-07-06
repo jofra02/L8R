@@ -20,6 +20,6 @@ Or as part of the stack: `docker compose up -d mcp-gateway` (from the repo root)
 uv run pytest gateway/tests/   # name-freeze: tool names must match baseline_tools.txt
 ```
 
-## Adding a vendor
+## Adding an appliance
 
-Drop a directory under `vendors/<name>/` with a `manifest.yaml` and `specs/<group>/*.json` — no engine changes needed. See the architecture doc for the manifest schema and `vendors/fortinet/` as the reference implementation.
+Packs are organized as `vendors/<vendor>/<appliance>/` — the vendor is the manufacturer, each of its products is a self-contained pack. Drop a directory with a `manifest.yaml` and `specs/<group>/*.json` — no engine changes needed. See the architecture doc for the manifest schema and `vendors/fortinet/fortigate/` as the reference implementation.
