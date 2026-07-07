@@ -83,7 +83,7 @@ This creates a `fake_client` tenant in the database with allowed tools and conte
 
 ## 6. Create an API Key
 
-API keys are required for both the Platform API and the frontend dashboard. Each key is scoped to a tenant and has a role that determines access level.
+API keys authenticate **programmatic clients** of the Platform API (ticket ingestion and result polling). They are **not** used by the frontend dashboard — the dashboard uses email + password login (JWT, see step 8). Each key is scoped to a tenant.
 
 **Roles** (ascending privilege): `viewer` < `operator` < `tenant_admin` < `platform_admin`
 
@@ -96,7 +96,7 @@ API keys are required for both the Platform API and the frontend dashboard. Each
 
 ### Option A: Tenant Key (most common)
 
-Creates a key scoped to a specific tenant. Use this for the frontend dashboard and API integration.
+Creates a key scoped to a specific tenant. Use this for API integration (e.g., a ticketing system that submits tickets and polls results).
 
 ```bash
 # Creates a key named "default"
@@ -106,7 +106,7 @@ uv run python src/main.py create-tenant-key fake_client
 uv run python src/main.py create-tenant-key fake_client "CI Pipeline"
 ```
 
-> API keys always carry role `operator` with `tickets:write` permission — there is no role argument. The role hierarchy above applies to JWT **users** (see the [API Keys & Users runbook](../operations/api_keys_and_users.md)).
+> API keys carry a fixed permission set: `tickets:write`, `tickets:read`, `runs:read` — enough to submit tickets and poll their runs/reports, nothing else (no inventory, no user management). There is no role argument. The role hierarchy above applies to JWT **users** (see the [API Keys & Users runbook](../operations/api_keys_and_users.md)).
 
 Output:
 
@@ -123,7 +123,7 @@ SAVE THIS KEY — it will not be shown again.
 ============================================================
 ```
 
-Copy the `Raw Key` value -- you will need it to log in to the frontend and to authenticate API requests.
+Copy the `Raw Key` value -- you will need it to authenticate programmatic API requests (step 9).
 
 ### Option B: Platform Admin Key
 
@@ -188,15 +188,24 @@ Frontend available at `http://localhost:3001` (configurable via `FRONTEND_PORT` 
 
 ### Logging In
 
-1. Open the frontend URL (`http://localhost:5173` dev / `http://localhost:3001` production)
-2. You will see a login screen asking for an API key
-3. Paste the `Raw Key` from step 6 (the `sk_live_...` value)
-4. The dashboard loads showing stats, recent tickets, and recent runs
+The dashboard uses **email + password** (JWT). API keys do not work here.
 
-If you get "invalid key" or "unauthorized":
+1. Create an admin user (prints a random one-time password):
+
+   ```bash
+   uv run python src/main.py create-admin admin@example.com
+   ```
+
+   Alternatively, use the bootstrap admin credentials printed in the migration log on first `alembic upgrade head`.
+2. Open the frontend URL (`http://localhost:5173` dev / `http://localhost:3001` production)
+3. Log in with the email and one-time password
+4. You will be forced to change the password on first login
+5. The dashboard loads showing stats, recent tickets, and recent runs
+
+If you get "unauthorized" or the login fails:
 - Confirm the backend is running and healthy (`curl http://localhost:8000/health`)
-- Confirm you ran `alembic upgrade head` (the `api_keys` table must exist)
-- Confirm you created a key with `create-tenant-key` (step 6) -- `register-tenant` alone does **not** create API keys
+- Confirm you ran `alembic upgrade head` (the auth tables must exist)
+- Confirm the user exists (`create-admin` reports an existing email instead of overwriting it)
 
 ## 9. Submit Your First Ticket
 

@@ -70,7 +70,11 @@ class RoutingClient(httpx.AsyncClient):
         """Intercept the final request to apply dynamic device routing.
 
         Interception happens here (not in build_request) because FastMCP may
-        build requests through different paths.
+        build requests through different paths. The target is always resolved
+        against the live registry (header device, else current primary), so
+        admin-API hot reloads — including primary changes — take effect without
+        rebuilding the client; the constructor's base_url only remains as the
+        empty-registry fallback.
         """
         target_device_id = None
 
@@ -83,23 +87,29 @@ class RoutingClient(httpx.AsyncClient):
             target_device_id = request.headers["x-target-device"]
             del request.headers["x-target-device"]
 
+        device = None
         if target_device_id:
             device = self._device_registry.get(target_device_id)
-            if device:
-                conn = device.connection
-                host = conn.get("host")
+            if not device:
+                log.warning(
+                    "Routing: device '%s' not found in inventory. Using primary.", target_device_id
+                )
+        if device is None:
+            device = self._device_registry.primary
+
+        if device is not None:
+            conn = self._device_registry.resolve_connection(device)
+            host = conn.get("host")
+            if host:
                 port = int(conn.get("port", 443))
 
                 # httpx.URL is immutable; swap scheme/host/port via copy_with
-                request.url = request.url.copy_with(scheme="https", host=host, port=port)
+                request.url = request.url.copy_with(scheme="https", host=str(host), port=port)
 
                 for name, value in self._auth_strategy.headers(conn).items():
                     request.headers[name] = value
 
-                log.info("Routing: switched target to device '%s' (host: %s)", target_device_id, host)
-            else:
-                log.warning(
-                    "Routing: device '%s' not found in inventory. Using primary.", target_device_id
-                )
+                if target_device_id:
+                    log.info("Routing: switched target to device '%s' (host: %s)", device.id, host)
 
         return await super().send(request, *args, **kwargs)

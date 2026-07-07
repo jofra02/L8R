@@ -41,20 +41,25 @@ async def seed_tenant(file_path: str):
         tenant.status = data.get("status", "active")
         tenant.plan = data.get("plan", "standard")
         
-        # Update Scopes
-        # Simple Logic: Clear existing and re-add for now, or merge.
-        # MVP: just add a default scope if none
+        # Upsert the 'default' scope (uq_scope_per_tenant makes re-seeding
+        # fail otherwise)
         allowed = data.get("allowed_tools", [])
         if allowed:
-            # Check if scope exists
-            # We will just append a 'default' scope for now
-            # In real impl, handle existing scopes better
-            scope = CapabilityScope(
-                customer_id=customer_id,
-                scope_name="default",
-                allowed_tools=allowed
+            scope_res = await session.execute(
+                select(CapabilityScope).where(
+                    CapabilityScope.customer_id == customer_id,
+                    CapabilityScope.scope_name == "default",
+                )
             )
-            session.add(scope)
+            scope = scope_res.scalar_one_or_none()
+            if scope:
+                scope.allowed_tools = allowed
+            else:
+                session.add(CapabilityScope(
+                    customer_id=customer_id,
+                    scope_name="default",
+                    allowed_tools=allowed
+                ))
 
         await session.commit()
         print(f"Tenant {customer_id} registered/updated.")

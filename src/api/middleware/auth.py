@@ -34,6 +34,10 @@ async def get_auth_context(
 
     # Platform admin acting on behalf of a tenant
     if ctx.customer_id == PLATFORM_SENTINEL and customer_id_override:
+        from src.core.orm import PlatformTenant
+        tenant = await session.get(PlatformTenant, customer_id_override)
+        if tenant is None:
+            raise APIError(404, "unknown_tenant", f"Tenant '{customer_id_override}' does not exist")
         ctx = ctx.model_copy(update={"customer_id": customer_id_override})
 
     # Force password change enforcement (JWT only)

@@ -57,41 +57,47 @@ class DeviceRegistry:
         self.device_type = device_type
         self.devices: Dict[str, Device] = {}
         self.primary: Optional[Device] = None
+        self.reload()
 
+    def reload(self) -> None:
+        """(Re)load the registry from the inventory files.
+
+        Called at startup and by the admin API after a mutation, so device
+        adds/updates/removals take effect without a process restart.
+        """
         inventory = get_inventory()
         try:
-            device_list = inventory.get_devices(customer_id, device_type=device_type)
+            device_list = inventory.get_devices(self.customer_id, device_type=self.device_type)
         except Exception as e:
-            log.error(f"Failed to load inventory for customer '{customer_id}': {e}")
+            log.error(f"Failed to load inventory for customer '{self.customer_id}': {e}")
             raise
 
         if not device_list:
             log.warning(
-                f"No '{device_type}' devices found for customer '{customer_id}'. "
+                f"No '{self.device_type}' devices found for customer '{self.customer_id}'. "
                 "Tools will load but calls without routing will fail."
             )
+            self.devices = {}
+            self.primary = None
             return
 
         self.devices = {d.id: d for d in device_list}
         self.primary = next((d for d in device_list if d.primary), device_list[0])
         log.info(
-            f"Loaded {len(self.devices)} '{device_type}' devices for customer "
-            f"'{customer_id}' (primary: {self.primary.id})."
+            f"Loaded {len(self.devices)} '{self.device_type}' devices for customer "
+            f"'{self.customer_id}' (primary: {self.primary.id})."
         )
 
     def get(self, device_id: str) -> Optional[Device]:
         return self.devices.get(device_id)
 
-    def resolve_primary_connection(self) -> Dict[str, object]:
-        """Connection dict of the primary device with env-var indirection applied.
+    def resolve_connection(self, device: Device) -> Dict[str, object]:
+        """Connection dict of a device with env-var indirection applied.
 
         ``host_env_var`` / ``token_env_var`` let an inventory entry defer the
         actual value to the environment.
         """
-        if not self.primary:
-            return {}
-
-        conn = dict(self.primary.connection)
+        conn = dict(device.connection)
 
         if "host_env_var" in conn:
             conn["host"] = os.getenv(str(conn["host_env_var"]), conn.get("host", ""))
@@ -99,3 +105,9 @@ class DeviceRegistry:
             conn["token"] = os.getenv(str(conn["token_env_var"]), "")
 
         return conn
+
+    def resolve_primary_connection(self) -> Dict[str, object]:
+        """Connection dict of the primary device (env-var indirection applied)."""
+        if not self.primary:
+            return {}
+        return self.resolve_connection(self.primary)

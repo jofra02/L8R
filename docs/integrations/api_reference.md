@@ -792,6 +792,29 @@ Manages the tenant's logical inventory (the `ClientContext` the Engineer reads v
 | PATCH | `/inventory/changes/{index}` | `inventory:manage` | Update a known change |
 | DELETE | `/inventory/changes/{index}` | `inventory:manage` | Delete a known change |
 
+#### MCP managed devices (gateway sync)
+
+Component create/update accept an optional `mcp_connection` block that also registers the device in the MCP gateway inventory (see [MCP Gateway](../architecture/mcp_gateway.md), "Inventory admin API"):
+
+```json
+{
+  "id": "fw_branch_2",
+  "ref": "Branch 2 FortiGate",
+  "role": "firewall",
+  "mcp_connection": {
+    "vendor": "fortinet", "appliance": "fortigate", "device_type": "fortios",
+    "host": "10.0.2.1", "port": 443,
+    "token": "<plaintext — write-only, encrypted and stored by the gateway>",
+    "verify_ssl": false, "primary": false
+  }
+}
+```
+
+- `PATCH /inventory/components/{id}` with `"mcp_managed": false` detaches the device from the gateway (deletes its gateway entry).
+- The local save always succeeds; the gateway outcome is returned as `gateway_sync` (`status`: `synced` | `error` | `skipped`) and persisted in `metadata.mcp.sync`. The token is never stored or returned by this API.
+- Deleting a managed component also deletes it from the gateway inventory.
+- Requires `MCP_GATEWAY_ADMIN_URL` + `MCP_GATEWAY_ADMIN_TOKEN` on the app (otherwise `gateway_sync.status = "skipped"`).
+
 ## See Also
 
 - [Quickstart](../setup/quickstart.md) — Running the API server

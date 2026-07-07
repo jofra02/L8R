@@ -4,6 +4,8 @@
 
 Device API tokens are stored as `ENC(<fernet>)` in the gateway's inventory YAML and decrypted in memory with `INVENTORY_MASTER_KEY`. Live inventory files and `.env` are **gitignored**.
 
+Tokens submitted through the inventory admin API (frontend "MCP managed device" flow) are encrypted **server-side by the gateway** before hitting disk (`devices/managed.yaml`); the app forwards them write-only and never stores them — Postgres holds no appliance credentials. If `INVENTORY_MASTER_KEY` is unset, admin writes carrying a token fail with 503.
+
 ## Risk assessment (context for rotation)
 
 The master key was **never committed to git** (verified across the full history of both repos) and both repos are private. What *does* exist in the archived `fortinet_ai_suite` history are the **encrypted** `ENC(...)` token ciphertexts plus identifiable customer data. Without the key the ciphertexts are unusable. Therefore: **rotation is recommended hygiene, not urgent incident response.** Regenerating the FortiGate API tokens themselves is the stronger, optional follow-up.

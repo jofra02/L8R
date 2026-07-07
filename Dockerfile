@@ -28,6 +28,9 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app /app
 
+# Strip CR so a CRLF checkout (Windows) never breaks the entrypoint
+RUN sed -i 's/\r$//' scripts/entrypoint.sh
+
 # Ensure venv binaries are on PATH
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1

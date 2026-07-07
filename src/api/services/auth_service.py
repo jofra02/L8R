@@ -13,8 +13,9 @@ from src.api.schemas.auth import AuthContext
 
 ROLE_HIERARCHY = ["viewer", "operator", "tenant_admin", "platform_admin"]
 
-# Hardcoded permissions for API keys (ticket ingestion only)
-_API_KEY_PERMISSIONS = {"tickets:write"}
+# Hardcoded permissions for API keys: programmatic clients submit tickets and
+# poll their outcome (runs + reports live under tickets:read/runs:read)
+_API_KEY_PERMISSIONS = {"tickets:write", "tickets:read", "runs:read"}
 
 
 def _generate_raw_key() -> str:

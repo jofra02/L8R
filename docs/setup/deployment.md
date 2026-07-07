@@ -2,6 +2,8 @@
 
 > Docker Compose deployment, service configuration, and production hardening.
 
+This guide covers the **first installation**. To update an already-running deployment (new code, config changes, rollback), use the [Production Redeploy](../operations/production_redeploy.md) runbook and its scripts instead.
+
 ## Architecture
 
 The full stack consists of five services:
@@ -283,6 +285,8 @@ docker compose exec app python src/main.py register-tenant --file data/tenants/<
 docker compose exec app python src/main.py seed-context --file data/tenants/<tenant>/context.yaml
 ```
 
+> `data/tenants/` is excluded from the image by `.dockerignore`; the compose file mounts `./data/tenants` read-only into the `app` container so these commands find the YAML files. Alternatively, run the same commands from the host (`uv run python src/main.py ...`) against the published ports.
+
 ### Knowledge Base Seeding
 
 Populate KB collections via the API or CLI tooling as documented in the tenant setup.
@@ -295,7 +299,7 @@ All services define Docker health checks:
 |---|---|---|
 | `postgres` | `pg_isready` | 5s |
 | `qdrant` | `GET /readyz` | 5s |
-| `app` | `GET /health` | 10s (30s start period) |
+| `app` | `GET /health` | 10s (120s start period, covers Alembic migrations) |
 | `frontend` | `curl -sf http://localhost:80/` | 10s |
 
 The `app` service uses `depends_on` with `condition: service_healthy` for `postgres` and `qdrant`, ensuring migrations only run after dependencies are ready.
@@ -396,4 +400,5 @@ See [Configuration Reference](configuration.md) for the full environment variabl
 
 - [Quickstart](quickstart.md) - Local development setup
 - [Configuration Reference](configuration.md) - All env vars
+- [Production Redeploy](../operations/production_redeploy.md) - Upgrading an existing deployment
 - [Observability](../architecture/observability.md) - Langfuse integration details

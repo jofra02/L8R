@@ -25,3 +25,16 @@ dependencies = [
     "uvicorn>=0.40.0",
     "gunicorn>=23.0.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+# Only self-contained tests; the other src/testing/*.py are integration
+# scripts that need live Qdrant/LLM services (run them as python -m modules).
+testpaths = ["src/testing/test_inventory_gateway_sync.py"]

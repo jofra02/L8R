@@ -2,6 +2,14 @@ import asyncio
 import logging
 import uuid
 import sys
+
+# Allow running as a script (`python src/main.py ...`, the documented form):
+# sys.path[0] is src/, so `src.*` imports need the project root added.
+# `python -m src.main` works either way.
+if __package__ in (None, ""):
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from src.config import settings
 from src.utils.logger import setup_logging
 from src.core.registry import CapabilityRegistry
@@ -16,18 +24,18 @@ logger = logging.getLogger(__name__)
 async def main():
     """Main entry point."""
     logger.info(f"Starting {settings.APP_NAME} in {settings.APP_ENV} mode.")
-    
-    # 1. Load Capabilities
-    CapabilityRegistry.load_builtin_packs()
-    await CapabilityRegistry.load_external_tools()
-    logger.info(f"Loaded {len(CapabilityRegistry.list_tools())} tools.")
-    
+
     # Check CLI args for simple run
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
-        
+
         # --- Testing ---
         if cmd == "test":
+            # Only the graph run needs the MCP tool registry; ops commands
+            # (register-tenant, seed-*, create-*) skip the gateway connection.
+            CapabilityRegistry.load_builtin_packs()
+            await CapabilityRegistry.load_external_tools()
+            logger.info(f"Loaded {len(CapabilityRegistry.list_tools())} tools.")
             await run_test_ticket()
             
         # --- Ops ---

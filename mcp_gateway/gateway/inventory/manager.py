@@ -6,6 +6,7 @@ list of devices per file). ``ENC(...)`` values are decrypted on load.
 """
 
 import logging
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, List, Optional
@@ -17,13 +18,19 @@ from .secrets import SecretManager
 
 log = logging.getLogger("gateway.inventory")
 
-# Default location: mcp_gateway/inventory
+# Default location: mcp_gateway/inventory (override with INVENTORY_ROOT)
 INVENTORY_ROOT = Path(__file__).resolve().parents[2] / "inventory"
 
 
+def resolve_inventory_root() -> Path:
+    """Inventory root from ``INVENTORY_ROOT`` env, falling back to the default."""
+    env_root = os.getenv("INVENTORY_ROOT")
+    return Path(env_root) if env_root else INVENTORY_ROOT
+
+
 class InventoryManager:
-    def __init__(self, root_dir: Path = INVENTORY_ROOT):
-        self.root_dir = root_dir
+    def __init__(self, root_dir: Optional[Path] = None):
+        self.root_dir = Path(root_dir) if root_dir else resolve_inventory_root()
         self.tenants_dir = self.root_dir / "tenants"
         self.secrets = SecretManager()  # Key comes from INVENTORY_MASTER_KEY
 

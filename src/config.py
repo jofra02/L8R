@@ -126,6 +126,11 @@ class Settings(BaseSettings):
     # MCP — loaded from data/mcp/servers.yaml (env var override still works)
     MCP_SERVER_TIMEOUT: int = 30
     MCP_SERVERS: Dict[str, Dict[str, Any]] = _mcp_servers
+
+    # MCP Gateway admin API — inventory sync (disabled unless URL + token set)
+    MCP_GATEWAY_ADMIN_URL: Optional[str] = "http://localhost:8001"
+    MCP_GATEWAY_ADMIN_TOKEN: Optional[str] = None
+    MCP_GATEWAY_ADMIN_TIMEOUT: float = 10.0
     
     # --- LLM Profiles (Governance) ---
     

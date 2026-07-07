@@ -72,6 +72,7 @@ Completed:
 - submit_findings tool (structured output within reasoning chain, no post-hoc extraction)
 - **MCP Gateway merge**: former `fortinet_ai_suite` repo absorbed as `mcp_gateway/` — generic OpenAPI→MCP gateway, appliance packs at `vendors/<vendor>/<appliance>/` (first: fortinet/fortigate, 62 FortiOS specs). Gateway exposes 2546 tools; the registry safety-filters to 2182 indexed in Qdrant `tool_catalog`. Tool names are frozen (fastmcp pinned + `baseline_tools.txt` + name-freeze test)
 - Documentation overhaul (ops runbooks in `docs/operations/`, components guide, legacy docs archived)
+- **Inventory sync app↔gateway**: gateway admin REST API (`/admin/*`, `X-Admin-Token`/`GATEWAY_ADMIN_TOKEN`, writes `devices/managed.yaml`, hot reload via `DeviceRegistry.reload()`); `InventoryService` propagates Component CRUD with `mcp_connection` via `gateway_admin_client.py` (token write-only, never persisted app-side; sync status in `Component.metadata["mcp"]`); frontend "MCP managed device" toggle in `ComponentModal`
 
 ## Design Principles
 
@@ -113,4 +114,5 @@ Completed:
 | `mcp_gateway/gateway/spec_pipeline.py` | OpenAPI→MCP build pipeline (tool-name freeze contract) |
 | `mcp_gateway/vendors/fortinet/fortigate/manifest.yaml` | FortiGate appliance pack definition |
 | `docs/architecture/mcp_gateway.md` | MCP Gateway architecture + vendor pack contract |
+| `scripts/deploy/redeploy.sh` | Production redeploy (backup → build → name-freeze gate → deploy → rollback); runbook in `docs/operations/production_redeploy.md` |
 | `docs/README.md` | Master documentation index |

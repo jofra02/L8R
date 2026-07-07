@@ -21,15 +21,16 @@ mcp_gateway/
 ├── baseline_tools.txt      # Frozen tool-name set (2546 names) — test fixture
 ├── gateway/                # Vendor-agnostic engine
 │   ├── app.py              # build_gateway(): discovers packs, mounts, exposes /sse/
+│   ├── admin_api.py        # Inventory admin REST API (/admin/*, X-Admin-Token)
 │   ├── vendor_pack.py      # manifest.yaml loading + hooks.py discovery
 │   ├── spec_pipeline.py    # OpenAPI → FastMCP build pipeline (order is frozen)
 │   ├── schema_fixes.py     # Generic spec fixes + operationId sanitizer
 │   ├── routing_client.py   # Multi-device httpx client ('device' header routing)
 │   ├── auth.py             # AuthStrategy registry (bearer_header today)
-│   ├── config.py           # ACTIVE_CUSTOMER_ID, DeviceRegistry (primary flag)
+│   ├── config.py           # ACTIVE_CUSTOMER_ID, DeviceRegistry (reload(), primary flag)
 │   ├── middleware.py       # Tracing + optional Prometheus histogram
-│   ├── inventory/          # Tenant/device YAML registry + Fernet secrets
-│   └── tests/test_name_freeze.py
+│   ├── inventory/          # Tenant/device YAML registry + Fernet secrets + managed.yaml store
+│   └── tests/              # test_name_freeze.py, test_admin_api.py, test_routing_reload.py
 ├── vendors/                # vendors/<vendor>/<appliance>/ — one pack per product
 │   └── fortinet/           # Vendor (manufacturer)
 │       └── fortigate/      # Appliance pack (fortianalyzer, fortimanager... go next to it)
@@ -87,8 +88,33 @@ Guard: `gateway/tests/test_name_freeze.py` builds the gateway offline and assert
 ## Tenants, inventory and multi-device routing
 
 - The gateway serves **one tenant per process**: `ACTIVE_CUSTOMER_ID` (default `fake_client`). Tenant ids match the `customer_id` used across support_ai_agent — the device ids in `mcp_gateway/inventory/tenants/fake_client/devices/` are the same ones `query_client_db` returns from `data/tenants/fake_client/context.yaml`.
-- Every generated tool has an optional `device` header parameter. `RoutingClient.send()` looks the id up in the `DeviceRegistry`, rewrites the URL host/port and swaps the auth headers per the pack's `AuthStrategy`. Without the header, the **primary** device is used (`primary: true` in YAML, else the first device loaded).
+- Every generated tool has an optional `device` header parameter. `RoutingClient.send()` resolves the target against the **live** `DeviceRegistry` on every request (header id, else the current **primary**: `primary: true` in YAML, else the first device loaded), rewrites the URL host/port and swaps the auth headers per the pack's `AuthStrategy`. Because resolution is per-request, admin-API hot reloads — including a primary change — take effect without a restart; the constructor's base_url only remains as the empty-registry fallback.
 - `fgt_get_inventory_tree` lists valid device ids for the agent.
+- The inventory root defaults to `mcp_gateway/inventory` and can be overridden with `INVENTORY_ROOT` (compose sets `/app/inventory`; the volume is mounted read-write so the admin API can persist).
+
+## Inventory admin API
+
+`gateway/admin_api.py` mounts REST routes on the same server (via `FastMCP.custom_route` — **no MCP tools are added**, so the name-freeze is unaffected). The support_ai_agent platform calls it when a user manages devices from the frontend inventory UI; tokens are encrypted (Fernet) and persisted by the gateway, so **appliance credentials never leave this process**.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /admin/health` | Liveness + `admin_enabled` flag (no auth) |
+| `GET /admin/packs` | Discovered packs: vendor/appliance/device_type/prefix |
+| `GET /admin/tenants/{cid}/devices` | All devices (managed + hand-maintained), tokens redacted |
+| `POST /admin/tenants/{cid}/devices` | Create a managed device (plaintext token in body → stored as `ENC(...)`) |
+| `PATCH /admin/tenants/{cid}/devices/{id}` | Partial update; token omitted ⇒ existing ciphertext kept byte-identical |
+| `DELETE /admin/tenants/{cid}/devices/{id}` | Remove a managed device |
+| `POST /admin/reload` | Force re-read of the inventory into all registries |
+
+Rules:
+
+- **Auth**: `X-Admin-Token` header must equal the `GATEWAY_ADMIN_TOKEN` env var. Unset var ⇒ every admin endpoint answers 503 (opt-in API).
+- **managed.yaml**: the API only ever writes `devices/managed.yaml` (atomic write via temp file + rename, header comment marks it machine-owned). Hand-maintained files are readable but immutable through the API (409) — their comments/formatting are never touched.
+- **Single primary**: marking a managed device `primary: true` clears the flag on other managed devices of the same type. If a hand-maintained device of that type is also primary it **wins** (file order) and the response carries a warning.
+- **Hot reload**: after a successful mutation for the active tenant, all `DeviceRegistry` instances `reload()` — new/changed/removed devices are routable immediately (`"reloaded": true` in the response). Mutations for other tenants only write files (`"reloaded": false`).
+- **Validation**: `type` must match a discovered pack's `device_type`; duplicate ids conflict (409). Device creation requires the tenant's `inventory/tenants/<cid>/` directory to already exist — an unknown `cid` answers 404 `unknown_tenant` instead of silently minting a new tenant directory.
+
+App-side flow: `InventoryService` (platform API) calls the admin API through `src/api/services/gateway_admin_client.py` when a Component carries an `mcp_connection` block. The component is persisted locally **first** (sync status `pending`), then synced to the gateway, and the outcome is recorded in `Component.metadata["mcp"]["sync"]` and returned as `gateway_sync` (the token is write-only and never persisted app-side) — the gateway never holds a device the app has no record of.
 
 ## Secrets
 
