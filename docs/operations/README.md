@@ -15,6 +15,7 @@
 
 | Runbook | When you need it |
 |---|---|
+| [Production Redeploy](production_redeploy.md) | Ship a new version safely: backup, build, gate, deploy, rollback |
 | [Tool Catalog](tool_catalog.md) | Understand indexing; force a re-index (costs LLM calls) |
 | [Database Migrations](database_migrations.md) | Run/inspect Alembic migrations |
 | [Docker Compose](docker_compose.md) | Stack operations, observability profile, scaling, ports |

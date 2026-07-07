@@ -50,6 +50,7 @@ graph TD
 | [Gateway Secrets](operations/gateway_secrets.md) | Token encryption, master key rotation |
 | [Gateway Upgrades](operations/gateway_upgrades.md) | Add appliance pack, upgrade fastmcp |
 | [Backup & Restore](operations/backup_restore.md) | PG + Qdrant + evidence DR |
+| [Production Redeploy](operations/production_redeploy.md) | Safe upgrade of a running deployment, rollback |
 
 ### Architecture
 | Doc | Description |

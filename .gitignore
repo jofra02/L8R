@@ -55,6 +55,9 @@ qdrant_storage/
 # Evidence blobs (raw tool outputs — potentially sensitive infra data)
 data/evidence/
 
+# Pre-deploy backups (pg dumps, Qdrant snapshots, secrets tars — never commit)
+backups/
+
 # Rollback notes (internal development artifacts)
 data/rollback_*.md
 

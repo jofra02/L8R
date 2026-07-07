@@ -13,6 +13,8 @@
 
 ## Backup procedure
 
+Scripted variant: `bash scripts/deploy/backup.sh` automates everything below (dump + downloaded Qdrant snapshots + secrets tar + evidence) into `backups/<stamp>_<sha>/` with a manifest and retention pruning. The redeploy script runs it automatically before every deploy ([Production Redeploy](production_redeploy.md)). The manual commands remain the reference:
+
 Quiesce first if possible (stop ingesting: pause whatever posts tickets; in-flight runs finish in-process).
 
 ```bash
