@@ -138,6 +138,15 @@ services:
     networks:
       - support-ai
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    <<: *restart
+    profiles: [tunnel]
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks:
+      - support-ai
+
 volumes:
   pgdata:
   qdrant_data:
