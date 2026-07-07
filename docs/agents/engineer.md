@@ -16,7 +16,7 @@ Activated when `PIPELINE_MODE=engineer` (the default).
 |---|---|---|
 | 1 | `query_client_db` | Load tenant context: devices, topology, baselines, recent changes |
 | 2 | `load_domain_skill` | Load domain-specific investigation methodology |
-| 3 | `search_tool_catalog` | Semantic search over 2000+ indexed tools in Qdrant |
+| 3 | `search_tool_catalog` | Semantic search over the Qdrant tool catalog (2182 safety-filtered tools of the 2546 the gateway exposes) |
 | 4 | `search_knowledge_base` | Search vendor docs, runbooks, known issues |
 | 5 | `execute_tool` | Execute MCP tools against live devices (read-only) |
 | 6 | `submit_findings` | Submit structured output: summary, hypotheses, facts, plan, case_status |
@@ -50,15 +50,13 @@ Domain-specific skills are loaded on-demand via `load_domain_skill`. Each skill 
 Available domain skill files:
 
 - `networking.md` -- networking, routing, switching, interfaces, protocols
-- `firewall_security.md` -- firewall, security, NAT, ACLs, IDS/IPS
-- `vpn_ipsec.md` -- VPN, IPSec, tunnels, SSL VPN, IKE
-- `virtualization.md` -- hypervisors, ESXi, vCenter, VMs, HA clusters
-- `storage.md` -- SAN, NAS, vSAN, LUNs, backup
 - `tool_catalog.md` -- advanced tool catalog search techniques
+
+New domains are added by dropping a `.md` file in `src/agents/skills/` and mapping its trigger keywords in `DOMAIN_SKILL_MAP` (`src/agents/engineer_tools.py`). Candidates like firewall/VPN/virtualization/storage skills are not yet written.
 
 ### DOMAIN_SKILL_MAP
 
-The `DOMAIN_SKILL_MAP` dictionary maps 42 keywords to their corresponding skill files. This allows the agent to call `load_domain_skill("bgp")` and receive the networking skill, or `load_domain_skill("ipsec")` and receive the VPN/IPSec skill.
+The `DOMAIN_SKILL_MAP` dictionary maps 18 keywords to their corresponding skill files. This allows the agent to call `load_domain_skill("bgp")` and receive the networking skill.
 
 If no mapping is found, the agent falls back to the base investigation methodology already in its system prompt. The tool returns the list of available domain skills so the agent can retry with a valid keyword.
 
@@ -66,13 +64,13 @@ If no mapping is found, the agent falls back to the base investigation methodolo
 
 | Variable | Default | Description |
 |---|---|---|
-| `PIPELINE_MODE` | `engineer` | `"engineer"` (single-agent) or `"pipeline"` (legacy multi-agent) |
+| `PIPELINE_MODE` | `engineer` | `"engineer"` (current); `"pipeline"` is a deprecated legacy toggle. Note: `main.py test` and `run_mock.py` run the legacy graph unconditionally — only the API path exercises the Engineer |
 | `LLM_MODEL_ENGINEER` | `gpt-5.4` | LLM model for the Engineer ReAct agent |
 | `ENGINEER_MAX_TOOL_CALLS` | `30` | Maximum tool executions per investigation run |
 | `ENGINEER_MAX_ITERATIONS` | `50` | Maximum ReAct loop iterations (LangGraph recursion limit) |
 | `ENGINEER_TIMEOUT_SECONDS` | `600` | Total timeout for the investigation in seconds |
 
-All variables are defined in `src/config.py` (lines 15-21) and loaded via Pydantic Settings from the `.env` file.
+All variables are defined in `src/config.py` and loaded via Pydantic Settings from the `.env` file.
 
 ## Output
 
@@ -119,4 +117,4 @@ This provides full observability into the agent's reasoning chain, tool selectio
 | `src/agents/engineer_tools.py` | Meta-tool factory (`create_engineer_tools`) and `EngineerToolState` |
 | `src/agents/engineer_prompts.py` | System prompt composition (base prompt + base investigation skill) |
 | `src/agents/skills/` | Skill markdown files (base + domain-specific) |
-| `src/config.py` | Configuration variables (lines 15-21) |
+| `src/config.py` | Configuration variables |

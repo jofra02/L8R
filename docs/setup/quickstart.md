@@ -99,12 +99,14 @@ API keys are required for both the Platform API and the frontend dashboard. Each
 Creates a key scoped to a specific tenant. Use this for the frontend dashboard and API integration.
 
 ```bash
-# Default: creates a tenant_admin key named "default"
+# Creates a key named "default"
 uv run python src/main.py create-tenant-key fake_client
 
-# With explicit role and name
-uv run python src/main.py create-tenant-key fake_client operator "CI Pipeline"
+# With an explicit name
+uv run python src/main.py create-tenant-key fake_client "CI Pipeline"
 ```
+
+> API keys always carry role `operator` with `tickets:write` permission — there is no role argument. The role hierarchy above applies to JWT **users** (see the [API Keys & Users runbook](../operations/api_keys_and_users.md)).
 
 Output:
 
@@ -115,7 +117,6 @@ Tenant API Key Created
   Tenant:   fake_client
   Key ID:   550e8400-e29b-41d4-a716-446655440000
   Name:     default
-  Role:     tenant_admin
   Raw Key:  sk_live_a1b2c3d4e5f6...
 ============================================================
 SAVE THIS KEY — it will not be shown again.
@@ -158,6 +159,8 @@ uv run python run_mock.py --file ticket_prueba.txt --fast
 ```
 
 The `--fast` flag enables `TEST_MODE_FAST` (reduced iterations, fewer retries).
+
+> **Warning:** `run_mock.py` (and `src/main.py test`) run the **legacy 13-agent graph**, not the current Engineer agent. To exercise the Engineer, submit tickets through the API (Option A).
 
 ## 8. Frontend Dashboard
 
@@ -255,4 +258,6 @@ curl -X POST http://localhost:8000/api/v1/webhook/servicenow \
 
 - [Configuration Reference](configuration.md) - Full env var table
 - [Deployment Guide](deployment.md) - Docker, production, scaling
-- [API Reference](../integrations/api_reference.md) - All 22 Platform API endpoints
+- [API Reference](../integrations/api_reference.md) - Platform API endpoints
+- [Operations Manual](../operations/README.md) - Runbooks for recurring procedures
+- [Components Guide](../architecture/components.md) - How each component works

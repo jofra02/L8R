@@ -21,7 +21,7 @@ All configuration is managed through environment variables, loaded via Pydantic 
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| `PIPELINE_MODE` | `str` | `engineer` | Pipeline mode: `engineer` (single-agent) or `pipeline` (legacy multi-agent) |
+| `PIPELINE_MODE` | `str` | `engineer` | `engineer` (current single-agent); `pipeline` is a **deprecated** legacy toggle |
 | `LLM_MODEL_ENGINEER` | `str` | `gpt-5.4` | LLM model for the Engineer ReAct agent |
 | `ENGINEER_MAX_TOOL_CALLS` | `int` | `30` | Maximum tool executions per investigation |
 | `ENGINEER_MAX_ITERATIONS` | `int` | `50` | Maximum ReAct loop iterations (LangGraph recursion limit) |

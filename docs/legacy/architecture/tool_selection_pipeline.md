@@ -1,6 +1,11 @@
+> **LEGACY DOCUMENT.** Describes the retired 13-agent pipeline (gated behind
+> `PIPELINE_MODE=pipeline`; also run unconditionally by `main.py test` and
+> `run_mock.py`). The current architecture is documented in
+> [overview](../../architecture/overview.md) and [components](../../architecture/components.md).
+
 # Tool Selection Pipeline — Full Technical Reference
 
-> **Purpose**: This document describes the complete tool selection procedure as currently implemented.
+> **Purpose**: This document describes the complete tool selection procedure as implemented in the legacy pipeline.
 > Every step from agent invocation through tool execution is traced with file paths, line numbers,
 > data models, and a worked example.
 

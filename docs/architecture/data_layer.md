@@ -145,7 +145,7 @@ Granular LangGraph node executions within a run.
 | `id` | BigInteger (PK) | Auto-increment |
 | `run_id` | FK → `agent_runs` | |
 | `seq` | Integer | Execution order |
-| `node` | String | `supervisor`, `evidence_collector`, etc. |
+| `node` | String | `engineer` (legacy pipeline used per-agent node names) |
 | `input_json` / `output_json` | JSON | Node I/O |
 
 #### `tool_calls_audit`
@@ -212,8 +212,9 @@ All collections enforce tenant isolation via `customer_id` payload filter.
 | `knowledge_base` | RAG knowledge articles | `customer_id`, `source`, `source_type`, `vendor`, `component_role` |
 | `evidence` | Collected evidence snapshots | `customer_id`, `ticket_id`, `tool_name`, `content_hash` |
 | `resolved_tickets` | Past resolved cases for CBR | `customer_id`, `vendor`, `component_role`, `resolution_status` |
-| `adaptive_fixes` | Self-healing tool error → fix pairs | `customer_id`, `tool_name` |
-| `tool_catalog` | Semantic tool search by intent | `customer_id`, `tool_name`, `server_name` |
+| `adaptive_fixes` | Self-healing tool error → fix pairs (legacy pipeline) | `customer_id`, `tool_name` |
+| `tool_knowledge` | Per-tool usage knowledge (legacy pipeline) | `customer_id`, `tool_name` |
+| `tool_catalog` | Semantic tool search by intent (global: `customer_id="__global__"`) | `customer_id`, `tool_name`, `server_name` |
 
 ---
 
@@ -267,49 +268,32 @@ GlobalState (TypedDict)
 ### Tenant Onboarding
 
 ```
-1. Create tenant.yaml → CLI: seed-tenant
+1. Create tenant.yaml → CLI: register-tenant
    → PlatformTenant + CapabilityScope in PostgreSQL
 
 2. Create context.yaml → CLI: seed-context  
    → ClientContextORM (JSON blob) in PostgreSQL
 ```
 
-### Ticket Execution Flow
+Full procedure: [Tenant Onboarding runbook](../operations/tenant_onboarding.md).
+
+### Ticket Execution Flow (Engineer mode)
 
 ```
-Ticket Ingested (API/CLI)
+Ticket Ingested (POST /api/v1/tickets or webhook)
     ↓
-context_agent → Fetches ClientContext from DB
-              → Seeds topology_nodes (from inventory)
-              → Seeds topology_edges (from dependencies)
+IngestionService → GenericNormalizer (mode/severity detection)
+                 → TicketORM persisted, AgentRun created
+                 → fire-and-forget asyncio background task
     ↓
-mapper → Uses inventory to match ticket components
+Engineer ReAct agent (single LangGraph node, src/agent_graph_v2.py)
+    ├── query_client_db      → ClientContext + topology seed
+    ├── load_domain_skill    → on-demand methodology
+    ├── search_tool_catalog  → Qdrant semantic tool search
+    ├── execute_tool         → MCP call + evidence stored (filesystem + Qdrant)
+    └── submit_findings      → summary, hypotheses, facts, plan, case_status
     ↓
-evidence_collector → Selects tools (Qdrant semantic search)
-                   → Executes tools (MCP servers)
-                   → Stores evidence (filesystem + Qdrant)
-    ↓
-enricher → Extracts facts from evidence
-         → Extracts topology nodes + edges from evidence
-    ↓
-hypothesis → Uses topology + baselines + known_changes
-           → Generates hypotheses + path analysis
-    ↓
-scoring → Evaluates confidence, decides next step
-    ↓
-supervisor → Routes: more evidence? plan? escalate?
-    ↓
-response → Generates final engineering report
-```
-
-### Resume Flow
-
-```
-Agent pauses → writes needs.json (pending_requirements)
-User provides data → CLI: resume
-main.py → Loads state, injects user facts
-        → Resets: scoring=None, plan=None, path_analysis=None, iterations=0
-        → Re-enters graph at supervisor
+Findings converted to GlobalState models → report persisted on the run row
 ```
 
 ---
@@ -318,12 +302,13 @@ main.py → Loads state, injects user facts
 
 | Command | Description |
 |---|---|
-| `uv run python -m src.main test` | Run test ticket |
-| `uv run python -m src.main register-tenant --file <yaml>` | Register tenant |
-| `uv run python -m src.main seed-context --file <yaml>` | Seed client context |
-| `uv run python -m src.main resume` | Resume paused execution |
-| `uv run python -m src.main init-db` | Initialize DB tables |
-| `uv run python run_mock.py --file <ticket.txt>` | Run mock ticket from file |
+| `uv run python src/main.py test` | Run test ticket (**legacy 13-agent graph**, not the Engineer) |
+| `uv run python src/main.py register-tenant --file <yaml>` | Register tenant |
+| `uv run python src/main.py seed-context --file <yaml>` | Seed client context |
+| `uv run python src/main.py init-db` | Ensure Qdrant collections/indexes |
+| `uv run python run_mock.py --file <ticket.txt>` | Run mock ticket from file (**legacy graph**) |
+
+Full command reference: [CLI Reference runbook](../operations/cli_reference.md).
 
 ---
 
@@ -339,13 +324,14 @@ main.py → Loads state, injects user facts
 | `src/core/evidence_store.py` | Evidence blob storage (filesystem) |
 | `src/core/registry.py` | Tool registry + Qdrant indexing |
 | `src/utils/seed_context.py` | CLI seeders for tenant + context |
-| `src/agent_graph.py` | LangGraph workflow definition |
+| `src/agent_graph_v2.py` | LangGraph workflow definition (Engineer → END) |
 | `data/tenants/<id>/tenant.yaml` | Tenant definition |
 | `data/tenants/<id>/context.yaml` | Client context (inventory, deps, baselines) |
 
 ## See Also
 
 - [Architecture Overview](overview.md) - System-level design
+- [Components Guide](components.md) - How each component works
 - [Configuration Reference](../setup/configuration.md) - Database env vars
 - [Quickstart](../setup/quickstart.md) - Database initialization steps
-- [Adaptive Execution](adaptive_execution.md) - Qdrant collections for self-healing
+- [Backup & Restore runbook](../operations/backup_restore.md)

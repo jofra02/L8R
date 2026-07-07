@@ -4,7 +4,9 @@
 
 ## Overview
 
-The Platform API (`src/api/app.py`) provides 22 authenticated endpoints across four routers plus a public health check and two legacy endpoints. All endpoints return JSON.
+The Platform API (`src/api/app.py`) provides ~77 authenticated endpoints across nine routers (`auth`, `tickets`, `runs`, `audit`, `users`, `profiles`, `tenants`, `assignments`, `inventory`) plus a public health check and legacy webhook endpoints. All endpoints return JSON.
+
+The four core routers (auth, tickets, runs, audit) are documented in full below; the remaining five have per-endpoint summary tables in [Router Summaries](#router-summaries).
 
 **Base URL**: `http://localhost:8000`
 
@@ -18,12 +20,12 @@ Authorization: Bearer sk_live_...
 {"error": "error_code", "detail": "Human-readable message"}
 ```
 
-**Role hierarchy** (ascending privilege):
+**Role hierarchy** (ascending privilege, applies to **JWT users**):
 ```
 viewer < operator < tenant_admin < platform_admin
 ```
 
-Each endpoint enforces a minimum role. Keys cannot create other keys with a higher role than their own.
+Each endpoint enforces a minimum role for JWT users. **API keys always resolve to role `operator`** with `tickets:write` permission — they authenticate ticket ingestion only; administrative endpoints require a JWT user session.
 
 **Pagination**: Paginated endpoints accept `page` (default 1) and `page_size` (default 25, max 100) query params and return:
 ```json
@@ -103,8 +105,7 @@ Most list endpoints accept optional date range filters:
 |---|---|---|
 | `401` | `invalid_auth` | Missing or malformed `Authorization` header |
 | `401` | `invalid_key` | API key is invalid, expired, or revoked |
-| `403` | `insufficient_role` | Key role below endpoint minimum |
-| `403` | `role_escalation` | Attempt to create key with higher role |
+| `403` | `insufficient_role` | Caller role below endpoint minimum |
 | `404` | `not_found` | Resource does not exist or not owned by tenant |
 | `422` | `validation_error` | Request body fails Pydantic validation |
 | `500` | `internal_error` | Unhandled server exception |
@@ -132,14 +133,14 @@ Return the authenticated caller's context. Min role: **viewer**.
 
 ### `POST /api/v1/auth/keys`
 
-Issue a new API key. The raw key is returned **only once**. Min role: **tenant_admin**.
+Issue a new API key. The raw key is returned **only once**. Requires a **JWT user session** (not an API key).
 
 **Body** (`ApiKeyCreate`):
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `name` | `str` | yes | — | Key name (1-128 chars) |
-| `role` | `str` | no | `operator` | One of: `platform_admin`, `tenant_admin`, `operator`, `viewer` |
+| `role` | `str` | no | `operator` | **Ignored by the handler** — created keys always carry role `operator` with `tickets:write` permission |
 | `expires_at` | `datetime` | no | `null` | Expiration (ISO 8601). Null = never expires |
 
 **Response** `201` (`ApiKeyCreatedResponse`):
@@ -157,7 +158,9 @@ Issue a new API key. The raw key is returned **only once**. Min role: **tenant_a
 }
 ```
 
-**Errors**: `403` if `body.role` outranks the caller's role.
+**Errors**: `401` if the caller is not an authenticated JWT user.
+
+> **Role model note:** the `viewer`/`operator`/`tenant_admin`/`platform_admin` hierarchy applies to **JWT users**. API keys always resolve to role `operator` and can only ingest tickets — they cannot manage keys, users, or tenants. See the [API Keys & Users runbook](../operations/api_keys_and_users.md).
 
 ---
 
@@ -323,10 +326,10 @@ Agent events for all runs of this ticket, ordered by timestamp and sequence. Min
     "id": 1,
     "run_id": "550e8400-...",
     "seq": 0,
-    "node": "context_agent",
+    "node": "engineer",
     "created_at": "2026-03-20T10:00:01Z",
     "input_summary": {},
-    "output_summary": {"client_context": "..."}
+    "output_summary": {"summary": "..."}
   }
 ]
 ```
@@ -543,10 +546,10 @@ Agent events for a specific run, ordered by sequence. Min role: **operator**.
   {
     "id": 1,
     "seq": 0,
-    "node": "context_agent",
+    "node": "engineer",
     "created_at": "2026-03-20T10:00:01Z",
     "input_json": {},
-    "output_json": {"client_context": "..."}
+    "output_json": {"summary": "..."}
   }
 ]
 ```
@@ -703,15 +706,96 @@ Legacy job status polling. Optional `X-Customer-ID` header.
 {
   "job_id": "550e8400-...",
   "status": "running",
-  "current_agent": "evidence_collector",
+  "current_agent": "engineer",
   "iteration": 4
 }
 ```
 
 ---
 
+## Router Summaries
+
+The five routers below are summarized per endpoint (all mounted under `/api/v1`, JWT user auth with the listed permission). Request/response schemas live in `src/api/schemas/`.
+
+### Users — `src/api/routers/users.py` (prefix `/users`)
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/users` | `users:read` | List users |
+| POST | `/users` | `users:manage` | Create a user |
+| GET | `/users/{user_id}` | `users:read` | User detail |
+| PATCH | `/users/{user_id}` | `users:manage` | Update a user |
+| POST | `/users/{user_id}/reset-password` | `users:manage` | Reset a user's password |
+
+### Profiles — `src/api/routers/profiles.py` (prefix `/profiles`)
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/profiles` | `profiles:read` | List permission profiles |
+| POST | `/profiles` | `profiles:manage` | Create a profile |
+| GET | `/profiles/permissions` | `profiles:read` | List all available permissions |
+| GET | `/profiles/{profile_id}` | `profiles:read` | Profile detail |
+| PATCH | `/profiles/{profile_id}` | `profiles:manage` | Update a profile |
+| DELETE | `/profiles/{profile_id}` | `profiles:manage` | Delete a profile |
+
+### Tenants — `src/api/routers/tenants.py` (prefix `/tenants`)
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/tenants` | `tenants:read` | List tenants |
+| POST | `/tenants` | `tenants:manage` | Create a tenant |
+| GET | `/tenants/{customer_id}` | `tenants:read` | Tenant detail |
+| PATCH | `/tenants/{customer_id}` | `tenants:manage` | Update tenant metadata |
+| DELETE | `/tenants/{customer_id}` | `tenants:manage` | Delete a tenant (cascades) |
+| POST | `/tenants/{customer_id}/suspend` | `tenants:manage` | Suspend a tenant |
+| POST | `/tenants/{customer_id}/activate` | `tenants:manage` | Reactivate a tenant |
+| GET | `/tenants/{customer_id}/cascade-warning` | `tenants:read` | Preview what a delete would cascade to |
+| GET | `/tenants/{customer_id}/endpoints` | `tenants:read` | Infrastructure endpoint pointers |
+| PUT | `/tenants/{customer_id}/endpoints` | `tenants:manage` | Upsert endpoint pointers |
+| GET | `/tenants/{customer_id}/scopes` | `tenants:read` | List capability scopes (tool allowlists) |
+| POST | `/tenants/{customer_id}/scopes` | `tenants:manage` | Create a capability scope |
+| PATCH | `/tenants/{customer_id}/scopes/{scope_id}` | `tenants:manage` | Update a capability scope |
+| DELETE | `/tenants/{customer_id}/scopes/{scope_id}` | `tenants:manage` | Delete a capability scope |
+
+### Assignments — `src/api/routers/assignments.py` (prefix `/tenants/{customer_id}/users`)
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/tenants/{customer_id}/users` | `assignments:read` | List users assigned to a tenant |
+| POST | `/tenants/{customer_id}/users` | `assignments:manage` | Assign a user to a tenant |
+| PATCH | `/tenants/{customer_id}/users/{user_id}` | `assignments:manage` | Update an assignment (profile/role) |
+| DELETE | `/tenants/{customer_id}/users/{user_id}` | `assignments:manage` | Remove a user from a tenant |
+
+### Inventory — `src/api/routers/inventory.py` (prefix `/inventory`)
+
+Manages the tenant's logical inventory (the `ClientContext` the Engineer reads via `query_client_db`).
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/inventory` | `inventory:read` | Inventory overview (counts) |
+| GET | `/inventory/full` | `inventory:read` | Full inventory document |
+| POST | `/inventory/import` | `inventory:manage` | Bulk import (replaces context content) |
+| GET | `/inventory/components` | `inventory:read` | List components/devices |
+| POST | `/inventory/components` | `inventory:manage` | Create a component |
+| GET | `/inventory/components/{component_id}` | `inventory:read` | Component detail |
+| PATCH | `/inventory/components/{component_id}` | `inventory:manage` | Update a component |
+| DELETE | `/inventory/components/{component_id}` | `inventory:manage` | Delete a component |
+| GET | `/inventory/dependencies` | `inventory:read` | List dependencies (topology edges) |
+| POST | `/inventory/dependencies` | `inventory:manage` | Create a dependency |
+| DELETE | `/inventory/dependencies` | `inventory:manage` | Delete a dependency |
+| GET | `/inventory/baselines` | `inventory:read` | List metric baselines |
+| POST | `/inventory/baselines` | `inventory:manage` | Create a baseline |
+| PATCH | `/inventory/baselines/{component_id}/{metric}` | `inventory:manage` | Update a baseline |
+| DELETE | `/inventory/baselines/{component_id}/{metric}` | `inventory:manage` | Delete a baseline |
+| GET | `/inventory/changes` | `inventory:read` | List known changes |
+| POST | `/inventory/changes` | `inventory:manage` | Record a known change |
+| PATCH | `/inventory/changes/{index}` | `inventory:manage` | Update a known change |
+| DELETE | `/inventory/changes/{index}` | `inventory:manage` | Delete a known change |
+
 ## See Also
 
 - [Quickstart](../setup/quickstart.md) — Running the API server
 - [Deployment](../setup/deployment.md) — Docker Compose production setup
 - [Webhooks](webhooks.md) — Legacy webhook flow details
+- [API Keys & Users runbook](../operations/api_keys_and_users.md)
+- [Ticket Operations runbook](../operations/ticket_operations.md)

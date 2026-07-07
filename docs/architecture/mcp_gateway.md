@@ -115,6 +115,8 @@ The agent's `data/mcp/servers.yaml` points at `${MCP_GATEWAY_URL:-http://localho
 
 Verification: `uv run pytest gateway/tests/` (offline name freeze) and `uv run python scripts/dump_tools.py --url http://localhost:8001/sse/ --out live.txt && diff baseline_tools.txt live.txt` (live).
 
+Operational procedures: [Gateway Operations](../operations/gateway_operations.md) · [Gateway Secrets](../operations/gateway_secrets.md) (token encryption, key rotation) · [Gateway Upgrades](../operations/gateway_upgrades.md) (add a pack, bump fastmcp).
+
 ## Future work
 
 - **SSE authentication**: the endpoint is currently unauthenticated — anyone who can reach the port can execute all tools. Acceptable only on trusted networks; add a bearer/API-key check before exposing beyond the compose network.

@@ -47,6 +47,8 @@ External dependencies (not containerized):
 
 ## Quick Deploy (Docker Compose)
 
+> For the non-Docker development path see the [Quickstart](quickstart.md).
+
 ### Prerequisites
 
 - Docker Engine 24+ with Compose V2
@@ -187,7 +189,7 @@ The compose file uses `qdrant/qdrant:v1.14.0` with persistent storage.
 
 **Qdrant Cloud alternative**: Set `QDRANT_URL` and `QDRANT_API_KEY` to your cloud cluster. Remove or stop the `qdrant` service.
 
-**Backups**: Use Qdrant's snapshot API for `resolved_tickets` and `tool_knowledge` collections.
+**Backups**: See the [Backup & Restore runbook](../operations/backup_restore.md) (PostgreSQL + all Qdrant collections + evidence store).
 
 ### Application
 

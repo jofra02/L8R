@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> System-level design of the single-agent L1/L2 technical support framework.
+> System-level design of the single-agent L1/L2 technical support framework. For how each component works in detail, see the [Components Guide](components.md).
 
 ## Overview
 
@@ -113,7 +113,10 @@ graph TD
 
 ## See Also
 
+- [Components Guide](components.md) - How each component works (medium depth)
 - [Engineer Agent](../agents/engineer.md) - Meta-tools, skills system, reasoning loop
+- [MCP Gateway](mcp_gateway.md) - The bundled OpenAPI→MCP tool server
 - [Data Layer](data_layer.md) - Schema and collections
 - [Observability](observability.md) - Langfuse integration
 - [Safety and Governance](safety_and_governance.md) - Tool safety model
+- [Operations Manual](../operations/README.md) - Runbooks

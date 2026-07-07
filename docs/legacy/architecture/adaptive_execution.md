@@ -1,3 +1,8 @@
+> **LEGACY DOCUMENT.** Describes the retired 13-agent pipeline (gated behind
+> `PIPELINE_MODE=pipeline`; also run unconditionally by `main.py test` and
+> `run_mock.py`). The current architecture is documented in
+> [overview](../../architecture/overview.md) and [components](../../architecture/components.md).
+
 # Adaptive Execution
 
 > Self-healing tool execution with knowledge retrieval, auto-diagnosis, and continuous learning.
@@ -107,5 +112,5 @@ When the LLM determines that a parameter cannot be grounded, it returns OPTION B
 
 - [Evidence Collector](../agents/evidence_collector.md) - Primary consumer of AdaptiveExecutor
 - [Investigator](../agents/investigator.md) - Also uses AdaptiveExecutor for verification
-- [Safety and Governance](safety_and_governance.md) - Tool safety layers
-- [Data Layer](data_layer.md) - Qdrant collections for adaptive fixes
+- [Safety and Governance](../../architecture/safety_and_governance.md) - Tool safety layers
+- [Data Layer](../../architecture/data_layer.md) - Qdrant collections for adaptive fixes
