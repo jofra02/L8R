@@ -123,6 +123,10 @@ preflight() {
     [ -n "$(getcfg GATEWAY_ADMIN_TOKEN '')" ]   || log "WARNING: GATEWAY_ADMIN_TOKEN empty — gateway admin API and inventory sync are disabled"
     [ -n "$(getcfg INVENTORY_MASTER_KEY '')" ]  || log "WARNING: INVENTORY_MASTER_KEY empty — encrypted device tokens cannot be decrypted"
     [ "$(getcfg APP_ENV development)" = "production" ] || log "WARNING: APP_ENV is not 'production'"
+    # Only relevant when the tunnel profile is active (cloudflared in scope)
+    if docker compose config --services 2>/dev/null | grep -qx cloudflared; then
+        [ -n "$(getcfg CLOUDFLARE_TUNNEL_TOKEN '')" ] || log "WARNING: tunnel profile active but CLOUDFLARE_TUNNEL_TOKEN empty — cloudflared will crash-loop"
+    fi
 
     local avail_kb
     avail_kb="$(df -Pk "$REPO_ROOT" | awk 'NR==2 {print $4}')"
