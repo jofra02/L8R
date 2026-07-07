@@ -128,4 +128,4 @@ Each `PlanStep` contains: `step_id`, `description`, `tool`, `args`, `expected_ou
 
 - [agents/response.md](response.md) -- consumes the plan for final report synthesis
 - [agents/scoring.md](scoring.md) -- gates entry to the planner via `proceed_to_plan`
-- [architecture/safety_and_governance.md](../architecture/safety_and_governance.md) -- HITL approval framework
+- [architecture/safety_and_governance.md](../../architecture/safety_and_governance.md) -- HITL approval framework

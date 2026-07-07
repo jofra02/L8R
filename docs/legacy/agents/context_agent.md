@@ -107,6 +107,6 @@ flowchart TD
 
 ## See Also
 
-- [architecture/data_layer.md](../architecture/data_layer.md)
+- [architecture/data_layer.md](../../architecture/data_layer.md)
 - [agents/mapper.md](mapper.md)
 - [agents/classifier.md](classifier.md)

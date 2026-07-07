@@ -278,13 +278,52 @@ export interface SubmitResponse {
 }
 
 // --- Inventory ---
+export interface McpConnection {
+  vendor?: string;
+  appliance?: string;
+  device_type?: string;
+  host: string;
+  port?: number;
+  token?: string; // write-only: forwarded to the gateway, never stored/returned
+  verify_ssl?: boolean;
+  primary?: boolean;
+}
+
+export interface McpSyncStatus {
+  status: "synced" | "error" | "skipped";
+  last_error?: string | null;
+  last_synced_at?: string;
+  warnings?: string[];
+}
+
+// Shape of metadata.mcp on managed components
+export interface McpMetadata {
+  managed: boolean;
+  vendor: string;
+  appliance: string;
+  device_type: string;
+  host: string;
+  port: number;
+  verify_ssl: boolean;
+  primary: boolean;
+  sync?: McpSyncStatus;
+}
+
+export interface GatewaySync {
+  status: "synced" | "error" | "skipped";
+  reloaded?: boolean | null;
+  error?: string | null;
+  warnings?: string[];
+}
+
 export interface InventoryComponent {
   id: string;
   ref: string;
   role: string;
   vendor: string | null;
   priority: number;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> & { mcp?: McpMetadata };
+  gateway_sync?: GatewaySync | null;
 }
 
 export interface InventoryDependency {
@@ -334,6 +373,7 @@ export interface ComponentCreate {
   vendor?: string;
   priority?: number;
   metadata?: Record<string, unknown>;
+  mcp_connection?: McpConnection;
 }
 
 export interface ComponentUpdate {
@@ -342,6 +382,8 @@ export interface ComponentUpdate {
   vendor?: string;
   priority?: number;
   metadata?: Record<string, unknown>;
+  mcp_connection?: McpConnection;
+  mcp_managed?: boolean; // false = detach the device from the gateway inventory
 }
 
 export interface DependencyCreate {

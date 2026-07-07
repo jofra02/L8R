@@ -8,6 +8,30 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { ComponentModal } from "./ComponentModal";
 import type { InventoryComponent } from "@/api/types";
 
+function McpBadge({ component }: { component: InventoryComponent }) {
+  const mcp = component.metadata?.mcp;
+  if (!mcp?.managed) return <span className="text-text-secondary">—</span>;
+  const status = mcp.sync?.status;
+  if (status === "synced") {
+    return (
+      <span
+        className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-severity-low/15 text-severity-low"
+        title={mcp.sync?.last_synced_at ? `Last synced: ${mcp.sync.last_synced_at}` : "Synced to the MCP gateway"}
+      >
+        MCP synced
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-severity-critical/15 text-severity-critical"
+      title={`${mcp.sync?.last_error || "Sync pending"} — edit and save the component (re-enter the token) to retry.`}
+    >
+      MCP sync error
+    </span>
+  );
+}
+
 export function ComponentsTab({
   components,
   canWrite,
@@ -53,6 +77,7 @@ export function ComponentsTab({
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Role</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Vendor</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Priority</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">MCP</th>
                 {canWrite && <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Actions</th>}
               </tr>
             </thead>
@@ -64,6 +89,7 @@ export function ComponentsTab({
                   <td className="px-4 py-3"><StatusBadge value={c.role} type="status" /></td>
                   <td className="px-4 py-3 text-text-secondary">{c.vendor || "—"}</td>
                   <td className="px-4 py-3 text-text-secondary">{c.priority}</td>
+                  <td className="px-4 py-3"><McpBadge component={c} /></td>
                   {canWrite && (
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">

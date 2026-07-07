@@ -26,7 +26,7 @@ The system uses a single **Engineer ReAct agent** that reasons through IT suppor
 |:---|:---|
 | `query_client_db` | Retrieve tenant context, topology, configuration from PostgreSQL |
 | `load_domain_skill` | Inject domain-specific investigation methodology into the agent's context |
-| `search_tool_catalog` | Semantic search across 2182 indexed MCP tool descriptions |
+| `search_tool_catalog` | Semantic search across the indexed MCP tool catalog (2182 safety-filtered tools of the 2546 the gateway exposes) |
 | `search_knowledge_base` | Query Qdrant for runbooks, KB articles, past resolutions |
 | `execute_tool` | Run a read-only MCP tool against an external system |
 | `submit_findings` | Emit structured diagnosis, remediation plan, and report |
@@ -51,10 +51,10 @@ Defined in `src/agent_graph_v2.py`. The Engineer node runs the full ReAct loop i
 
 - **Single ReAct Reasoning Loop.** One LLM, one chain of thought. No inter-agent coordination overhead. The Engineer reasons, gathers evidence, and produces a structured report in a single pass.
 - **Skills System.** Domain-specific investigation methodologies injected on-demand. Base methodology always loaded. Extensible to any IT domain.
-- **Semantic Tool Catalog Search.** 2182 MCP tools indexed by description in Qdrant. The agent searches for relevant tools by intent rather than memorizing tool names.
+- **Semantic Tool Catalog Search.** The MCP Gateway exposes 2546 tools; the registry safety-filters them to 2182, indexed by description in Qdrant. The agent searches for relevant tools by intent rather than memorizing tool names.
 - **Content-Addressable Evidence Store.** Immutable evidence snapshots stored on disk, indexed in Qdrant, tracked in PostgreSQL. Deduplicated by content hash.
 - **Multi-Tenant Isolation.** All database queries, Qdrant searches, and evidence storage are scoped by `customer_id`. No cross-tenant data leakage.
-- **Read-Only Tool Governance.** The agent can query, get, and list but never modify external systems. Write actions require human-in-the-loop approval via LangGraph interrupt.
+- **Read-Only Tool Governance.** The agent can query, get, and list but never modify external systems: mutating tools are blocked by a keyword safety filter at both registration and execution time. (Human-in-the-loop approval for write actions is planned, not yet implemented.)
 - **Langfuse Observability.** Full trace visibility into the ReAct loop, tool calls, and LLM interactions. Compatible with Langfuse v4.
 - **React Frontend Dashboard.** Web-based UI at `frontend/` for ticket submission, run monitoring, and report viewing.
 - **Structured Engineering Reports.** Output is a formatted technical document with diagnosis, remediation steps, validation procedures, and rollback plans.
@@ -77,6 +77,8 @@ Collections with mandatory `customer_id` isolation:
 | `evidence` | Tool output snapshots |
 | `tool_catalog` | MCP tool descriptions for semantic search |
 | `resolved_tickets` | Past cases for contextual learning |
+| `tool_knowledge` | Per-tool usage knowledge (legacy pipeline) |
+| `adaptive_fixes` | Learned tool-call fixes (legacy pipeline) |
 
 ### Evidence Store
 
@@ -84,7 +86,7 @@ Content-addressable, immutable snapshots. Each piece of evidence is hashed and s
 
 ### MCP (Tool Execution)
 
-Tools are served by external MCP servers (stdio or SSE transport). The system indexes tool descriptions at startup for semantic catalog search. See [MCP Integration Guide](docs/integrations/mcp_tools.md).
+Tools are served by MCP servers (stdio or SSE transport). The platform bundles its own: the **MCP Gateway** (`mcp_gateway/`), a generic OpenAPI→MCP service whose first appliance pack converts 62 FortiOS specs into 2546 tools; the agent's registry safety-filters these to 2182 registered and indexed for semantic catalog search at startup. See [MCP Integration Guide](docs/integrations/mcp_tools.md) and [MCP Gateway](docs/architecture/mcp_gateway.md).
 
 ---
 
@@ -109,32 +111,7 @@ uv sync
 
 ### 2. Configure
 
-Create `.env` in the project root:
-
-```ini
-PIPELINE_MODE=engineer
-
-# LLM
-OPENAI_API_KEY=sk-...
-LLM_MODEL_ENGINEER=gpt-5.4
-
-# Engineer limits
-ENGINEER_MAX_TOOL_CALLS=30
-ENGINEER_MAX_ITERATIONS=50
-ENGINEER_TIMEOUT_SECONDS=600
-
-# PostgreSQL
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_USER=postgres
-DB_PASS=change_me
-DB_NAME=support_agent_db
-
-# Qdrant
-QDRANT_URL=http://127.0.0.1:6333
-```
-
-See `src/config.py` for all configuration options.
+Copy `.env.example` to `.env` and set at minimum `OPENAI_API_KEY` and the PostgreSQL/Qdrant connection values. Full reference: [docs/setup/configuration.md](docs/setup/configuration.md).
 
 ### 3. Initialize
 
@@ -167,11 +144,17 @@ src/
 ├── api/                     # Platform API (FastAPI)
 ├── ingestion/               # Webhook ingestion
 ├── mcp/                     # MCP client
-└── plugins/                 # Capability packs
+└── capabilities/            # Capability packs
 frontend/                    # React dashboard
+mcp_gateway/                 # Generic OpenAPI→MCP gateway service (tool execution)
+├── gateway/                 # Vendor-agnostic engine
+├── vendors/                 # Appliance packs: vendors/<vendor>/<appliance>/
+│   └── fortinet/fortigate/  # FortiGate pack (manifest + FortiOS specs + hooks)
+└── inventory/               # Per-tenant device inventory (gitignored, encrypted tokens)
 docs/
 ├── setup/                   # Quickstart, configuration, deployment
-├── architecture/            # Overview, data layer, observability, safety
+├── operations/              # Runbooks (ops manual)
+├── architecture/            # Overview, components, data layer, observability, safety
 ├── agents/                  # Agent documentation
 ├── integrations/            # API reference, MCP tools, webhooks
 └── legacy/                  # Old 13-agent pipeline docs
@@ -183,7 +166,7 @@ docs/
 
 | Variable | Default | Description |
 |:---|:---|:---|
-| `PIPELINE_MODE` | `engineer` | `engineer` (single agent) or `pipeline` (legacy 13-agent) |
+| `PIPELINE_MODE` | `engineer` | `engineer` (current single agent); `pipeline` is a deprecated legacy toggle |
 | `LLM_MODEL_ENGINEER` | `gpt-5.4` | Model for the Engineer ReAct agent |
 | `ENGINEER_MAX_TOOL_CALLS` | `30` | Maximum tool executions per run |
 | `ENGINEER_MAX_ITERATIONS` | `50` | Maximum ReAct loop iterations |
@@ -191,41 +174,13 @@ docs/
 
 ---
 
-## Documentation Index
-
-### Core
-
-| Topic | Doc |
-|:---|:---|
-| Engineer Agent | [docs/agents/engineer.md](docs/agents/engineer.md) |
-
-### Architecture and Design
-
-| Topic | Doc |
-|:---|:---|
-| Architecture Overview | [docs/architecture/](docs/architecture/) |
-| Data Layer Reference | [docs/architecture/data_layer.md](docs/architecture/data_layer.md) |
-| Observability | [docs/architecture/observability.md](docs/architecture/observability.md) |
-| Safety and Governance | [docs/architecture/safety_and_governance.md](docs/architecture/safety_and_governance.md) |
-
-### Setup
+## Documentation
 
 | Topic | Doc |
 |:---|:---|
 | Quickstart | [docs/setup/quickstart.md](docs/setup/quickstart.md) |
-| Configuration | [docs/setup/configuration.md](docs/setup/configuration.md) |
-| Deployment | [docs/setup/deployment.md](docs/setup/deployment.md) |
-
-### Integration
-
-| Topic | Doc |
-|:---|:---|
+| Operations Manual (runbooks) | [docs/operations/README.md](docs/operations/README.md) |
+| Components Guide | [docs/architecture/components.md](docs/architecture/components.md) |
+| Architecture Overview | [docs/architecture/overview.md](docs/architecture/overview.md) |
 | API Reference | [docs/integrations/api_reference.md](docs/integrations/api_reference.md) |
-| MCP Tools | [docs/integrations/mcp_tools.md](docs/integrations/mcp_tools.md) |
-| Webhooks | [docs/integrations/webhooks.md](docs/integrations/webhooks.md) |
-
-### Legacy
-
-| Topic | Doc |
-|:---|:---|
-| Old 13-Agent Pipeline | [docs/legacy/](docs/legacy/) |
+| **Full index** | [docs/README.md](docs/README.md) |

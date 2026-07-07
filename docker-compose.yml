@@ -15,7 +15,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - backend
+      - support-ai
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 5s
@@ -31,12 +31,43 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
-      - backend
+      - support-ai
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/readyz || exit 1"]
+      # The qdrant image ships neither wget nor curl; probe via bash /dev/tcp
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333 && echo -e \"GET /readyz HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q \"200 OK\" <&3'"]
       interval: 5s
       timeout: 3s
       retries: 5
+
+  mcp-gateway:
+    build: ./mcp_gateway
+    <<: *restart
+    environment:
+      ACTIVE_CUSTOMER_ID: ${ACTIVE_CUSTOMER_ID:-fake_client}
+      INVENTORY_MASTER_KEY: ${INVENTORY_MASTER_KEY:-}
+      INVENTORY_ROOT: /app/inventory
+      GATEWAY_ADMIN_TOKEN: ${GATEWAY_ADMIN_TOKEN:-}
+      SERVER_PORT: 8000
+      SERVER_TRANSPORT: sse
+      LOG_LEVEL: ${MCP_GATEWAY_LOG_LEVEL:-info}
+    ports:
+      - "${MCP_GATEWAY_PORT:-8001}:8000"
+    volumes:
+      # Read-write: the admin API persists devices/managed.yaml here
+      - ./mcp_gateway/inventory:/app/inventory
+    networks:
+      - support-ai
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/sse/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
 
   app:
     build: .
@@ -46,24 +77,33 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_healthy
+      mcp-gateway:
+        condition: service_healthy
     env_file: .env
     environment:
       # Override hosts to Docker service names
       DB_HOST: postgres
       QDRANT_URL: http://qdrant:6333
       LANGFUSE_HOST: http://langfuse:3000
+      MCP_GATEWAY_URL: http://mcp-gateway:8000/sse
+      MCP_GATEWAY_ADMIN_URL: http://mcp-gateway:8000
+      MCP_GATEWAY_ADMIN_TOKEN: ${GATEWAY_ADMIN_TOKEN:-}
     ports:
       - "${APP_PORT:-8000}:8000"
     volumes:
       - evidence_data:/app/data/evidence
+      # Read-only: lets `docker compose exec app python src/main.py register-tenant ...`
+      # find the tenant YAMLs (data/tenants/ is excluded from the image by .dockerignore)
+      - ./data/tenants:/app/data/tenants:ro
     networks:
-      - backend
+      - support-ai
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # Covers Alembic migrations in the entrypoint (tool indexing runs in background)
+      start_period: 120s
 
   frontend:
     build: ./frontend
@@ -74,7 +114,7 @@ services:
     ports:
       - "${FRONTEND_PORT:-3001}:80"
     networks:
-      - backend
+      - support-ai
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:80/ || exit 1"]
       interval: 10s
@@ -96,7 +136,7 @@ services:
     ports:
       - "${LANGFUSE_PORT:-3000}:3000"
     networks:
-      - backend
+      - support-ai
 
 volumes:
   pgdata:
@@ -104,5 +144,5 @@ volumes:
   evidence_data:
 
 networks:
-  backend:
+  support-ai:
     driver: bridge

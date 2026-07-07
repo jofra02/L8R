@@ -1,21 +1,24 @@
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 
 from src.core.models import ClientContext, Component, InventoryDependency, Baseline, KnownChange
 from src.core.context_store import ContextStore
 from src.api.exceptions import APIError
 from src.api.schemas.inventory import (
-    ComponentCreate, ComponentUpdate,
+    ComponentCreate, ComponentUpdate, McpConnection,
     DependencyCreate,
     BaselineCreate, BaselineUpdate,
     KnownChangeCreate, KnownChangeUpdate,
     InventoryImport,
 )
+from src.api.services.gateway_admin_client import GatewayAdminClient, GatewaySyncResult
 
 
 class InventoryService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, gateway: Optional[GatewayAdminClient] = None):
         self.store = ContextStore(session)
+        self.gateway = gateway if gateway is not None else GatewayAdminClient.from_settings()
 
     async def _load_or_init(self, customer_id: str) -> ClientContext:
         ctx = await self.store.get_active_context(customer_id)
@@ -61,7 +64,9 @@ class InventoryService:
 
     async def import_context(self, customer_id: str, data: InventoryImport) -> dict:
         ctx = await self._load_or_init(customer_id)
-        ctx.inventory = [Component(**c.model_dump()) for c in data.components]
+        ctx.inventory = [
+            Component(**c.model_dump(exclude={"mcp_connection"})) for c in data.components
+        ]
         ctx.dependencies = [InventoryDependency(**d.model_dump()) for d in data.dependencies]
         ctx.baselines = [Baseline(**b.model_dump()) for b in data.baselines]
         ctx.known_changes = [KnownChange(**kc.model_dump()) for kc in data.known_changes]
@@ -81,33 +86,149 @@ class InventoryService:
                 return c.model_dump()
         raise APIError(404, "not_found", f"Component '{component_id}' not found")
 
+    # --- MCP gateway sync helpers ---
+
+    @staticmethod
+    def _gateway_payload(component: Component, mcp: McpConnection) -> dict:
+        connection: dict = {
+            "host": mcp.host,
+            "port": mcp.port,
+            "verify_ssl": mcp.verify_ssl,
+        }
+        if mcp.token:
+            connection["token"] = mcp.token
+        return {
+            "id": component.id,
+            "name": component.ref,
+            "type": mcp.device_type,
+            "primary": mcp.primary,
+            "connection": connection,
+        }
+
+    @staticmethod
+    def _set_mcp_metadata(component: Component, mcp: McpConnection, sync_info: dict) -> None:
+        """Write the managed-connection descriptors (never the token) into metadata."""
+        component.metadata["mcp"] = {
+            "managed": True,
+            "vendor": mcp.vendor,
+            "appliance": mcp.appliance,
+            "device_type": mcp.device_type,
+            "host": mcp.host,
+            "port": mcp.port,
+            "verify_ssl": mcp.verify_ssl,
+            "primary": mcp.primary,
+            "sync": sync_info,
+        }
+
+    @staticmethod
+    def _pending_sync_info() -> dict:
+        return {"status": "pending", "last_error": None, "warnings": []}
+
+    async def _sync_component_to_gateway(
+        self, customer_id: str, component: Component, mcp: McpConnection, *, create: bool
+    ) -> GatewaySyncResult:
+        """Propagate a managed device to the gateway and record the outcome
+        in ``component.metadata["mcp"]``; the caller persists the context.
+        """
+        if self.gateway is None:
+            result = GatewaySyncResult(
+                status="skipped", error="Gateway admin sync is not configured"
+            )
+        else:
+            result = await self.gateway.upsert_device(
+                customer_id, self._gateway_payload(component, mcp), create=create
+            )
+
+        sync_info = {
+            "status": result.status,
+            "last_error": result.error,
+            "warnings": result.warnings,
+        }
+        if result.status == "synced":
+            sync_info["last_synced_at"] = datetime.now(timezone.utc).isoformat()
+
+        self._set_mcp_metadata(component, mcp, sync_info)
+        return result
+
+    @staticmethod
+    def _is_managed(component: Component) -> bool:
+        return bool((component.metadata.get("mcp") or {}).get("managed"))
+
     async def add_component(self, customer_id: str, data: ComponentCreate) -> dict:
         ctx = await self._load_or_init(customer_id)
         for c in ctx.inventory:
             if c.id == data.id:
                 raise APIError(409, "conflict", f"Component '{data.id}' already exists")
-        component = Component(**data.model_dump())
+        component = Component(**data.model_dump(exclude={"mcp_connection"}))
+
+        # Local write first: the gateway must never hold a device the app has
+        # no record of. The sync outcome is persisted in a second save.
+        if data.mcp_connection:
+            self._set_mcp_metadata(component, data.mcp_connection, self._pending_sync_info())
         ctx.inventory.append(component)
         await self._save_incremented(ctx)
-        return component.model_dump()
+
+        gateway_sync: Optional[GatewaySyncResult] = None
+        if data.mcp_connection:
+            gateway_sync = await self._sync_component_to_gateway(
+                customer_id, component, data.mcp_connection, create=True
+            )
+            await self._save_incremented(ctx)
+        out = component.model_dump()
+        if gateway_sync:
+            out["gateway_sync"] = gateway_sync.model_dump()
+        return out
 
     async def update_component(self, customer_id: str, component_id: str, data: ComponentUpdate) -> dict:
         ctx = await self._load_or_init(customer_id)
         for c in ctx.inventory:
             if c.id == component_id:
-                updates = data.model_dump(exclude_none=True)
+                updates = data.model_dump(exclude_none=True, exclude={"mcp_connection", "mcp_managed"})
                 for k, v in updates.items():
                     setattr(c, k, v)
+
+                gateway_sync: Optional[GatewaySyncResult] = None
+                was_managed = self._is_managed(c)
+                if data.mcp_connection:
+                    # Local write first (see add_component); sync outcome is
+                    # persisted by the final save below.
+                    self._set_mcp_metadata(c, data.mcp_connection, self._pending_sync_info())
+                    await self._save_incremented(ctx)
+                    gateway_sync = await self._sync_component_to_gateway(
+                        customer_id, c, data.mcp_connection, create=not was_managed
+                    )
+                elif data.mcp_managed is False and was_managed:
+                    if self.gateway is None:
+                        gateway_sync = GatewaySyncResult(
+                            status="skipped", error="Gateway admin sync is not configured"
+                        )
+                    else:
+                        gateway_sync = await self.gateway.delete_device(customer_id, c.id)
+                    c.metadata.pop("mcp", None)
+
                 await self._save_incremented(ctx)
-                return c.model_dump()
+                out = c.model_dump()
+                if gateway_sync:
+                    out["gateway_sync"] = gateway_sync.model_dump()
+                return out
         raise APIError(404, "not_found", f"Component '{component_id}' not found")
 
     async def delete_component(self, customer_id: str, component_id: str) -> dict:
         ctx = await self._load_or_init(customer_id)
-        original_len = len(ctx.inventory)
-        ctx.inventory = [c for c in ctx.inventory if c.id != component_id]
-        if len(ctx.inventory) == original_len:
+        target = next((c for c in ctx.inventory if c.id == component_id), None)
+        if target is None:
             raise APIError(404, "not_found", f"Component '{component_id}' not found")
+
+        gateway_sync: Optional[GatewaySyncResult] = None
+        if self._is_managed(target):
+            if self.gateway is None:
+                gateway_sync = GatewaySyncResult(
+                    status="skipped", error="Gateway admin sync is not configured"
+                )
+            else:
+                gateway_sync = await self.gateway.delete_device(customer_id, component_id)
+
+        ctx.inventory = [c for c in ctx.inventory if c.id != component_id]
 
         # Cascade: remove related dependencies, baselines, known_changes
         deps_removed = len(ctx.dependencies)
@@ -126,7 +247,7 @@ class InventoryService:
         changes_removed -= len(ctx.known_changes)
 
         await self._save_incremented(ctx)
-        return {
+        out = {
             "deleted": component_id,
             "cascade": {
                 "dependencies_removed": deps_removed,
@@ -134,6 +255,9 @@ class InventoryService:
                 "known_changes_removed": changes_removed,
             },
         }
+        if gateway_sync:
+            out["gateway_sync"] = gateway_sync.model_dump()
+        return out
 
     # --- Dependencies ---
 

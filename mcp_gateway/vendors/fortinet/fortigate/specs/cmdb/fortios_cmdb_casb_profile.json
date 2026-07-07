@@ -1,0 +1,3795 @@
+{
+  "info": {
+    "title": "FortiOS CMDB",
+    "description": "REST API for configuring FortiOS objects and settings",
+    "version": "v2",
+    "termsOfService": "http://fortinet.com/terms/",
+    "contact": {
+      "name": "FortiOS Web Application Team",
+      "email": "fosguiqateam@fortinet.com",
+      "url": "http://modskristensen.net"
+    }
+  },
+  "host": "172.16.177.65",
+  "basePath": "/api/v2/cmdb",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "APIKeyQueryParam": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "casb/profile",
+      "description": "Configure CASB profile."
+    },
+    {
+      "name": "casb/saas-application",
+      "description": "Configure CASB SaaS application."
+    },
+    {
+      "name": "casb/user-activity",
+      "description": "Configure CASB user activity."
+    }
+  ],
+  "paths": {
+    "/casb/profile/{name}": {
+      "get": {
+        "tags": [
+          "casb/profile"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "CASB profile name.",
+                  "maxLength": 35
+                },
+                "comment": {
+                  "type": "string",
+                  "description": "Comment.",
+                  "maxLength": 255
+                },
+                "saas-application": {
+                  "description": "CASB profile SaaS application.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "CASB profile SaaS application name.",
+                        "maxLength": 79
+                      },
+                      "status": {
+                        "type": "string",
+                        "description": "Enable/disable setting.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "safe-search": {
+                        "type": "string",
+                        "description": "Enable/disable safe search.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "safe-search-control": {
+                        "description": "CASB profile safe search control.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "Safe search control name.",
+                              "maxLength": 79
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      },
+                      "tenant-control": {
+                        "type": "string",
+                        "description": "Enable/disable tenant control.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "tenant-control-tenants": {
+                        "description": "CASB profile tenant control tenants.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "Tenant control tenants name.",
+                              "maxLength": 79
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      },
+                      "domain-control": {
+                        "type": "string",
+                        "description": "Enable/disable domain control.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "domain-control-domains": {
+                        "description": "CASB profile domain control domains.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "Domain control domain name.",
+                              "maxLength": 79
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      },
+                      "log": {
+                        "type": "string",
+                        "description": "Enable/disable log settings.   \nenable:Enable log setting.   \ndisable:Disable log setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "access-rule": {
+                        "description": "CASB profile access rule.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "CASB access rule activity name.",
+                              "maxLength": 79
+                            },
+                            "action": {
+                              "type": "string",
+                              "description": "CASB access rule action.   \nmonitor:Log when log is enabled.   \nbypass:Apply bypass options.   \nblock:Block the request.",
+                              "enum": [
+                                "monitor",
+                                "bypass",
+                                "block"
+                              ]
+                            },
+                            "bypass": {
+                              "type": "string",
+                              "description": "CASB bypass options.   \nav:Exempt from AV scanning.   \ndlp:Exempt from data loss prevention (DLP).   \nweb-filter:Exempt from web filter.   \nfile-filter:Exempt from file filter.   \nvideo-filter:Exempt from video filter.",
+                              "enum": [
+                                "av",
+                                "dlp",
+                                "web-filter",
+                                "file-filter",
+                                "video-filter"
+                              ]
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      },
+                      "custom-control": {
+                        "description": "CASB profile custom control.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "CASB custom control user activity name.",
+                              "maxLength": 79
+                            },
+                            "option": {
+                              "description": "CASB custom control option.",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "description": "CASB custom control option name.",
+                                    "maxLength": 79
+                                  },
+                                  "user-input": {
+                                    "description": "CASB custom control user input.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "value": {
+                                          "type": "string",
+                                          "description": "user input value.",
+                                          "maxLength": 79
+                                        }
+                                      }
+                                    },
+                                    "maxItems": null
+                                  }
+                                }
+                              },
+                              "maxItems": null
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      }
+                    }
+                  },
+                  "maxItems": null
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_casb_profile_{name}"
+      },
+      "put": {
+        "tags": [
+          "casb/profile"
+        ],
+        "summary": "Update this specific resource.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "If *action=move*, use *before* to specify the ID of the resource that this resource will be moved before.\nFor example, to move `object 1` to before `object 2`, use:\n__action=move&before=2__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "If *action=move*, use *after* to specify the ID of the resource that this resource will be moved after.\nFor example, to move `object 1` to after `object 3`, use:\n__action=move&after=3__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "CASB profile name.",
+                    "maxLength": 35
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Comment.",
+                    "maxLength": 255
+                  },
+                  "saas-application": {
+                    "description": "CASB profile SaaS application.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "CASB profile SaaS application name.",
+                          "maxLength": 79
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Enable/disable setting.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "safe-search": {
+                          "type": "string",
+                          "description": "Enable/disable safe search.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "safe-search-control": {
+                          "description": "CASB profile safe search control.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Safe search control name.",
+                                "maxLength": 79
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        },
+                        "tenant-control": {
+                          "type": "string",
+                          "description": "Enable/disable tenant control.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "tenant-control-tenants": {
+                          "description": "CASB profile tenant control tenants.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Tenant control tenants name.",
+                                "maxLength": 79
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        },
+                        "domain-control": {
+                          "type": "string",
+                          "description": "Enable/disable domain control.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "domain-control-domains": {
+                          "description": "CASB profile domain control domains.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Domain control domain name.",
+                                "maxLength": 79
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        },
+                        "log": {
+                          "type": "string",
+                          "description": "Enable/disable log settings.   \nenable:Enable log setting.   \ndisable:Disable log setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "access-rule": {
+                          "description": "CASB profile access rule.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "CASB access rule activity name.",
+                                "maxLength": 79
+                              },
+                              "action": {
+                                "type": "string",
+                                "description": "CASB access rule action.   \nmonitor:Log when log is enabled.   \nbypass:Apply bypass options.   \nblock:Block the request.",
+                                "enum": [
+                                  "monitor",
+                                  "bypass",
+                                  "block"
+                                ]
+                              },
+                              "bypass": {
+                                "type": "string",
+                                "description": "CASB bypass options.   \nav:Exempt from AV scanning.   \ndlp:Exempt from data loss prevention (DLP).   \nweb-filter:Exempt from web filter.   \nfile-filter:Exempt from file filter.   \nvideo-filter:Exempt from video filter.",
+                                "enum": [
+                                  "av",
+                                  "dlp",
+                                  "web-filter",
+                                  "file-filter",
+                                  "video-filter"
+                                ]
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        },
+                        "custom-control": {
+                          "description": "CASB profile custom control.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "CASB custom control user activity name.",
+                                "maxLength": 79
+                              },
+                              "option": {
+                                "description": "CASB custom control option.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "description": "CASB custom control option name.",
+                                      "maxLength": 79
+                                    },
+                                    "user-input": {
+                                      "description": "CASB custom control user input.",
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "value": {
+                                            "type": "string",
+                                            "description": "user input value.",
+                                            "maxLength": 79
+                                          }
+                                        }
+                                      },
+                                      "maxItems": null
+                                    }
+                                  }
+                                },
+                                "maxItems": null
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "put_casb_profile_{name}"
+      },
+      "delete": {
+        "tags": [
+          "casb/profile"
+        ],
+        "summary": "Delete this specific resource.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "operationId": "delete_casb_profile_{name}"
+      }
+    },
+    "/casb/profile": {
+      "get": {
+        "tags": [
+          "casb/profile"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "CASB profile name.",
+                  "maxLength": 35
+                },
+                "comment": {
+                  "type": "string",
+                  "description": "Comment.",
+                  "maxLength": 255
+                },
+                "saas-application": {
+                  "description": "CASB profile SaaS application.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "CASB profile SaaS application name.",
+                        "maxLength": 79
+                      },
+                      "status": {
+                        "type": "string",
+                        "description": "Enable/disable setting.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "safe-search": {
+                        "type": "string",
+                        "description": "Enable/disable safe search.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "safe-search-control": {
+                        "description": "CASB profile safe search control.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "Safe search control name.",
+                              "maxLength": 79
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      },
+                      "tenant-control": {
+                        "type": "string",
+                        "description": "Enable/disable tenant control.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "tenant-control-tenants": {
+                        "description": "CASB profile tenant control tenants.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "Tenant control tenants name.",
+                              "maxLength": 79
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      },
+                      "domain-control": {
+                        "type": "string",
+                        "description": "Enable/disable domain control.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "domain-control-domains": {
+                        "description": "CASB profile domain control domains.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "Domain control domain name.",
+                              "maxLength": 79
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      },
+                      "log": {
+                        "type": "string",
+                        "description": "Enable/disable log settings.   \nenable:Enable log setting.   \ndisable:Disable log setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "access-rule": {
+                        "description": "CASB profile access rule.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "CASB access rule activity name.",
+                              "maxLength": 79
+                            },
+                            "action": {
+                              "type": "string",
+                              "description": "CASB access rule action.   \nmonitor:Log when log is enabled.   \nbypass:Apply bypass options.   \nblock:Block the request.",
+                              "enum": [
+                                "monitor",
+                                "bypass",
+                                "block"
+                              ]
+                            },
+                            "bypass": {
+                              "type": "string",
+                              "description": "CASB bypass options.   \nav:Exempt from AV scanning.   \ndlp:Exempt from data loss prevention (DLP).   \nweb-filter:Exempt from web filter.   \nfile-filter:Exempt from file filter.   \nvideo-filter:Exempt from video filter.",
+                              "enum": [
+                                "av",
+                                "dlp",
+                                "web-filter",
+                                "file-filter",
+                                "video-filter"
+                              ]
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      },
+                      "custom-control": {
+                        "description": "CASB profile custom control.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "CASB custom control user activity name.",
+                              "maxLength": 79
+                            },
+                            "option": {
+                              "description": "CASB custom control option.",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "description": "CASB custom control option name.",
+                                    "maxLength": 79
+                                  },
+                                  "user-input": {
+                                    "description": "CASB custom control user input.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "value": {
+                                          "type": "string",
+                                          "description": "user input value.",
+                                          "maxLength": 79
+                                        }
+                                      }
+                                    },
+                                    "maxItems": null
+                                  }
+                                }
+                              },
+                              "maxItems": null
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      }
+                    }
+                  },
+                  "maxItems": null
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_casb_profile"
+      },
+      "post": {
+        "tags": [
+          "casb/profile"
+        ],
+        "summary": "Create object(s) in this table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "nkey",
+            "in": "query",
+            "description": " If *action=clone*, use *nkey* to specify the ID for the new resource to be created.\nFor example, to clone `address1` to `address1_clone`, use:\n__action=clone&nkey=address1_clone__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *clone*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "CASB profile name.",
+                    "maxLength": 35
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Comment.",
+                    "maxLength": 255
+                  },
+                  "saas-application": {
+                    "description": "CASB profile SaaS application.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "CASB profile SaaS application name.",
+                          "maxLength": 79
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Enable/disable setting.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "safe-search": {
+                          "type": "string",
+                          "description": "Enable/disable safe search.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "safe-search-control": {
+                          "description": "CASB profile safe search control.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Safe search control name.",
+                                "maxLength": 79
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        },
+                        "tenant-control": {
+                          "type": "string",
+                          "description": "Enable/disable tenant control.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "tenant-control-tenants": {
+                          "description": "CASB profile tenant control tenants.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Tenant control tenants name.",
+                                "maxLength": 79
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        },
+                        "domain-control": {
+                          "type": "string",
+                          "description": "Enable/disable domain control.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "domain-control-domains": {
+                          "description": "CASB profile domain control domains.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Domain control domain name.",
+                                "maxLength": 79
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        },
+                        "log": {
+                          "type": "string",
+                          "description": "Enable/disable log settings.   \nenable:Enable log setting.   \ndisable:Disable log setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "access-rule": {
+                          "description": "CASB profile access rule.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "CASB access rule activity name.",
+                                "maxLength": 79
+                              },
+                              "action": {
+                                "type": "string",
+                                "description": "CASB access rule action.   \nmonitor:Log when log is enabled.   \nbypass:Apply bypass options.   \nblock:Block the request.",
+                                "enum": [
+                                  "monitor",
+                                  "bypass",
+                                  "block"
+                                ]
+                              },
+                              "bypass": {
+                                "type": "string",
+                                "description": "CASB bypass options.   \nav:Exempt from AV scanning.   \ndlp:Exempt from data loss prevention (DLP).   \nweb-filter:Exempt from web filter.   \nfile-filter:Exempt from file filter.   \nvideo-filter:Exempt from video filter.",
+                                "enum": [
+                                  "av",
+                                  "dlp",
+                                  "web-filter",
+                                  "file-filter",
+                                  "video-filter"
+                                ]
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        },
+                        "custom-control": {
+                          "description": "CASB profile custom control.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "CASB custom control user activity name.",
+                                "maxLength": 79
+                              },
+                              "option": {
+                                "description": "CASB custom control option.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "description": "CASB custom control option name.",
+                                      "maxLength": 79
+                                    },
+                                    "user-input": {
+                                      "description": "CASB custom control user input.",
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "value": {
+                                            "type": "string",
+                                            "description": "user input value.",
+                                            "maxLength": 79
+                                          }
+                                        }
+                                      },
+                                      "maxItems": null
+                                    }
+                                  }
+                                },
+                                "maxItems": null
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "post_casb_profile"
+      }
+    },
+    "/casb/saas-application/{name}": {
+      "get": {
+        "tags": [
+          "casb/saas-application"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "SaaS application name.",
+                  "maxLength": 79
+                },
+                "uuid": {
+                  "type": "string",
+                  "description": "Universally Unique Identifier (UUID; automatically assigned but can be manually reset).",
+                  "maxLength": 36
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Enable/disable setting.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "type": {
+                  "type": "string",
+                  "description": "SaaS application type.   \nbuilt-in:Built-in SaaS application.   \ncustomized:User customized SaaS appliciation.",
+                  "enum": [
+                    "built-in",
+                    "customized"
+                  ]
+                },
+                "casb-name": {
+                  "type": "string",
+                  "description": "SaaS application signature name.",
+                  "maxLength": 79
+                },
+                "description": {
+                  "type": "string",
+                  "description": "SaaS application description.",
+                  "maxLength": 63
+                },
+                "domains": {
+                  "description": "SaaS application domain list.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "domain": {
+                        "type": "string",
+                        "description": "Domain list separated by space.",
+                        "maxLength": 127
+                      }
+                    }
+                  },
+                  "maxItems": null
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_casb_saas_application_{name}"
+      },
+      "put": {
+        "tags": [
+          "casb/saas-application"
+        ],
+        "summary": "Update this specific resource.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "If *action=move*, use *before* to specify the ID of the resource that this resource will be moved before.\nFor example, to move `object 1` to before `object 2`, use:\n__action=move&before=2__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "If *action=move*, use *after* to specify the ID of the resource that this resource will be moved after.\nFor example, to move `object 1` to after `object 3`, use:\n__action=move&after=3__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "SaaS application name.",
+                    "maxLength": 79
+                  },
+                  "uuid": {
+                    "type": "string",
+                    "description": "Universally Unique Identifier (UUID; automatically assigned but can be manually reset).",
+                    "maxLength": 36
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Enable/disable setting.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "SaaS application type.   \nbuilt-in:Built-in SaaS application.   \ncustomized:User customized SaaS appliciation.",
+                    "enum": [
+                      "built-in",
+                      "customized"
+                    ]
+                  },
+                  "casb-name": {
+                    "type": "string",
+                    "description": "SaaS application signature name.",
+                    "maxLength": 79
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "SaaS application description.",
+                    "maxLength": 63
+                  },
+                  "domains": {
+                    "description": "SaaS application domain list.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "domain": {
+                          "type": "string",
+                          "description": "Domain list separated by space.",
+                          "maxLength": 127
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "put_casb_saas_application_{name}"
+      },
+      "delete": {
+        "tags": [
+          "casb/saas-application"
+        ],
+        "summary": "Delete this specific resource.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "operationId": "delete_casb_saas_application_{name}"
+      }
+    },
+    "/casb/saas-application": {
+      "get": {
+        "tags": [
+          "casb/saas-application"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "SaaS application name.",
+                  "maxLength": 79
+                },
+                "uuid": {
+                  "type": "string",
+                  "description": "Universally Unique Identifier (UUID; automatically assigned but can be manually reset).",
+                  "maxLength": 36
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Enable/disable setting.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "type": {
+                  "type": "string",
+                  "description": "SaaS application type.   \nbuilt-in:Built-in SaaS application.   \ncustomized:User customized SaaS appliciation.",
+                  "enum": [
+                    "built-in",
+                    "customized"
+                  ]
+                },
+                "casb-name": {
+                  "type": "string",
+                  "description": "SaaS application signature name.",
+                  "maxLength": 79
+                },
+                "description": {
+                  "type": "string",
+                  "description": "SaaS application description.",
+                  "maxLength": 63
+                },
+                "domains": {
+                  "description": "SaaS application domain list.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "domain": {
+                        "type": "string",
+                        "description": "Domain list separated by space.",
+                        "maxLength": 127
+                      }
+                    }
+                  },
+                  "maxItems": null
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_casb_saas_application"
+      },
+      "post": {
+        "tags": [
+          "casb/saas-application"
+        ],
+        "summary": "Create object(s) in this table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "nkey",
+            "in": "query",
+            "description": " If *action=clone*, use *nkey* to specify the ID for the new resource to be created.\nFor example, to clone `address1` to `address1_clone`, use:\n__action=clone&nkey=address1_clone__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *clone*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "SaaS application name.",
+                    "maxLength": 79
+                  },
+                  "uuid": {
+                    "type": "string",
+                    "description": "Universally Unique Identifier (UUID; automatically assigned but can be manually reset).",
+                    "maxLength": 36
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Enable/disable setting.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "SaaS application type.   \nbuilt-in:Built-in SaaS application.   \ncustomized:User customized SaaS appliciation.",
+                    "enum": [
+                      "built-in",
+                      "customized"
+                    ]
+                  },
+                  "casb-name": {
+                    "type": "string",
+                    "description": "SaaS application signature name.",
+                    "maxLength": 79
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "SaaS application description.",
+                    "maxLength": 63
+                  },
+                  "domains": {
+                    "description": "SaaS application domain list.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "domain": {
+                          "type": "string",
+                          "description": "Domain list separated by space.",
+                          "maxLength": 127
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "post_casb_saas_application"
+      }
+    },
+    "/casb/user-activity/{name}": {
+      "get": {
+        "tags": [
+          "casb/user-activity"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "CASB user activity name.",
+                  "maxLength": 79
+                },
+                "uuid": {
+                  "type": "string",
+                  "description": "Universally Unique Identifier (UUID; automatically assigned but can be manually reset).",
+                  "maxLength": 36
+                },
+                "status": {
+                  "type": "string",
+                  "description": "CASB user activity status.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "description": "CASB user activity description.",
+                  "maxLength": 63
+                },
+                "type": {
+                  "type": "string",
+                  "description": "CASB user activity type.   \nbuilt-in:Built-in CASB user-activity.   \ncustomized:User customized CASB user-activity.",
+                  "enum": [
+                    "built-in",
+                    "customized"
+                  ]
+                },
+                "casb-name": {
+                  "type": "string",
+                  "description": "CASB user activity signature name.",
+                  "maxLength": 79
+                },
+                "application": {
+                  "type": "string",
+                  "description": "CASB SaaS application name.",
+                  "maxLength": 79
+                },
+                "category": {
+                  "type": "string",
+                  "description": "CASB user activity category.   \nactivity-control:Activity control.   \ntenant-control:Tenant control.   \ndomain-control:Domain control.   \nsafe-search-control:Safe search control.   \nother:User customized category.",
+                  "enum": [
+                    "activity-control",
+                    "tenant-control",
+                    "domain-control",
+                    "safe-search-control",
+                    "other"
+                  ]
+                },
+                "match-strategy": {
+                  "type": "string",
+                  "description": "CASB user activity match strategy.   \nand:Match user activity using a logical AND operator.   \nor:Match user activity using a logical OR operator.",
+                  "enum": [
+                    "and",
+                    "or"
+                  ]
+                },
+                "match": {
+                  "description": "CASB user activity match rules.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "CASB user activity match rules ID.",
+                        "maximum": 4294967295,
+                        "minimum": 0
+                      },
+                      "strategy": {
+                        "type": "string",
+                        "description": "CASB user activity rules strategy.   \nand:Match user activity using a logical AND operator.   \nor:Match user activity using a logical OR operator.",
+                        "enum": [
+                          "and",
+                          "or"
+                        ]
+                      },
+                      "rules": {
+                        "description": "CASB user activity rules.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "description": "CASB user activity rule ID.",
+                              "maximum": 4294967295,
+                              "minimum": 0
+                            },
+                            "type": {
+                              "type": "string",
+                              "description": "CASB user activity rule type.   \ndomains:Domains.   \nhost:Host.   \npath:Path.   \nheader:HTTP header.   \nheader-value:HTTP header and value.   \nmethod:HTTP method.",
+                              "enum": [
+                                "domains",
+                                "host",
+                                "path",
+                                "header",
+                                "header-value",
+                                "method"
+                              ]
+                            },
+                            "domains": {
+                              "description": "CASB user activity domain list.",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "domain": {
+                                    "type": "string",
+                                    "description": "Domain list separated by space.",
+                                    "maxLength": 127
+                                  }
+                                }
+                              },
+                              "maxItems": null
+                            },
+                            "methods": {
+                              "description": "CASB user activity method list.",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "method": {
+                                    "type": "string",
+                                    "description": "User activity method.",
+                                    "maxLength": 79
+                                  }
+                                }
+                              },
+                              "maxItems": null
+                            },
+                            "match-pattern": {
+                              "type": "string",
+                              "description": "CASB user activity rule match pattern.   \nsimple:Exact string match pattern.   \nsubstr:Sub-string pattern.   \nregexp:Regular expression pattern.",
+                              "enum": [
+                                "simple",
+                                "substr",
+                                "regexp"
+                              ]
+                            },
+                            "match-value": {
+                              "type": "string",
+                              "description": "CASB user activity rule match value.",
+                              "maxLength": 1023
+                            },
+                            "header-name": {
+                              "type": "string",
+                              "description": "CASB user activity rule header name.",
+                              "maxLength": 255
+                            },
+                            "case-sensitive": {
+                              "type": "string",
+                              "description": "CASB user activity match case sensitive.   \nenable:Enable value case sensitive match.   \ndisable:Disable value case sensitive match.",
+                              "enum": [
+                                "enable",
+                                "disable"
+                              ]
+                            },
+                            "negate": {
+                              "type": "string",
+                              "description": "Enable/disable what the matching strategy must not be.   \nenable:Matching strategy is negated.   \ndisable:Matching strategy is not negated.",
+                              "enum": [
+                                "enable",
+                                "disable"
+                              ]
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "control-options": {
+                  "description": "CASB control options.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "CASB control option name.",
+                        "maxLength": 79
+                      },
+                      "status": {
+                        "type": "string",
+                        "description": "CASB control option status.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "operations": {
+                        "description": "CASB control option operations.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "CASB control option operation name.",
+                              "maxLength": 79
+                            },
+                            "target": {
+                              "type": "string",
+                              "description": "CASB operation target.   \nheader:Header.   \npath:Path.",
+                              "enum": [
+                                "header",
+                                "path"
+                              ]
+                            },
+                            "action": {
+                              "type": "string",
+                              "description": "CASB operation action.   \nappend:Append the values after the target.   \nprepend:Prepend the values before the target.   \nreplace:Replace the target by the value.   \nnew:Create a new header regardless if existing header is found or not.   \nnew-on-not-found:Create new header only if existing HTTP header is not found.   \ndelete:Delete the target.",
+                              "enum": [
+                                "append",
+                                "prepend",
+                                "replace",
+                                "new",
+                                "new-on-not-found",
+                                "delete"
+                              ]
+                            },
+                            "direction": {
+                              "type": "string",
+                              "description": "CASB operation direction.   \nrequest:Request.",
+                              "enum": [
+                                "request"
+                              ]
+                            },
+                            "header-name": {
+                              "type": "string",
+                              "description": "CASB operation header name to search.",
+                              "maxLength": 255
+                            },
+                            "search-pattern": {
+                              "type": "string",
+                              "description": "CASB operation search pattern.   \nsimple:Exact string match pattern.   \nsubstr:Sub-string pattern.   \nregexp:Regular expression pattern.",
+                              "enum": [
+                                "simple",
+                                "substr",
+                                "regexp"
+                              ]
+                            },
+                            "search-key": {
+                              "type": "string",
+                              "description": "CASB operation key to search.",
+                              "maxLength": 1023
+                            },
+                            "case-sensitive": {
+                              "type": "string",
+                              "description": "CASB operation search case sensitive.   \nenable:Enable case sensitive search.   \ndisable:Disable case sensitive search.",
+                              "enum": [
+                                "enable",
+                                "disable"
+                              ]
+                            },
+                            "value-from-input": {
+                              "type": "string",
+                              "description": "Enable/disable value from user input.   \nenable:Enable value from input.   \ndisable:Disable value from input.",
+                              "enum": [
+                                "enable",
+                                "disable"
+                              ]
+                            },
+                            "values": {
+                              "description": "CASB operation new values.",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "description": "Operation value.",
+                                    "maxLength": 79
+                                  }
+                                }
+                              },
+                              "maxItems": null
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      }
+                    }
+                  },
+                  "maxItems": null
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_casb_user_activity_{name}"
+      },
+      "put": {
+        "tags": [
+          "casb/user-activity"
+        ],
+        "summary": "Update this specific resource.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "If *action=move*, use *before* to specify the ID of the resource that this resource will be moved before.\nFor example, to move `object 1` to before `object 2`, use:\n__action=move&before=2__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "If *action=move*, use *after* to specify the ID of the resource that this resource will be moved after.\nFor example, to move `object 1` to after `object 3`, use:\n__action=move&after=3__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *move*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "CASB user activity name.",
+                    "maxLength": 79
+                  },
+                  "uuid": {
+                    "type": "string",
+                    "description": "Universally Unique Identifier (UUID; automatically assigned but can be manually reset).",
+                    "maxLength": 36
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "CASB user activity status.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "CASB user activity description.",
+                    "maxLength": 63
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "CASB user activity type.   \nbuilt-in:Built-in CASB user-activity.   \ncustomized:User customized CASB user-activity.",
+                    "enum": [
+                      "built-in",
+                      "customized"
+                    ]
+                  },
+                  "casb-name": {
+                    "type": "string",
+                    "description": "CASB user activity signature name.",
+                    "maxLength": 79
+                  },
+                  "application": {
+                    "type": "string",
+                    "description": "CASB SaaS application name.",
+                    "maxLength": 79
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "CASB user activity category.   \nactivity-control:Activity control.   \ntenant-control:Tenant control.   \ndomain-control:Domain control.   \nsafe-search-control:Safe search control.   \nother:User customized category.",
+                    "enum": [
+                      "activity-control",
+                      "tenant-control",
+                      "domain-control",
+                      "safe-search-control",
+                      "other"
+                    ]
+                  },
+                  "match-strategy": {
+                    "type": "string",
+                    "description": "CASB user activity match strategy.   \nand:Match user activity using a logical AND operator.   \nor:Match user activity using a logical OR operator.",
+                    "enum": [
+                      "and",
+                      "or"
+                    ]
+                  },
+                  "match": {
+                    "description": "CASB user activity match rules.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "CASB user activity match rules ID.",
+                          "maximum": 4294967295,
+                          "minimum": 0
+                        },
+                        "strategy": {
+                          "type": "string",
+                          "description": "CASB user activity rules strategy.   \nand:Match user activity using a logical AND operator.   \nor:Match user activity using a logical OR operator.",
+                          "enum": [
+                            "and",
+                            "or"
+                          ]
+                        },
+                        "rules": {
+                          "description": "CASB user activity rules.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "description": "CASB user activity rule ID.",
+                                "maximum": 4294967295,
+                                "minimum": 0
+                              },
+                              "type": {
+                                "type": "string",
+                                "description": "CASB user activity rule type.   \ndomains:Domains.   \nhost:Host.   \npath:Path.   \nheader:HTTP header.   \nheader-value:HTTP header and value.   \nmethod:HTTP method.",
+                                "enum": [
+                                  "domains",
+                                  "host",
+                                  "path",
+                                  "header",
+                                  "header-value",
+                                  "method"
+                                ]
+                              },
+                              "domains": {
+                                "description": "CASB user activity domain list.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "domain": {
+                                      "type": "string",
+                                      "description": "Domain list separated by space.",
+                                      "maxLength": 127
+                                    }
+                                  }
+                                },
+                                "maxItems": null
+                              },
+                              "methods": {
+                                "description": "CASB user activity method list.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "method": {
+                                      "type": "string",
+                                      "description": "User activity method.",
+                                      "maxLength": 79
+                                    }
+                                  }
+                                },
+                                "maxItems": null
+                              },
+                              "match-pattern": {
+                                "type": "string",
+                                "description": "CASB user activity rule match pattern.   \nsimple:Exact string match pattern.   \nsubstr:Sub-string pattern.   \nregexp:Regular expression pattern.",
+                                "enum": [
+                                  "simple",
+                                  "substr",
+                                  "regexp"
+                                ]
+                              },
+                              "match-value": {
+                                "type": "string",
+                                "description": "CASB user activity rule match value.",
+                                "maxLength": 1023
+                              },
+                              "header-name": {
+                                "type": "string",
+                                "description": "CASB user activity rule header name.",
+                                "maxLength": 255
+                              },
+                              "case-sensitive": {
+                                "type": "string",
+                                "description": "CASB user activity match case sensitive.   \nenable:Enable value case sensitive match.   \ndisable:Disable value case sensitive match.",
+                                "enum": [
+                                  "enable",
+                                  "disable"
+                                ]
+                              },
+                              "negate": {
+                                "type": "string",
+                                "description": "Enable/disable what the matching strategy must not be.   \nenable:Matching strategy is negated.   \ndisable:Matching strategy is not negated.",
+                                "enum": [
+                                  "enable",
+                                  "disable"
+                                ]
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "control-options": {
+                    "description": "CASB control options.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "CASB control option name.",
+                          "maxLength": 79
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "CASB control option status.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "operations": {
+                          "description": "CASB control option operations.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "CASB control option operation name.",
+                                "maxLength": 79
+                              },
+                              "target": {
+                                "type": "string",
+                                "description": "CASB operation target.   \nheader:Header.   \npath:Path.",
+                                "enum": [
+                                  "header",
+                                  "path"
+                                ]
+                              },
+                              "action": {
+                                "type": "string",
+                                "description": "CASB operation action.   \nappend:Append the values after the target.   \nprepend:Prepend the values before the target.   \nreplace:Replace the target by the value.   \nnew:Create a new header regardless if existing header is found or not.   \nnew-on-not-found:Create new header only if existing HTTP header is not found.   \ndelete:Delete the target.",
+                                "enum": [
+                                  "append",
+                                  "prepend",
+                                  "replace",
+                                  "new",
+                                  "new-on-not-found",
+                                  "delete"
+                                ]
+                              },
+                              "direction": {
+                                "type": "string",
+                                "description": "CASB operation direction.   \nrequest:Request.",
+                                "enum": [
+                                  "request"
+                                ]
+                              },
+                              "header-name": {
+                                "type": "string",
+                                "description": "CASB operation header name to search.",
+                                "maxLength": 255
+                              },
+                              "search-pattern": {
+                                "type": "string",
+                                "description": "CASB operation search pattern.   \nsimple:Exact string match pattern.   \nsubstr:Sub-string pattern.   \nregexp:Regular expression pattern.",
+                                "enum": [
+                                  "simple",
+                                  "substr",
+                                  "regexp"
+                                ]
+                              },
+                              "search-key": {
+                                "type": "string",
+                                "description": "CASB operation key to search.",
+                                "maxLength": 1023
+                              },
+                              "case-sensitive": {
+                                "type": "string",
+                                "description": "CASB operation search case sensitive.   \nenable:Enable case sensitive search.   \ndisable:Disable case sensitive search.",
+                                "enum": [
+                                  "enable",
+                                  "disable"
+                                ]
+                              },
+                              "value-from-input": {
+                                "type": "string",
+                                "description": "Enable/disable value from user input.   \nenable:Enable value from input.   \ndisable:Disable value from input.",
+                                "enum": [
+                                  "enable",
+                                  "disable"
+                                ]
+                              },
+                              "values": {
+                                "description": "CASB operation new values.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "description": "Operation value.",
+                                      "maxLength": 79
+                                    }
+                                  }
+                                },
+                                "maxItems": null
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "put_casb_user_activity_{name}"
+      },
+      "delete": {
+        "tags": [
+          "casb/user-activity"
+        ],
+        "summary": "Delete this specific resource.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "operationId": "delete_casb_user_activity_{name}"
+      }
+    },
+    "/casb/user-activity": {
+      "get": {
+        "tags": [
+          "casb/user-activity"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "CASB user activity name.",
+                  "maxLength": 79
+                },
+                "uuid": {
+                  "type": "string",
+                  "description": "Universally Unique Identifier (UUID; automatically assigned but can be manually reset).",
+                  "maxLength": 36
+                },
+                "status": {
+                  "type": "string",
+                  "description": "CASB user activity status.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "description": "CASB user activity description.",
+                  "maxLength": 63
+                },
+                "type": {
+                  "type": "string",
+                  "description": "CASB user activity type.   \nbuilt-in:Built-in CASB user-activity.   \ncustomized:User customized CASB user-activity.",
+                  "enum": [
+                    "built-in",
+                    "customized"
+                  ]
+                },
+                "casb-name": {
+                  "type": "string",
+                  "description": "CASB user activity signature name.",
+                  "maxLength": 79
+                },
+                "application": {
+                  "type": "string",
+                  "description": "CASB SaaS application name.",
+                  "maxLength": 79
+                },
+                "category": {
+                  "type": "string",
+                  "description": "CASB user activity category.   \nactivity-control:Activity control.   \ntenant-control:Tenant control.   \ndomain-control:Domain control.   \nsafe-search-control:Safe search control.   \nother:User customized category.",
+                  "enum": [
+                    "activity-control",
+                    "tenant-control",
+                    "domain-control",
+                    "safe-search-control",
+                    "other"
+                  ]
+                },
+                "match-strategy": {
+                  "type": "string",
+                  "description": "CASB user activity match strategy.   \nand:Match user activity using a logical AND operator.   \nor:Match user activity using a logical OR operator.",
+                  "enum": [
+                    "and",
+                    "or"
+                  ]
+                },
+                "match": {
+                  "description": "CASB user activity match rules.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "CASB user activity match rules ID.",
+                        "maximum": 4294967295,
+                        "minimum": 0
+                      },
+                      "strategy": {
+                        "type": "string",
+                        "description": "CASB user activity rules strategy.   \nand:Match user activity using a logical AND operator.   \nor:Match user activity using a logical OR operator.",
+                        "enum": [
+                          "and",
+                          "or"
+                        ]
+                      },
+                      "rules": {
+                        "description": "CASB user activity rules.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "description": "CASB user activity rule ID.",
+                              "maximum": 4294967295,
+                              "minimum": 0
+                            },
+                            "type": {
+                              "type": "string",
+                              "description": "CASB user activity rule type.   \ndomains:Domains.   \nhost:Host.   \npath:Path.   \nheader:HTTP header.   \nheader-value:HTTP header and value.   \nmethod:HTTP method.",
+                              "enum": [
+                                "domains",
+                                "host",
+                                "path",
+                                "header",
+                                "header-value",
+                                "method"
+                              ]
+                            },
+                            "domains": {
+                              "description": "CASB user activity domain list.",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "domain": {
+                                    "type": "string",
+                                    "description": "Domain list separated by space.",
+                                    "maxLength": 127
+                                  }
+                                }
+                              },
+                              "maxItems": null
+                            },
+                            "methods": {
+                              "description": "CASB user activity method list.",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "method": {
+                                    "type": "string",
+                                    "description": "User activity method.",
+                                    "maxLength": 79
+                                  }
+                                }
+                              },
+                              "maxItems": null
+                            },
+                            "match-pattern": {
+                              "type": "string",
+                              "description": "CASB user activity rule match pattern.   \nsimple:Exact string match pattern.   \nsubstr:Sub-string pattern.   \nregexp:Regular expression pattern.",
+                              "enum": [
+                                "simple",
+                                "substr",
+                                "regexp"
+                              ]
+                            },
+                            "match-value": {
+                              "type": "string",
+                              "description": "CASB user activity rule match value.",
+                              "maxLength": 1023
+                            },
+                            "header-name": {
+                              "type": "string",
+                              "description": "CASB user activity rule header name.",
+                              "maxLength": 255
+                            },
+                            "case-sensitive": {
+                              "type": "string",
+                              "description": "CASB user activity match case sensitive.   \nenable:Enable value case sensitive match.   \ndisable:Disable value case sensitive match.",
+                              "enum": [
+                                "enable",
+                                "disable"
+                              ]
+                            },
+                            "negate": {
+                              "type": "string",
+                              "description": "Enable/disable what the matching strategy must not be.   \nenable:Matching strategy is negated.   \ndisable:Matching strategy is not negated.",
+                              "enum": [
+                                "enable",
+                                "disable"
+                              ]
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      }
+                    }
+                  },
+                  "maxItems": null
+                },
+                "control-options": {
+                  "description": "CASB control options.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "CASB control option name.",
+                        "maxLength": 79
+                      },
+                      "status": {
+                        "type": "string",
+                        "description": "CASB control option status.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                        "enum": [
+                          "enable",
+                          "disable"
+                        ]
+                      },
+                      "operations": {
+                        "description": "CASB control option operations.",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "CASB control option operation name.",
+                              "maxLength": 79
+                            },
+                            "target": {
+                              "type": "string",
+                              "description": "CASB operation target.   \nheader:Header.   \npath:Path.",
+                              "enum": [
+                                "header",
+                                "path"
+                              ]
+                            },
+                            "action": {
+                              "type": "string",
+                              "description": "CASB operation action.   \nappend:Append the values after the target.   \nprepend:Prepend the values before the target.   \nreplace:Replace the target by the value.   \nnew:Create a new header regardless if existing header is found or not.   \nnew-on-not-found:Create new header only if existing HTTP header is not found.   \ndelete:Delete the target.",
+                              "enum": [
+                                "append",
+                                "prepend",
+                                "replace",
+                                "new",
+                                "new-on-not-found",
+                                "delete"
+                              ]
+                            },
+                            "direction": {
+                              "type": "string",
+                              "description": "CASB operation direction.   \nrequest:Request.",
+                              "enum": [
+                                "request"
+                              ]
+                            },
+                            "header-name": {
+                              "type": "string",
+                              "description": "CASB operation header name to search.",
+                              "maxLength": 255
+                            },
+                            "search-pattern": {
+                              "type": "string",
+                              "description": "CASB operation search pattern.   \nsimple:Exact string match pattern.   \nsubstr:Sub-string pattern.   \nregexp:Regular expression pattern.",
+                              "enum": [
+                                "simple",
+                                "substr",
+                                "regexp"
+                              ]
+                            },
+                            "search-key": {
+                              "type": "string",
+                              "description": "CASB operation key to search.",
+                              "maxLength": 1023
+                            },
+                            "case-sensitive": {
+                              "type": "string",
+                              "description": "CASB operation search case sensitive.   \nenable:Enable case sensitive search.   \ndisable:Disable case sensitive search.",
+                              "enum": [
+                                "enable",
+                                "disable"
+                              ]
+                            },
+                            "value-from-input": {
+                              "type": "string",
+                              "description": "Enable/disable value from user input.   \nenable:Enable value from input.   \ndisable:Disable value from input.",
+                              "enum": [
+                                "enable",
+                                "disable"
+                              ]
+                            },
+                            "values": {
+                              "description": "CASB operation new values.",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "description": "Operation value.",
+                                    "maxLength": 79
+                                  }
+                                }
+                              },
+                              "maxItems": null
+                            }
+                          }
+                        },
+                        "maxItems": null
+                      }
+                    }
+                  },
+                  "maxItems": null
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_casb_user_activity"
+      },
+      "post": {
+        "tags": [
+          "casb/user-activity"
+        ],
+        "summary": "Create object(s) in this table.\n Access Group: fwgrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "name": "nkey",
+            "in": "query",
+            "description": " If *action=clone*, use *nkey* to specify the ID for the new resource to be created.\nFor example, to clone `address1` to `address1_clone`, use:\n__action=clone&nkey=address1_clone__\n__*Note:*__ This parameter can only be used when the *action* parameter is set to *clone*.\n",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "CASB user activity name.",
+                    "maxLength": 79
+                  },
+                  "uuid": {
+                    "type": "string",
+                    "description": "Universally Unique Identifier (UUID; automatically assigned but can be manually reset).",
+                    "maxLength": 36
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "CASB user activity status.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                    "enum": [
+                      "enable",
+                      "disable"
+                    ]
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "CASB user activity description.",
+                    "maxLength": 63
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "CASB user activity type.   \nbuilt-in:Built-in CASB user-activity.   \ncustomized:User customized CASB user-activity.",
+                    "enum": [
+                      "built-in",
+                      "customized"
+                    ]
+                  },
+                  "casb-name": {
+                    "type": "string",
+                    "description": "CASB user activity signature name.",
+                    "maxLength": 79
+                  },
+                  "application": {
+                    "type": "string",
+                    "description": "CASB SaaS application name.",
+                    "maxLength": 79
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "CASB user activity category.   \nactivity-control:Activity control.   \ntenant-control:Tenant control.   \ndomain-control:Domain control.   \nsafe-search-control:Safe search control.   \nother:User customized category.",
+                    "enum": [
+                      "activity-control",
+                      "tenant-control",
+                      "domain-control",
+                      "safe-search-control",
+                      "other"
+                    ]
+                  },
+                  "match-strategy": {
+                    "type": "string",
+                    "description": "CASB user activity match strategy.   \nand:Match user activity using a logical AND operator.   \nor:Match user activity using a logical OR operator.",
+                    "enum": [
+                      "and",
+                      "or"
+                    ]
+                  },
+                  "match": {
+                    "description": "CASB user activity match rules.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "CASB user activity match rules ID.",
+                          "maximum": 4294967295,
+                          "minimum": 0
+                        },
+                        "strategy": {
+                          "type": "string",
+                          "description": "CASB user activity rules strategy.   \nand:Match user activity using a logical AND operator.   \nor:Match user activity using a logical OR operator.",
+                          "enum": [
+                            "and",
+                            "or"
+                          ]
+                        },
+                        "rules": {
+                          "description": "CASB user activity rules.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "description": "CASB user activity rule ID.",
+                                "maximum": 4294967295,
+                                "minimum": 0
+                              },
+                              "type": {
+                                "type": "string",
+                                "description": "CASB user activity rule type.   \ndomains:Domains.   \nhost:Host.   \npath:Path.   \nheader:HTTP header.   \nheader-value:HTTP header and value.   \nmethod:HTTP method.",
+                                "enum": [
+                                  "domains",
+                                  "host",
+                                  "path",
+                                  "header",
+                                  "header-value",
+                                  "method"
+                                ]
+                              },
+                              "domains": {
+                                "description": "CASB user activity domain list.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "domain": {
+                                      "type": "string",
+                                      "description": "Domain list separated by space.",
+                                      "maxLength": 127
+                                    }
+                                  }
+                                },
+                                "maxItems": null
+                              },
+                              "methods": {
+                                "description": "CASB user activity method list.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "method": {
+                                      "type": "string",
+                                      "description": "User activity method.",
+                                      "maxLength": 79
+                                    }
+                                  }
+                                },
+                                "maxItems": null
+                              },
+                              "match-pattern": {
+                                "type": "string",
+                                "description": "CASB user activity rule match pattern.   \nsimple:Exact string match pattern.   \nsubstr:Sub-string pattern.   \nregexp:Regular expression pattern.",
+                                "enum": [
+                                  "simple",
+                                  "substr",
+                                  "regexp"
+                                ]
+                              },
+                              "match-value": {
+                                "type": "string",
+                                "description": "CASB user activity rule match value.",
+                                "maxLength": 1023
+                              },
+                              "header-name": {
+                                "type": "string",
+                                "description": "CASB user activity rule header name.",
+                                "maxLength": 255
+                              },
+                              "case-sensitive": {
+                                "type": "string",
+                                "description": "CASB user activity match case sensitive.   \nenable:Enable value case sensitive match.   \ndisable:Disable value case sensitive match.",
+                                "enum": [
+                                  "enable",
+                                  "disable"
+                                ]
+                              },
+                              "negate": {
+                                "type": "string",
+                                "description": "Enable/disable what the matching strategy must not be.   \nenable:Matching strategy is negated.   \ndisable:Matching strategy is not negated.",
+                                "enum": [
+                                  "enable",
+                                  "disable"
+                                ]
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  },
+                  "control-options": {
+                    "description": "CASB control options.",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "CASB control option name.",
+                          "maxLength": 79
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "CASB control option status.   \nenable:Enable setting.   \ndisable:Disable setting.",
+                          "enum": [
+                            "enable",
+                            "disable"
+                          ]
+                        },
+                        "operations": {
+                          "description": "CASB control option operations.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "CASB control option operation name.",
+                                "maxLength": 79
+                              },
+                              "target": {
+                                "type": "string",
+                                "description": "CASB operation target.   \nheader:Header.   \npath:Path.",
+                                "enum": [
+                                  "header",
+                                  "path"
+                                ]
+                              },
+                              "action": {
+                                "type": "string",
+                                "description": "CASB operation action.   \nappend:Append the values after the target.   \nprepend:Prepend the values before the target.   \nreplace:Replace the target by the value.   \nnew:Create a new header regardless if existing header is found or not.   \nnew-on-not-found:Create new header only if existing HTTP header is not found.   \ndelete:Delete the target.",
+                                "enum": [
+                                  "append",
+                                  "prepend",
+                                  "replace",
+                                  "new",
+                                  "new-on-not-found",
+                                  "delete"
+                                ]
+                              },
+                              "direction": {
+                                "type": "string",
+                                "description": "CASB operation direction.   \nrequest:Request.",
+                                "enum": [
+                                  "request"
+                                ]
+                              },
+                              "header-name": {
+                                "type": "string",
+                                "description": "CASB operation header name to search.",
+                                "maxLength": 255
+                              },
+                              "search-pattern": {
+                                "type": "string",
+                                "description": "CASB operation search pattern.   \nsimple:Exact string match pattern.   \nsubstr:Sub-string pattern.   \nregexp:Regular expression pattern.",
+                                "enum": [
+                                  "simple",
+                                  "substr",
+                                  "regexp"
+                                ]
+                              },
+                              "search-key": {
+                                "type": "string",
+                                "description": "CASB operation key to search.",
+                                "maxLength": 1023
+                              },
+                              "case-sensitive": {
+                                "type": "string",
+                                "description": "CASB operation search case sensitive.   \nenable:Enable case sensitive search.   \ndisable:Disable case sensitive search.",
+                                "enum": [
+                                  "enable",
+                                  "disable"
+                                ]
+                              },
+                              "value-from-input": {
+                                "type": "string",
+                                "description": "Enable/disable value from user input.   \nenable:Enable value from input.   \ndisable:Disable value from input.",
+                                "enum": [
+                                  "enable",
+                                  "disable"
+                                ]
+                              },
+                              "values": {
+                                "description": "CASB operation new values.",
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "value": {
+                                      "type": "string",
+                                      "description": "Operation value.",
+                                      "maxLength": 79
+                                    }
+                                  }
+                                },
+                                "maxItems": null
+                              }
+                            }
+                          },
+                          "maxItems": null
+                        }
+                      }
+                    },
+                    "maxItems": null
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request",
+          "required": true
+        },
+        "operationId": "post_casb_user_activity"
+      }
+    }
+  },
+  "definitions": {},
+  "securityDefinitions": {
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "access_token"
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "parameters": {
+      "attr": {
+        "name": "attr",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "Attribute name that references other table"
+      },
+      "count": {
+        "name": "count",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "Maximum number of entries to return."
+      },
+      "skip_to": {
+        "name": "skip_to",
+        "in": "query",
+        "required": false,
+        "type": "object",
+        "description": "Skip to provided table's Nth entry. E.g {datasource: 'firewall.address', pos: 10, global_entry: false}"
+      },
+      "acs": {
+        "name": "acs",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "If true, returned result are in ascending order."
+      },
+      "search": {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "If present, the objects will be filtered by the search value."
+      },
+      "scope": {
+        "name": "scope",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "Scope [global|vdom|both*]"
+      },
+      "datasource": {
+        "name": "datasource",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to include datasource information for each linked object."
+      },
+      "with_meta": {
+        "name": "with_meta",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to include meta information about each object (type id, references, etc)."
+      },
+      "skip": {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to call CLI skip operator to hide skipped properties."
+      },
+      "format": {
+        "name": "format",
+        "in": "query",
+        "description": "List of property names to include in results, separated by | (i.e. policyid|srcintf).",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "pipes",
+        "items": {
+          "type": "string"
+        }
+      },
+      "action": {
+        "name": "action",
+        "in": "query",
+        "description": "datasource: Return all applicable datasource entries for a specific attribute based on simulate data.\nstats: Return CMDB aggregated statistics.\nfind-index: Return indexes of provided primary keys with respect to filter.\ndefault: Return the CLI default values for this object type.\njson-schema: Return the JSON Schema for this object type.\nschema: Return the CLI schema for this object type.\nrevision: Return the CMDB revision for this object type.\ntransaction-list: List all configuration transaction(s).\ntransaction-show: Show the content of the configuration transaction by transcation ID.\n",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "default",
+          "schema",
+          "revision"
+        ]
+      },
+      "vdom": {
+        "name": "vdom",
+        "in": "query",
+        "description": "Specify the Virtual Domain(s) from which results are returned or changes are applied to. If this parameter is not provided, the management VDOM will be used. If the admin does not have access to the VDOM, a permission error will be returned.\nThe URL parameter is one of:\nvdom=root (Single VDOM)\nvdom=vdom1,vdom2 (Multiple VDOMs)\nvdom=* (All VDOMs)\n",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "csv",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Bad Request: Request cannot be processed by the API"
+      },
+      "401": {
+        "description": "Not Authorized: Request without successful login session"
+      },
+      "403": {
+        "description": "Forbidden: Request is missing CSRF token or administrator is missing access profile permissions."
+      },
+      "404": {
+        "description": "Resource Not Found: Unable to find the specified resource."
+      },
+      "405": {
+        "description": "Method Not Allowed: Specified HTTP method is not allowed for this resource. "
+      },
+      "413": {
+        "description": "Request Entity Too Large: Request cannot be processed due to large entity "
+      },
+      "424": {
+        "description": "Failed Dependency: Fail dependency can be duplicate resource, missing required parameter, missing required attribute, invalid attribute value"
+      },
+      "429": {
+        "description": "Access temporarily blocked: Maximum failed authentications reached. The offended source is temporarily blocked for certain amount of time."
+      },
+      "500": {
+        "description": "Internal Server Error: Internal error when processing the request "
+      }
+    }
+  }
+}

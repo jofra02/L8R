@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -9,6 +11,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+async def _index_tools_background(app: FastAPI) -> None:
+    """Index the tool catalog without blocking startup.
+
+    On a cold Qdrant this classifies ~2200 tools via LLM (minutes); running it
+    inside the lifespan kept uvicorn from serving /health and the Docker
+    healthcheck marked the app unhealthy on first boot.
+    """
+    from src.core.registry import CapabilityRegistry
+    state = app.state.tool_indexing
+    state["status"] = "indexing"
+    try:
+        await CapabilityRegistry.index_tools()
+        state["status"] = "done"
+        logger.info("Tool catalog indexing complete.")
+    except Exception as e:
+        state["status"] = "failed"
+        state["error"] = str(e)
+        logger.error(f"Tool catalog indexing failed: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize logging first (must happen after uvicorn configures its own loggers)
@@ -17,15 +39,18 @@ async def lifespan(app: FastAPI):
     # Startup: same as legacy ingestion app
     from src.core.registry import CapabilityRegistry
     logger.info("Initializing Capability Registry and MCP tools...")
+    app.state.tool_indexing = {"status": "pending", "error": None}
     CapabilityRegistry.load_builtin_packs()
     try:
         await CapabilityRegistry.load_external_tools()
         logger.info(f"Loaded {len(CapabilityRegistry.list_tools())} tools successfully.")
-        await CapabilityRegistry.index_tools()
     except Exception as e:
-        logger.error(f"Failed to load/index MCP tools during startup: {e}")
+        logger.error(f"Failed to load MCP tools during startup: {e}")
+    index_task = asyncio.create_task(_index_tools_background(app))
     yield
-    # Shutdown: flush Langfuse
+    # Shutdown: stop indexing if still running, flush Langfuse
+    if not index_task.done():
+        index_task.cancel()
     from src.core.langfuse_integration import langfuse_manager
     langfuse_manager.flush()
 
@@ -49,10 +74,24 @@ def create_app() -> FastAPI:
     # Exception handlers
     register_exception_handlers(application)
 
-    # --- Public health endpoint (no auth) ---
+    # --- Public health endpoints (no auth) ---
     @application.get("/health")
     async def health_check():
+        # Liveness only: the process is up and serving
         return {"status": "ok", "app": settings.APP_NAME}
+
+    @application.get("/ready")
+    async def readiness_check():
+        # Readiness: surfaces background tool-catalog indexing state.
+        # The API is usable before indexing finishes; search_tool_catalog
+        # may return partial results until status is "done".
+        indexing = getattr(application.state, "tool_indexing", {"status": "pending", "error": None})
+        status_map = {"done": "ready", "failed": "degraded"}
+        return {
+            "status": status_map.get(indexing["status"], "initializing"),
+            "app": settings.APP_NAME,
+            "tool_indexing": indexing,
+        }
 
     # --- Mount API v1 routers ---
     from src.api.routers.auth import router as auth_router

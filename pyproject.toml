@@ -18,10 +18,23 @@ dependencies = [
     "PyJWT>=2.9.0",
     "python-dotenv>=1.2.1",
     "fastembed>=0.6.1",
-    "qdrant-client=1.15.5",
+    "qdrant-client==1.14.3",
     "requests>=2.32.5",
     "sqlalchemy>=2.0.46",
     "streamlit>=1.54.0",
     "uvicorn>=0.40.0",
     "gunicorn>=23.0.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+# Only self-contained tests; the other src/testing/*.py are integration
+# scripts that need live Qdrant/LLM services (run them as python -m modules).
+testpaths = ["src/testing/test_inventory_gateway_sync.py"]

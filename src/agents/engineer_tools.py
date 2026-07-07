@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 SKILLS_DIR = Path(__file__).parent / "skills"
 
+# Add new domain skills here; keys must map to files in src/agents/skills/
 DOMAIN_SKILL_MAP = {
     # Networking
     "networking": "networking.md",
@@ -44,34 +45,6 @@ DOMAIN_SKILL_MAP = {
     "stp": "networking.md",
     "arp": "networking.md",
     "mtu": "networking.md",
-    # Firewall / Security
-    "firewall": "firewall_security.md",
-    "security": "firewall_security.md",
-    "nat": "firewall_security.md",
-    "policies": "firewall_security.md",
-    "ids": "firewall_security.md",
-    "ips": "firewall_security.md",
-    "acl": "firewall_security.md",
-    # VPN / IPSEC
-    "vpn": "vpn_ipsec.md",
-    "ipsec": "vpn_ipsec.md",
-    "tunnel": "vpn_ipsec.md",
-    "ssl_vpn": "vpn_ipsec.md",
-    "ike": "vpn_ipsec.md",
-    # Virtualization
-    "virtualization": "virtualization.md",
-    "hypervisor": "virtualization.md",
-    "esxi": "virtualization.md",
-    "vcenter": "virtualization.md",
-    "vm": "virtualization.md",
-    "ha_cluster": "virtualization.md",
-    # Storage
-    "storage": "storage.md",
-    "san": "storage.md",
-    "nas": "storage.md",
-    "vsan": "storage.md",
-    "lun": "storage.md",
-    "backup": "storage.md",
     # Tool Catalog Search
     "tool_catalog": "tool_catalog.md",
     "tools": "tool_catalog.md",

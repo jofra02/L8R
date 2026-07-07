@@ -1,8 +1,8 @@
 """Engineer agent — single-agent architecture for ticket investigation.
 
-Replaces the 13-agent pipeline with one ReAct agent that has 5 meta-tools:
-query_client_db, search_tool_catalog, search_knowledge_base, execute_tool,
-and submit_findings.
+Replaces the 13-agent pipeline with one ReAct agent that has 6 meta-tools:
+query_client_db, load_domain_skill, search_tool_catalog, search_knowledge_base,
+execute_tool, and submit_findings.
 
 The agent runs a continuous reasoning loop, naturally adapting its approach
 based on ticket intent (incident, review, advisory, change). Structured

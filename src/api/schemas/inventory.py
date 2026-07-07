@@ -3,6 +3,32 @@ from typing import Optional, Any, Dict, List
 from datetime import datetime
 
 
+# --- MCP managed connection ---
+
+class McpConnection(BaseModel):
+    """Connection details for a device managed in the MCP gateway inventory.
+
+    The token is write-only: it is forwarded to the gateway (which encrypts
+    and stores it) and is never persisted or returned by this API.
+    """
+    vendor: str = "fortinet"
+    appliance: str = "fortigate"
+    device_type: str = "fortios"
+    host: str = Field(..., min_length=1)
+    port: int = 443
+    token: Optional[str] = None
+    verify_ssl: bool = False
+    primary: bool = False
+
+
+class GatewaySyncStatus(BaseModel):
+    """Transient result of the gateway sync performed during this request."""
+    status: str  # synced | error | skipped
+    reloaded: Optional[bool] = None
+    error: Optional[str] = None
+    warnings: List[str] = Field(default_factory=list)
+
+
 # --- Component ---
 
 class ComponentCreate(BaseModel):
@@ -12,6 +38,7 @@ class ComponentCreate(BaseModel):
     vendor: Optional[str] = None
     priority: int = 1
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    mcp_connection: Optional[McpConnection] = None
 
 
 class ComponentUpdate(BaseModel):
@@ -20,6 +47,8 @@ class ComponentUpdate(BaseModel):
     vendor: Optional[str] = None
     priority: Optional[int] = None
     metadata: Optional[Dict[str, Any]] = None
+    mcp_connection: Optional[McpConnection] = None
+    mcp_managed: Optional[bool] = None  # set False to detach the device from the gateway
 
 
 class ComponentResponse(BaseModel):
@@ -29,6 +58,7 @@ class ComponentResponse(BaseModel):
     vendor: Optional[str] = None
     priority: int = 1
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    gateway_sync: Optional[GatewaySyncStatus] = None
 
 
 # --- Dependency ---

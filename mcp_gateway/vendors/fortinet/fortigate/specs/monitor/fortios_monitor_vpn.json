@@ -1,0 +1,1248 @@
+{
+  "info": {
+    "title": "FortiOS Monitor",
+    "description": "REST API for configuring FortiOS objects and settings",
+    "version": "v2",
+    "termsOfService": "http://fortinet.com/terms/",
+    "contact": {
+      "name": "FortiOS Web Application Team",
+      "email": "fosguiqateam@fortinet.com",
+      "url": "http://modskristensen.net"
+    }
+  },
+  "host": "172.16.177.65",
+  "basePath": "/api/v2/monitor",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "APIKeyQueryParam": []
+    }
+  ],
+  "paths": {
+    "/vpn/ike/clear": {
+      "post": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "post_vpn_ike_clear",
+        "summary": "Clear IKE gateways.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mkey": {
+                    "description": "Name of the IKE gateway to clear.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        }
+      }
+    },
+    "/vpn/ipsec": {
+      "get": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "get_vpn_ipsec",
+        "summary": "Return an array of active IPsec VPNs.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "IPsec VPNs",
+              "description": "List of active IPsec VPNs.",
+              "type": "array",
+              "items": {
+                "title": "IPsec VPNs",
+                "description": "IPsec VPNs.",
+                "type": "object",
+                "required": [
+                  "proxyid",
+                  "name",
+                  "type",
+                  "incoming_bytes",
+                  "outgoing_bytes",
+                  "rgwy",
+                  "tun_id",
+                  "tun_id6"
+                ],
+                "properties": {
+                  "proxyid": {
+                    "type": "array",
+                    "title": "Proxies",
+                    "description": "Proxies.",
+                    "items": {
+                      "title": "Proxy Details",
+                      "description": "Proxy details.",
+                      "type": "object",
+                      "required": [
+                        "proxy_src",
+                        "proxy_dst"
+                      ],
+                      "properties": {
+                        "proxy_src": {
+                          "$ref": "#/definitions/vpn--ipsec--select--definitions--proxyid"
+                        },
+                        "proxy_dst": {
+                          "$ref": "#/definitions/vpn--ipsec--select--definitions--proxyid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "title": "Status",
+                          "description": "Status.",
+                          "enum": [
+                            "up",
+                            "down"
+                          ]
+                        },
+                        "p2name": {
+                          "type": "string",
+                          "title": "Phase 2 Name",
+                          "description": "Phase 2 name."
+                        },
+                        "dialup_index": {
+                          "type": "number",
+                          "title": "Dialup Index",
+                          "description": "Dialup index."
+                        },
+                        "p2serial": {
+                          "type": "number",
+                          "title": "Phase 2 Serial",
+                          "description": "Phase 2 serial."
+                        },
+                        "expire": {
+                          "type": "number",
+                          "title": "Expiry",
+                          "description": "Expiry."
+                        },
+                        "incoming_bytes": {
+                          "$ref": "#/definitions/vpn--ipsec--select--definitions--incoming_bytes"
+                        },
+                        "outgoing_bytes": {
+                          "$ref": "#/definitions/vpn--ipsec--select--definitions--outgoing_bytes"
+                        }
+                      }
+                    }
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "Name",
+                    "description": "Name."
+                  },
+                  "is_ocvpn": {
+                    "type": "boolean",
+                    "title": "Is OCVPN",
+                    "description": "True if this is an OCVPN."
+                  },
+                  "parent": {
+                    "type": "string",
+                    "title": "IPsec Gateway",
+                    "description": "IPsec gateway."
+                  },
+                  "comments": {
+                    "type": "string",
+                    "title": "Comments",
+                    "description": "Comments."
+                  },
+                  "wizard-type": {
+                    "type": "string",
+                    "title": "Wizard Type",
+                    "description": "Wizard type."
+                  },
+                  "connection_count": {
+                    "type": "number",
+                    "title": "Connection Count",
+                    "description": "Number of connections."
+                  },
+                  "creation_time": {
+                    "type": "number",
+                    "title": "Creation Time",
+                    "description": "Seconds elapsed since the tunnel was created."
+                  },
+                  "username": {
+                    "type": "string",
+                    "title": "Username",
+                    "description": "Username."
+                  },
+                  "xauth_user": {
+                    "type": "string",
+                    "title": "XAUTH User",
+                    "description": "XAUTH user."
+                  },
+                  "xauth_user_two_factor_auth": {
+                    "type": "boolean",
+                    "title": "XAUTH Two Factor Authentication",
+                    "description": "True when two factor authentication is in use."
+                  },
+                  "fct_uid": {
+                    "type": "string",
+                    "title": "FortiClient UID",
+                    "description": "UID of FortiClient."
+                  },
+                  "peer_sn": {
+                    "x-hidden": true,
+                    "type": "string",
+                    "title": "Peer FortiGate Serial Number",
+                    "description": "Serial number of peer FortiGate."
+                  },
+                  "type": {
+                    "type": "string",
+                    "title": "Tunnel Type",
+                    "description": "Tunnel type.",
+                    "enum": [
+                      "",
+                      "dialup",
+                      "automatic"
+                    ]
+                  },
+                  "incoming_bytes": {
+                    "$ref": "#/definitions/vpn--ipsec--select--definitions--incoming_bytes"
+                  },
+                  "outgoing_bytes": {
+                    "$ref": "#/definitions/vpn--ipsec--select--definitions--outgoing_bytes"
+                  },
+                  "rgwy": {
+                    "type": "string",
+                    "title": "Remote Gateway",
+                    "description": "Remote gateway."
+                  },
+                  "tun_id": {
+                    "type": "string",
+                    "title": "Tunnel ID",
+                    "description": "Tunnel ID."
+                  },
+                  "tun_id6": {
+                    "type": "string",
+                    "title": "IPv6 Tunnel ID",
+                    "description": "IPv6 Tunnel ID."
+                  },
+                  "rport": {
+                    "type": "number",
+                    "title": "Remote Port",
+                    "description": "Remote port."
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "tunnel",
+            "in": "query",
+            "description": "Filter for a specific IPsec tunnel name.",
+            "required": false,
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "/vpn/ipsec/tunnel_up": {
+      "post": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "post_vpn_ipsec_tunnel_up",
+        "summary": "Bring up a specific IPsec VPN tunnel.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "p1name": {
+                    "description": "IPsec phase1 name.",
+                    "type": "string"
+                  },
+                  "p2name": {
+                    "description": "IPsec phase2 name.",
+                    "type": "string"
+                  },
+                  "p2serial": {
+                    "description": "IPsec phase2 serial.",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        }
+      }
+    },
+    "/vpn/ipsec/tunnel_down": {
+      "post": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "post_vpn_ipsec_tunnel_down",
+        "summary": "Bring down a specific IPsec VPN tunnel.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "p1name": {
+                    "description": "IPsec phase1 name.",
+                    "type": "string"
+                  },
+                  "p2name": {
+                    "description": "IPsec phase2 name.",
+                    "type": "string"
+                  },
+                  "p2serial": {
+                    "description": "IPsec phase2 serial.",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        }
+      }
+    },
+    "/vpn/ipsec/tunnel_reset_stats": {
+      "post": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "post_vpn_ipsec_tunnel_reset_stats",
+        "summary": "Reset statistics for a specific IPsec VPN tunnel.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "p1name": {
+                    "description": "IPsec phase1 name.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        }
+      }
+    },
+    "/vpn/ssl": {
+      "get": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "get_vpn_ssl",
+        "summary": "Retrieve a list of all SSL-VPN sessions and sub-sessions.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "SSL-VPN Sessions and Sub-Sessions",
+              "description": "List all SSL-VPN sessions and sub-sessions.",
+              "type": "array",
+              "items": {
+                "title": "SSL-VPN Session",
+                "description": "An SSL-VPN session.",
+                "type": "object",
+                "required": [
+                  "index",
+                  "last_login_timestamp",
+                  "interface",
+                  "subsessions",
+                  "duration",
+                  "two_factor_auth"
+                ],
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "title": "Index",
+                    "description": "Session index."
+                  },
+                  "user_name": {
+                    "type": "string",
+                    "title": "User Name",
+                    "description": "Name of the user."
+                  },
+                  "group_name": {
+                    "type": "string",
+                    "title": "Group Name",
+                    "description": "Name of the group the user is part of."
+                  },
+                  "remote_host": {
+                    "type": "string",
+                    "title": "Remote Host",
+                    "description": "IP address of the remote host."
+                  },
+                  "fct_uid": {
+                    "type": "string",
+                    "title": "FortiClient UID",
+                    "description": "UID of FortiClient."
+                  },
+                  "last_login_timestamp": {
+                    "type": "integer",
+                    "title": "Last Login Timestamp",
+                    "description": "Last login timestamp, in seconds."
+                  },
+                  "interface": {
+                    "type": "string",
+                    "title": "Interface Name",
+                    "description": "Interface Name."
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "title": "Duration",
+                    "description": "Connection duration, in seconds."
+                  },
+                  "two_factor_auth": {
+                    "type": "boolean",
+                    "title": "Two-Factor Authentication",
+                    "description": "True when the user is using two-factor authentication."
+                  },
+                  "subsessions": {
+                    "title": "SSL-VPN Sub-Sessions Data",
+                    "description": "List of SSL-VPN sub-sessions.",
+                    "type": "array",
+                    "items": {
+                      "title": "SSL-VPN Sub-Session Data",
+                      "description": "Sub-session data.",
+                      "type": "object",
+                      "required": [
+                        "index",
+                        "parent_index",
+                        "mode",
+                        "type",
+                        "desthost"
+                      ],
+                      "properties": {
+                        "index": {
+                          "type": "integer",
+                          "title": "Index",
+                          "description": "Sub-Session index."
+                        },
+                        "parent_index": {
+                          "type": "integer",
+                          "title": "Parent Session Index",
+                          "description": "Parent session index."
+                        },
+                        "mode": {
+                          "type": "string",
+                          "title": "Client Mode",
+                          "description": "Client mode.",
+                          "enum": [
+                            "Any",
+                            "Web",
+                            "Port Forward",
+                            "Tunnel",
+                            "Unknown"
+                          ]
+                        },
+                        "type": {
+                          "type": "string",
+                          "title": "Sub-Session Type",
+                          "description": "Sub-session type.",
+                          "enum": [
+                            "HTTP/HTTPS",
+                            "Telnet",
+                            "SSH",
+                            "FTP",
+                            "NFS",
+                            "SMB",
+                            "VNC",
+                            "RDP",
+                            "Ping",
+                            "Citrix",
+                            "Port Forward",
+                            "Unknown"
+                          ]
+                        },
+                        "aip": {
+                          "type": "string",
+                          "title": "IP Address",
+                          "description": "IP address of tunnel."
+                        },
+                        "aipv6": {
+                          "type": "string",
+                          "title": "IP Address",
+                          "description": "IP address of tunnel."
+                        },
+                        "in_bytes": {
+                          "type": "integer",
+                          "title": "Incoming Bytes",
+                          "description": "Incoming data size, in bytes."
+                        },
+                        "out_bytes": {
+                          "type": "integer",
+                          "title": "Outgoing Bytes",
+                          "description": "Outgoing data size, in bytes."
+                        },
+                        "desthost": {
+                          "type": "string",
+                          "title": "Destination Host",
+                          "description": "Destination host."
+                        }
+                      }
+                    }
+                  },
+                  "subsession_type": {
+                    "type": "string",
+                    "title": "Sub-Session Type",
+                    "description": "Sub-session type.",
+                    "enum": [
+                      "HTTP/HTTPS",
+                      "Telnet",
+                      "SSH",
+                      "FTP",
+                      "NFS",
+                      "SMB",
+                      "VNC",
+                      "RDP",
+                      "Ping",
+                      "Citrix",
+                      "Port Forward",
+                      "Unknown"
+                    ]
+                  },
+                  "subsession_desc": {
+                    "type": "string",
+                    "title": "Sub-Session Description",
+                    "description": "Sub-session description."
+                  }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/vpn/ssl/clear_tunnel": {
+      "post": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "post_vpn_ssl_clear_tunnel",
+        "summary": "Remove all active tunnel sessions in current virtual domain.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/vpn/ssl/delete": {
+      "post": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "post_vpn_ssl_delete",
+        "summary": "Terminate the provided SSL-VPN session.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "type": {
+                    "description": "The session type [websession|subsession].",
+                    "type": "string"
+                  },
+                  "index": {
+                    "description": "The session index.",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        }
+      }
+    },
+    "/vpn/ssl/stats": {
+      "get": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "get_vpn_ssl_stats",
+        "summary": "Return statistics about the SSL-VPN.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "SSL-VPN Statistics",
+              "description": "SSL-VPN statistics.",
+              "type": "object",
+              "required": [
+                "conserve_mode"
+              ],
+              "properties": {
+                "conserve_mode": {
+                  "title": "SSL-VPN Conserve Mode",
+                  "description": "True when kernel is in SSL-VPN conserve mode.",
+                  "type": "boolean"
+                },
+                "max": {
+                  "title": "SSL-VPN Maximum Statistics",
+                  "description": "Statistics for maximum values.",
+                  "type": "object",
+                  "required": [
+                    "users",
+                    "tunnels",
+                    "connections"
+                  ],
+                  "properties": {
+                    "users": {
+                      "title": "Maximum Users",
+                      "description": "Maximum number of users.",
+                      "type": "number"
+                    },
+                    "tunnels": {
+                      "title": "Maximum Tunnels",
+                      "description": "Maximum number of tunnels.",
+                      "type": "number"
+                    },
+                    "connections": {
+                      "title": "Maximum Connections",
+                      "description": "Maximum number of connections.",
+                      "type": "number"
+                    }
+                  }
+                },
+                "current": {
+                  "title": "SSL-VPN Current Statistics",
+                  "description": "Statistics for current values.",
+                  "type": "object",
+                  "required": [
+                    "users",
+                    "tunnels",
+                    "connections"
+                  ],
+                  "properties": {
+                    "users": {
+                      "title": "Current Users",
+                      "description": "Current number of users.",
+                      "type": "number"
+                    },
+                    "tunnels": {
+                      "title": "Current Tunnels",
+                      "description": "Current number of tunnels.",
+                      "type": "number"
+                    },
+                    "connections": {
+                      "title": "Current Connections",
+                      "description": "Current number of connections.",
+                      "type": "number"
+                    },
+                    "distinct_users": {
+                      "title": "Distinct Users",
+                      "description": "Current number of distinct users.",
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/vpn/ssl/provision-user": {
+      "post": {
+        "tags": [
+          "vpn"
+        ],
+        "operationId": "post_vpn_ssl_provision_user",
+        "summary": "Provision SSL-VPN users with target applications. The provisioning message (email or SMS) is sent with no confirmation of success.\nAccess Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "Provision SSL-VPN Users",
+              "description": "Provision SSL-VPN users with target applications. The provisioning message (email or SMS) is sent with no confirmation of success.",
+              "type": "object",
+              "required": [
+                "host",
+                "port",
+                "vpn_name"
+              ],
+              "properties": {
+                "host": {
+                  "type": "string",
+                  "title": "Hostname/IP Address",
+                  "description": "The hostname/IP address of the VPN server."
+                },
+                "port": {
+                  "type": "integer",
+                  "title": "Server Port",
+                  "description": "The port of the VPN server."
+                },
+                "vpn_name": {
+                  "type": "string",
+                  "title": "VPN Name",
+                  "description": "The name of the VPN configuration."
+                },
+                "method": {
+                  "type": "string",
+                  "title": "Provision Method",
+                  "description": "Method to send provision message.",
+                  "enum": [
+                    "email",
+                    "sms"
+                  ]
+                },
+                "email_list": {
+                  "x-anyOf": [
+                    {
+                      "title": "Email Address",
+                      "description": "The email address that the VPN configuration message should be sent to.",
+                      "type": "string"
+                    },
+                    {
+                      "title": "Email Addresses",
+                      "description": "The list of email addresses that the VPN configuration message should be sent to.",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "title": "Email Address",
+                        "description": "The email address that the VPN configuration message should be sent to."
+                      }
+                    }
+                  ]
+                },
+                "phone_user_list": {
+                  "x-anyOf": [
+                    {
+                      "title": "User",
+                      "description": "The user that the VPN configuration SMS should be sent to.",
+                      "type": "string"
+                    },
+                    {
+                      "title": "Users",
+                      "description": "The list of users that the VPN configuration SMS should be sent to.",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "title": "User",
+                        "description": "The user that the VPN configuration SMS should be sent to."
+                      }
+                    }
+                  ]
+                },
+                "phone_number_list": {
+                  "x-anyOf": [
+                    {
+                      "title": "Phone Number",
+                      "description": "The phone number that the VPN configuration SMS should be sent to.",
+                      "type": "string"
+                    },
+                    {
+                      "title": "Phone Numbers",
+                      "description": "The list of phone numbers that the VPN configuration SMS should be sent to.",
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "title": "Phone Number",
+                        "description": "The phone number that the VPN configuration SMS should be sent to."
+                      }
+                    }
+                  ]
+                },
+                "sms_method": {
+                  "type": "string",
+                  "title": "SMS Send Method",
+                  "description": "The method to be used for sending the SMS.",
+                  "enum": [
+                    "fortiguard",
+                    "custom"
+                  ]
+                },
+                "sms_server": {
+                  "type": "string",
+                  "title": "SMS Server",
+                  "description": "The SMS server to be used for sending SMS messages. Required if the \"custom\" SMS method is chosen."
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "host": {
+                    "description": "The hostname/IP address of the VPN server.",
+                    "type": "string"
+                  },
+                  "port": {
+                    "description": "The port of the VPN server.",
+                    "type": "integer"
+                  },
+                  "vpn_name": {
+                    "description": "The name of the VPN configuration.",
+                    "type": "string"
+                  },
+                  "method": {
+                    "description": "Method to send [email|sms]. If not set, email will be the default.",
+                    "type": "string"
+                  },
+                  "email_list": {
+                    "description": "The email address that the VPN configuration message should be sent to. Required if \"method\" is \"email\".",
+                    "type": "string"
+                  },
+                  "phone_user_list": {
+                    "description": "The user that the VPN configuration SMS should be sent to. At least one of \"phone_user_list\" or \"phone_number_list\" is required if \"method\" is \"sms\".",
+                    "type": "string"
+                  },
+                  "phone_number_list": {
+                    "description": "The phone number that the VPN configuration SMS should be sent to. At least one of \"phone_user_list\" or \"phone_number_list\" is required if \"method\" is \"sms\".",
+                    "type": "string"
+                  },
+                  "sms_method": {
+                    "description": "The method to be used for sending the SMS [fortiguard|custom]. Default is \"fortiguard\".",
+                    "type": "string"
+                  },
+                  "sms_server": {
+                    "description": "The SMS server to be used for sending SMS messages, required if \"custom\" SMS method is chosen.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        }
+      }
+    }
+  },
+  "definitions": {
+    "vpn--ipsec--select--definitions--proxyid": {
+      "type": "array",
+      "title": "Proxies",
+      "description": "Proxies.",
+      "items": {
+        "title": "Proxy Details",
+        "description": "Proxy details.",
+        "type": "object",
+        "required": [
+          "subnet",
+          "port",
+          "protocol",
+          "protocol_name"
+        ],
+        "properties": {
+          "subnet": {
+            "type": "string",
+            "title": "IP and Subnet",
+            "description": "IP and subnet."
+          },
+          "port": {
+            "type": "number",
+            "title": "Port",
+            "description": "Port."
+          },
+          "protocol": {
+            "type": "number",
+            "title": "Protocol",
+            "description": "Protocol."
+          },
+          "protocol_name": {
+            "type": "string",
+            "title": "Protocol Name",
+            "description": "Protocol name.",
+            "enum": [
+              "all",
+              "igmp",
+              "tcp",
+              "udp",
+              "sctp",
+              "icmp",
+              "icmp6",
+              "gre",
+              "esp",
+              "ah",
+              "ospf",
+              "pim",
+              "vrrp",
+              ""
+            ]
+          }
+        }
+      }
+    },
+    "vpn--ipsec--select--definitions--incoming_bytes": {
+      "type": "number",
+      "title": "Received Bytes",
+      "description": "Received bytes."
+    },
+    "vpn--ipsec--select--definitions--outgoing_bytes": {
+      "type": "number",
+      "title": "Transmitted Bytes",
+      "description": "Transmitted bytes."
+    }
+  },
+  "securityDefinitions": {
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "access_token"
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "parameters": {},
+    "responses": {
+      "400": {
+        "description": "Bad Request: Request cannot be processed by the API"
+      },
+      "401": {
+        "description": "Not Authorized: Request without successful login session"
+      },
+      "403": {
+        "description": "Forbidden: Request is missing CSRF token or administrator is missing access profile permissions."
+      },
+      "404": {
+        "description": "Resource Not Found: Unable to find the specified resource."
+      },
+      "405": {
+        "description": "Method Not Allowed: Specified HTTP method is not allowed for this resource. "
+      },
+      "413": {
+        "description": "Request Entity Too Large: Request cannot be processed due to large entity "
+      },
+      "424": {
+        "description": "Failed Dependency: Fail dependency can be duplicate resource, missing required parameter, missing required attribute, invalid attribute value"
+      },
+      "429": {
+        "description": "Access temporarily blocked: Maximum failed authentications reached. The offended source is temporarily blocked for certain amount of time."
+      },
+      "500": {
+        "description": "Internal Server Error: Internal error when processing the request "
+      }
+    }
+  }
+}

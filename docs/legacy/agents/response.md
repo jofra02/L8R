@@ -139,5 +139,5 @@ flowchart TD
 ## See Also
 
 - [agents/supervisor.md](supervisor.md) -- routes to response as the terminal node
-- [integrations/api_reference.md](../integrations/api_reference.md) -- external API that consumes the handoff package
+- [integrations/api_reference.md](../../integrations/api_reference.md) -- external API that consumes the handoff package
 - [agents/scoring.md](scoring.md) -- gates whether response receives a plan or pending requirements

@@ -155,5 +155,5 @@ flowchart TD
 
 - [agents/enricher.md](enricher.md)
 - [architecture/adaptive_execution.md](../architecture/adaptive_execution.md)
-- [integrations/mcp_tools.md](../integrations/mcp_tools.md)
+- [integrations/mcp_tools.md](../../integrations/mcp_tools.md)
 - [agents/mapper.md](mapper.md)

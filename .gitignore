@@ -55,6 +55,9 @@ qdrant_storage/
 # Evidence blobs (raw tool outputs — potentially sensitive infra data)
 data/evidence/
 
+# Pre-deploy backups (pg dumps, Qdrant snapshots, secrets tars — never commit)
+backups/
+
 # Rollback notes (internal development artifacts)
 data/rollback_*.md
 
@@ -91,13 +94,13 @@ run_mock_debug.log
 # ─── Manual / temporary plans ───
 Implementation Plan*.md
 
-# ─── Pending implementation (not ready for commit) ───
-src/utils/state_formatters.py
-
 # ─── Script artifacts ───
 tool_catalog_dump_*.json
 tool_catalog_report_*.json
 
-# ─── Lock files ───
-# uv.lock is auto-generated, exclude to keep diffs clean
-uv.lock
+# ─── MCP Gateway ───
+# Live device inventory (real hosts + Fernet-encrypted API tokens).
+# Only anonymized *.example.yaml files are tracked.
+mcp_gateway/inventory/**
+!mcp_gateway/inventory/**/
+!mcp_gateway/inventory/**/*.example.yaml

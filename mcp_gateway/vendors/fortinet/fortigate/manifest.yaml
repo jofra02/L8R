@@ -1,0 +1,32 @@
+# FortiGate (FortiOS) appliance pack — vendor: fortinet.
+#
+# NAME-FREEZE: prefix, name_strips and sanitizer_stopwords reproduce the
+# original fortinet_ai_suite values byte-for-byte. Changing any of them
+# renames the generated tools and invalidates the Qdrant tool_catalog index.
+vendor: fortinet
+name: fortigate
+display_name: FortiGate Suite
+prefix: fgt
+device_type: fortios
+auth: bearer_header
+
+# One sub-server per directory under specs/ (cmdb, monitor, log)
+spec_glob: "fortios_*.json"
+name_strips:
+  - "fortios_"
+  - "_openapi"
+
+# Tokens the operationId sanitizer may drop when a name exceeds the budget
+sanitizer_stopwords:
+  - fortios
+  - api
+  - v2
+  - monitor
+  - cmdb
+  - log
+  - system
+
+# Expose fgt_get_inventory_tree for device discovery
+inventory_tool: true
+
+device_param_description: "Optional: Name of the target device in inventory (e.g. fgt_branch). Defaults to primary."

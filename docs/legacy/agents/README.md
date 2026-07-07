@@ -92,6 +92,6 @@ stateDiagram-v2
 
 ## See Also
 
-- [Pipeline Diagram](../README.md) - Full system pipeline
-- [Architecture Overview](../architecture/overview.md) - System-level design
+- [Pipeline Diagram](../../README.md) - Full system pipeline
+- [Architecture Overview](../../architecture/overview.md) - System-level design
 - [Scoring Decision Gate](scoring.md) - How routing decisions are made

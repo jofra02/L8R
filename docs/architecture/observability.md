@@ -4,24 +4,22 @@
 
 ## Overview
 
-The system integrates with [Langfuse](https://langfuse.com) for observability. Every pipeline execution creates a trace, every agent node creates a span, and every tool call creates a child span. This provides full visibility into agent reasoning, tool execution, and LLM call latency.
+The system integrates with [Langfuse](https://langfuse.com) for observability. Every run creates a trace; the Engineer node creates a span, and the LangChain callback handler auto-instruments every LLM turn and tool call inside the ReAct loop. This provides full visibility into agent reasoning, tool execution, and LLM call latency.
 
-The integration targets Langfuse SDK >= 2.44.0 (OTel-based API) and is managed through a singleton `LangfuseManager` in `src/core/langfuse_integration.py`.
+The integration targets the OTel-based Langfuse SDK (v4 API compatible) and is managed through a singleton `LangfuseManager` in `src/core/langfuse_integration.py`.
 
-## Trace Model
+## Trace Model (Engineer mode)
 
 ```mermaid
 graph TD
-    T["Trace (run_id)"] --> S1["Span: agent:supervisor"]
-    T --> S2["Span: agent:context_agent"]
-    T --> S3["Span: agent:classifier_agent"]
-    T --> S4["Span: agent:evidence_collector"]
-    S4 --> T1["Span: tool:get_interfaces"]
-    S4 --> T2["Span: tool:show_routes"]
-    T --> S5["Span: agent:enricher_agent"]
-    T --> S6["Span: agent:hypothesis_agent"]
-    T --> S7["Span: agent:scoring_agent"]
-    T --> S8["..."]
+    T["Trace (run_id)"] --> E["Span: agent:engineer"]
+    E --> L1["LLM turn 1 (via LangChain callback)"]
+    L1 --> C1["Tool call: query_client_db"]
+    E --> L2["LLM turn 2"]
+    L2 --> C2["Tool call: search_tool_catalog"]
+    E --> L3["LLM turn N"]
+    L3 --> C3["Tool call: execute_tool → fgt_..."]
+    E --> LF["Final LLM turn → submit_findings"]
 ```
 
 ### Trace Structure
@@ -29,18 +27,19 @@ graph TD
 | Level | Name Pattern | Metadata |
 |---|---|---|
 | Trace | `run_id` (32-char hex) | `ticket_id`, `customer_id`, `thread_id` |
-| Agent Span | `agent:{node_name}` | `run_id`, `customer_id`, `iteration` |
-| Tool Span | `tool:{tool_name}` | `customer_id`, tool `args` |
-| LLM Callback | (auto via LangChain handler) | model, tokens, latency |
+| Agent Span | `agent:engineer` | `run_id`, `customer_id` |
+| LLM turns + tool calls | (auto via LangChain `CallbackHandler` scoped to the engineer span) | model, tokens, latency, tool args |
+
+> If the legacy 13-agent graph runs (`PIPELINE_MODE=pipeline`, `main.py test`, or `run_mock.py`), traces instead show one span per legacy agent node.
 
 ### Context Propagation
 
 Trace and span references are propagated through the async pipeline using `contextvars`:
 
-- `set_current_trace(trace)` / `get_current_trace()` - pipeline-level trace
+- `set_current_trace(trace)` / `get_current_trace()` - run-level trace
 - `set_current_span(span)` / `get_current_span()` - current agent span
 
-The `audit_node` wrapper in `src/agent_graph.py` automatically creates and closes spans for each agent node.
+The `audit_node` wrapper in `src/agents/audit_wrapper.py` (applied in `src/agent_graph_v2.py`) automatically creates and closes the engineer span; `src/agents/engineer.py` attaches the Langfuse callback handler to the ReAct invocation so all inner LLM/tool activity nests under it.
 
 ## SDK Integration Details
 
@@ -89,7 +88,7 @@ The Langfuse client buffers events and flushes in batches. On application shutdo
 ## Key Implementation Details
 
 - Source: `src/core/langfuse_integration.py`
-- Audit wrapper: `src/agent_graph.py:audit_node()`
+- Audit wrapper: `src/agents/audit_wrapper.py:audit_node()` (wired in `src/agent_graph_v2.py`)
 - Lazy initialization: client is created on first use, not at import time
 - Graceful degradation: if Langfuse is unavailable, all span operations are no-ops
 - Error spans: failed agent nodes set `level="ERROR"` and `status_message` on their span

@@ -1,0 +1,2140 @@
+{
+  "info": {
+    "title": "FortiOS CMDB",
+    "description": "REST API for configuring FortiOS objects and settings",
+    "version": "v2",
+    "termsOfService": "http://fortinet.com/terms/",
+    "contact": {
+      "name": "FortiOS Web Application Team",
+      "email": "fosguiqateam@fortinet.com",
+      "url": "http://modskristensen.net"
+    }
+  },
+  "host": "172.16.177.65",
+  "basePath": "/api/v2/cmdb",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "APIKeyQueryParam": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "certificate/ca",
+      "description": "CA certificate."
+    },
+    {
+      "name": "certificate/crl",
+      "description": "Certificate Revocation List as a PEM file."
+    },
+    {
+      "name": "certificate/local",
+      "description": "Local keys and certificates."
+    },
+    {
+      "name": "certificate/remote",
+      "description": "Remote certificate as a PEM file."
+    }
+  ],
+  "paths": {
+    "/certificate/ca/{name}": {
+      "get": {
+        "tags": [
+          "certificate/ca"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name.",
+                  "maxLength": 79
+                },
+                "ca": {
+                  "type": "string",
+                  "description": "CA certificate as a PEM file."
+                },
+                "range": {
+                  "type": "string",
+                  "description": "Either global or VDOM IP address range for the CA certificate.   \nglobal:Global range.   \nvdom:VDOM IP address range.",
+                  "enum": [
+                    "global",
+                    "vdom"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "CA certificate source type.   \nfactory:Factory installed certificate.   \nuser:User generated certificate.   \nbundle:Bundle file certificate.",
+                  "enum": [
+                    "factory",
+                    "user",
+                    "bundle"
+                  ]
+                },
+                "ssl-inspection-trusted": {
+                  "type": "string",
+                  "description": "Enable/disable this CA as a trusted CA for SSL inspection.   \nenable:Trusted CA for SSL inspection.   \ndisable:Untrusted CA for SSL inspection.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "scep-url": {
+                  "type": "string",
+                  "description": "URL of the SCEP server.",
+                  "maxLength": 255
+                },
+                "est-url": {
+                  "type": "string",
+                  "description": "URL of the EST server.",
+                  "maxLength": 255
+                },
+                "auto-update-days": {
+                  "type": "integer",
+                  "description": "Number of days to wait before requesting an updated CA certificate (0 - 4294967295, 0 = disabled).",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "auto-update-days-warning": {
+                  "type": "integer",
+                  "description": "Number of days before an expiry-warning message is generated (0 - 4294967295, 0 = disabled).",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "source-ip": {
+                  "type": "string",
+                  "format": "ipv4",
+                  "description": "Source IP address for communications to the SCEP server."
+                },
+                "ca-identifier": {
+                  "type": "string",
+                  "description": "CA identifier of the SCEP server.",
+                  "maxLength": 255
+                },
+                "obsolete": {
+                  "type": "string",
+                  "description": "Enable/disable this CA as obsoleted.   \ndisable:Alive.   \nenable:Obsolete.",
+                  "enum": [
+                    "disable",
+                    "enable"
+                  ]
+                },
+                "fabric-ca": {
+                  "type": "string",
+                  "description": "Enable/disable synchronization of CA across Security Fabric.   \ndisable:Disable synchronization of CA across Security Fabric.   \nenable:Enable synchronization of CA across Security Fabric.",
+                  "enum": [
+                    "disable",
+                    "enable"
+                  ]
+                },
+                "details": {
+                  "type": "string",
+                  "description": "Print CA certificate detailed information."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_certificate_ca_{name}"
+      }
+    },
+    "/certificate/ca": {
+      "get": {
+        "tags": [
+          "certificate/ca"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name.",
+                  "maxLength": 79
+                },
+                "ca": {
+                  "type": "string",
+                  "description": "CA certificate as a PEM file."
+                },
+                "range": {
+                  "type": "string",
+                  "description": "Either global or VDOM IP address range for the CA certificate.   \nglobal:Global range.   \nvdom:VDOM IP address range.",
+                  "enum": [
+                    "global",
+                    "vdom"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "CA certificate source type.   \nfactory:Factory installed certificate.   \nuser:User generated certificate.   \nbundle:Bundle file certificate.",
+                  "enum": [
+                    "factory",
+                    "user",
+                    "bundle"
+                  ]
+                },
+                "ssl-inspection-trusted": {
+                  "type": "string",
+                  "description": "Enable/disable this CA as a trusted CA for SSL inspection.   \nenable:Trusted CA for SSL inspection.   \ndisable:Untrusted CA for SSL inspection.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "scep-url": {
+                  "type": "string",
+                  "description": "URL of the SCEP server.",
+                  "maxLength": 255
+                },
+                "est-url": {
+                  "type": "string",
+                  "description": "URL of the EST server.",
+                  "maxLength": 255
+                },
+                "auto-update-days": {
+                  "type": "integer",
+                  "description": "Number of days to wait before requesting an updated CA certificate (0 - 4294967295, 0 = disabled).",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "auto-update-days-warning": {
+                  "type": "integer",
+                  "description": "Number of days before an expiry-warning message is generated (0 - 4294967295, 0 = disabled).",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "source-ip": {
+                  "type": "string",
+                  "format": "ipv4",
+                  "description": "Source IP address for communications to the SCEP server."
+                },
+                "ca-identifier": {
+                  "type": "string",
+                  "description": "CA identifier of the SCEP server.",
+                  "maxLength": 255
+                },
+                "obsolete": {
+                  "type": "string",
+                  "description": "Enable/disable this CA as obsoleted.   \ndisable:Alive.   \nenable:Obsolete.",
+                  "enum": [
+                    "disable",
+                    "enable"
+                  ]
+                },
+                "fabric-ca": {
+                  "type": "string",
+                  "description": "Enable/disable synchronization of CA across Security Fabric.   \ndisable:Disable synchronization of CA across Security Fabric.   \nenable:Enable synchronization of CA across Security Fabric.",
+                  "enum": [
+                    "disable",
+                    "enable"
+                  ]
+                },
+                "details": {
+                  "type": "string",
+                  "description": "Print CA certificate detailed information."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_certificate_ca"
+      }
+    },
+    "/certificate/crl/{name}": {
+      "get": {
+        "tags": [
+          "certificate/crl"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name.",
+                  "maxLength": 35
+                },
+                "crl": {
+                  "type": "string",
+                  "description": "Certificate Revocation List as a PEM file."
+                },
+                "range": {
+                  "type": "string",
+                  "description": "Either global or VDOM IP address range for the certificate.   \nglobal:Global range.   \nvdom:VDOM IP address range.",
+                  "enum": [
+                    "global",
+                    "vdom"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Certificate source type.   \nfactory:Factory installed certificate.   \nuser:User generated certificate.   \nbundle:Bundle file certificate.",
+                  "enum": [
+                    "factory",
+                    "user",
+                    "bundle"
+                  ]
+                },
+                "update-vdom": {
+                  "type": "string",
+                  "description": "VDOM for CRL update.",
+                  "maxLength": 31
+                },
+                "ldap-server": {
+                  "type": "string",
+                  "description": "LDAP server name for CRL auto-update.",
+                  "maxLength": 35
+                },
+                "ldap-username": {
+                  "type": "string",
+                  "description": "LDAP server user name.",
+                  "maxLength": 63
+                },
+                "ldap-password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "LDAP server user password."
+                },
+                "http-url": {
+                  "type": "string",
+                  "description": "HTTP server URL for CRL auto-update.",
+                  "maxLength": 255
+                },
+                "scep-url": {
+                  "type": "string",
+                  "description": "SCEP server URL for CRL auto-update.",
+                  "maxLength": 255
+                },
+                "scep-cert": {
+                  "type": "string",
+                  "description": "Local certificate for SCEP communication for CRL auto-update.",
+                  "maxLength": 35
+                },
+                "update-interval": {
+                  "type": "integer",
+                  "description": "Time in seconds before the FortiGate checks for an updated CRL. Set to 0 to update only when it expires.",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "source-ip": {
+                  "type": "string",
+                  "format": "ipv4",
+                  "description": "Source IP address for communications to a HTTP or SCEP CA server."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_certificate_crl_{name}"
+      }
+    },
+    "/certificate/crl": {
+      "get": {
+        "tags": [
+          "certificate/crl"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name.",
+                  "maxLength": 35
+                },
+                "crl": {
+                  "type": "string",
+                  "description": "Certificate Revocation List as a PEM file."
+                },
+                "range": {
+                  "type": "string",
+                  "description": "Either global or VDOM IP address range for the certificate.   \nglobal:Global range.   \nvdom:VDOM IP address range.",
+                  "enum": [
+                    "global",
+                    "vdom"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Certificate source type.   \nfactory:Factory installed certificate.   \nuser:User generated certificate.   \nbundle:Bundle file certificate.",
+                  "enum": [
+                    "factory",
+                    "user",
+                    "bundle"
+                  ]
+                },
+                "update-vdom": {
+                  "type": "string",
+                  "description": "VDOM for CRL update.",
+                  "maxLength": 31
+                },
+                "ldap-server": {
+                  "type": "string",
+                  "description": "LDAP server name for CRL auto-update.",
+                  "maxLength": 35
+                },
+                "ldap-username": {
+                  "type": "string",
+                  "description": "LDAP server user name.",
+                  "maxLength": 63
+                },
+                "ldap-password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "LDAP server user password."
+                },
+                "http-url": {
+                  "type": "string",
+                  "description": "HTTP server URL for CRL auto-update.",
+                  "maxLength": 255
+                },
+                "scep-url": {
+                  "type": "string",
+                  "description": "SCEP server URL for CRL auto-update.",
+                  "maxLength": 255
+                },
+                "scep-cert": {
+                  "type": "string",
+                  "description": "Local certificate for SCEP communication for CRL auto-update.",
+                  "maxLength": 35
+                },
+                "update-interval": {
+                  "type": "integer",
+                  "description": "Time in seconds before the FortiGate checks for an updated CRL. Set to 0 to update only when it expires.",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "source-ip": {
+                  "type": "string",
+                  "format": "ipv4",
+                  "description": "Source IP address for communications to a HTTP or SCEP CA server."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_certificate_crl"
+      }
+    },
+    "/certificate/local/{name}": {
+      "get": {
+        "tags": [
+          "certificate/local"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name.",
+                  "maxLength": 35
+                },
+                "password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "Password as a PEM file."
+                },
+                "comments": {
+                  "type": "string",
+                  "description": "Comment.",
+                  "maxLength": 511
+                },
+                "private-key": {
+                  "type": "string",
+                  "description": "PEM format key encrypted with a password."
+                },
+                "certificate": {
+                  "type": "string",
+                  "description": "PEM format certificate."
+                },
+                "csr": {
+                  "type": "string",
+                  "description": "Certificate Signing Request."
+                },
+                "state": {
+                  "type": "string",
+                  "description": "Certificate Signing Request State."
+                },
+                "scep-url": {
+                  "type": "string",
+                  "description": "SCEP server URL.",
+                  "maxLength": 255
+                },
+                "range": {
+                  "type": "string",
+                  "description": "Either a global or VDOM IP address range for the certificate.   \nglobal:Global range.   \nvdom:VDOM IP address range.",
+                  "enum": [
+                    "global",
+                    "vdom"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Certificate source type.   \nfactory:Factory installed certificate.   \nuser:User generated certificate.   \nbundle:Bundle file certificate.",
+                  "enum": [
+                    "factory",
+                    "user",
+                    "bundle"
+                  ]
+                },
+                "auto-regenerate-days": {
+                  "type": "integer",
+                  "description": "Number of days to wait before expiry of an updated local certificate is requested (0 = disabled).",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "auto-regenerate-days-warning": {
+                  "type": "integer",
+                  "description": "Number of days to wait before an expiry warning message is generated (0 = disabled).",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "scep-password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "SCEP server challenge password for auto-regeneration."
+                },
+                "ca-identifier": {
+                  "type": "string",
+                  "description": "CA identifier of the CA server for signing via SCEP.",
+                  "maxLength": 255
+                },
+                "name-encoding": {
+                  "type": "string",
+                  "description": "Name encoding method for auto-regeneration.   \nprintable:Printable encoding (default).   \nutf8:UTF-8 encoding.",
+                  "enum": [
+                    "printable",
+                    "utf8"
+                  ]
+                },
+                "source-ip": {
+                  "type": "string",
+                  "format": "ipv4",
+                  "description": "Source IP address for communications to the SCEP server."
+                },
+                "ike-localid": {
+                  "type": "string",
+                  "description": "Local ID the FortiGate uses for authentication as a VPN client.",
+                  "maxLength": 63
+                },
+                "ike-localid-type": {
+                  "type": "string",
+                  "description": "IKE local ID type.   \nasn1dn:ASN.1 distinguished name.   \nfqdn:Fully qualified domain name.",
+                  "enum": [
+                    "asn1dn",
+                    "fqdn"
+                  ]
+                },
+                "enroll-protocol": {
+                  "type": "string",
+                  "description": "Certificate enrollment protocol.   \nnone:None (default).   \nscep:Simple Certificate Enrollment Protocol.   \ncmpv2:Certificate Management Protocol Version 2.   \nacme2:Automated Certificate Management Environment Version 2.   \nest:Enrollment over Secure Transport.",
+                  "enum": [
+                    "none",
+                    "scep",
+                    "cmpv2",
+                    "acme2",
+                    "est"
+                  ]
+                },
+                "private-key-retain": {
+                  "type": "string",
+                  "description": "Enable/disable retention of private key during SCEP renewal (default = disable).   \nenable:Keep the existing private key during SCEP renewal.   \ndisable:Generate a new private key during SCEP renewal.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "cmp-server": {
+                  "type": "string",
+                  "description": "Address and port for CMP server (format = address:port).",
+                  "maxLength": 63
+                },
+                "cmp-path": {
+                  "type": "string",
+                  "description": "Path location inside CMP server.",
+                  "maxLength": 255
+                },
+                "cmp-server-cert": {
+                  "type": "string",
+                  "description": "CMP server certificate.",
+                  "maxLength": 79
+                },
+                "cmp-regeneration-method": {
+                  "type": "string",
+                  "description": "CMP auto-regeneration method.   \nkeyupate:Key Update.   \nrenewal:Renewal.",
+                  "enum": [
+                    "keyupate",
+                    "renewal"
+                  ]
+                },
+                "acme-ca-url": {
+                  "type": "string",
+                  "description": "The URL for the ACME CA server (Let's Encrypt is the default provider).",
+                  "maxLength": 255
+                },
+                "acme-domain": {
+                  "type": "string",
+                  "description": "A valid domain that resolves to this FortiGate unit.",
+                  "maxLength": 255
+                },
+                "acme-email": {
+                  "type": "string",
+                  "description": "Contact email address that is required by some CAs like LetsEncrypt.",
+                  "maxLength": 255
+                },
+                "acme-rsa-key-size": {
+                  "type": "integer",
+                  "description": "Length of the RSA private key of the generated cert (Minimum 2048 bits).",
+                  "maximum": 4096,
+                  "minimum": 2048
+                },
+                "acme-renew-window": {
+                  "type": "integer",
+                  "description": "Beginning of the renewal window (in days before certificate expiration, 30 by default).",
+                  "maximum": 100,
+                  "minimum": 1
+                },
+                "est-server": {
+                  "type": "string",
+                  "description": "Address and port for EST server (e.g. https://example.com:1234).",
+                  "maxLength": 255
+                },
+                "est-ca-id": {
+                  "type": "string",
+                  "description": "CA identifier of the CA server for signing via EST.",
+                  "maxLength": 255
+                },
+                "est-http-username": {
+                  "type": "string",
+                  "description": "HTTP Authentication username for signing via EST.",
+                  "maxLength": 63
+                },
+                "est-http-password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "HTTP Authentication password for signing via EST."
+                },
+                "est-client-cert": {
+                  "type": "string",
+                  "description": "Certificate used to authenticate this FortiGate to EST server.",
+                  "maxLength": 79
+                },
+                "est-server-cert": {
+                  "type": "string",
+                  "description": "EST server's certificate must be verifiable by this certificate to be authenticated.",
+                  "maxLength": 79
+                },
+                "est-srp-username": {
+                  "type": "string",
+                  "description": "EST SRP authentication username.",
+                  "maxLength": 63
+                },
+                "est-srp-password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "EST SRP authentication password."
+                },
+                "est-regeneration-method": {
+                  "type": "string",
+                  "description": "EST behavioral options during re-enrollment.   \ncreate-new-key:Create new private key during re-enrollment.   \nuse-existing-key:Reuse existing private key during re-enrollment.",
+                  "enum": [
+                    "create-new-key",
+                    "use-existing-key"
+                  ]
+                },
+                "details": {
+                  "type": "string",
+                  "description": "Print local certificate detailed information."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_certificate_local_{name}"
+      }
+    },
+    "/certificate/local": {
+      "get": {
+        "tags": [
+          "certificate/local"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name.",
+                  "maxLength": 35
+                },
+                "password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "Password as a PEM file."
+                },
+                "comments": {
+                  "type": "string",
+                  "description": "Comment.",
+                  "maxLength": 511
+                },
+                "private-key": {
+                  "type": "string",
+                  "description": "PEM format key encrypted with a password."
+                },
+                "certificate": {
+                  "type": "string",
+                  "description": "PEM format certificate."
+                },
+                "csr": {
+                  "type": "string",
+                  "description": "Certificate Signing Request."
+                },
+                "state": {
+                  "type": "string",
+                  "description": "Certificate Signing Request State."
+                },
+                "scep-url": {
+                  "type": "string",
+                  "description": "SCEP server URL.",
+                  "maxLength": 255
+                },
+                "range": {
+                  "type": "string",
+                  "description": "Either a global or VDOM IP address range for the certificate.   \nglobal:Global range.   \nvdom:VDOM IP address range.",
+                  "enum": [
+                    "global",
+                    "vdom"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Certificate source type.   \nfactory:Factory installed certificate.   \nuser:User generated certificate.   \nbundle:Bundle file certificate.",
+                  "enum": [
+                    "factory",
+                    "user",
+                    "bundle"
+                  ]
+                },
+                "auto-regenerate-days": {
+                  "type": "integer",
+                  "description": "Number of days to wait before expiry of an updated local certificate is requested (0 = disabled).",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "auto-regenerate-days-warning": {
+                  "type": "integer",
+                  "description": "Number of days to wait before an expiry warning message is generated (0 = disabled).",
+                  "maximum": 4294967295,
+                  "minimum": 0
+                },
+                "scep-password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "SCEP server challenge password for auto-regeneration."
+                },
+                "ca-identifier": {
+                  "type": "string",
+                  "description": "CA identifier of the CA server for signing via SCEP.",
+                  "maxLength": 255
+                },
+                "name-encoding": {
+                  "type": "string",
+                  "description": "Name encoding method for auto-regeneration.   \nprintable:Printable encoding (default).   \nutf8:UTF-8 encoding.",
+                  "enum": [
+                    "printable",
+                    "utf8"
+                  ]
+                },
+                "source-ip": {
+                  "type": "string",
+                  "format": "ipv4",
+                  "description": "Source IP address for communications to the SCEP server."
+                },
+                "ike-localid": {
+                  "type": "string",
+                  "description": "Local ID the FortiGate uses for authentication as a VPN client.",
+                  "maxLength": 63
+                },
+                "ike-localid-type": {
+                  "type": "string",
+                  "description": "IKE local ID type.   \nasn1dn:ASN.1 distinguished name.   \nfqdn:Fully qualified domain name.",
+                  "enum": [
+                    "asn1dn",
+                    "fqdn"
+                  ]
+                },
+                "enroll-protocol": {
+                  "type": "string",
+                  "description": "Certificate enrollment protocol.   \nnone:None (default).   \nscep:Simple Certificate Enrollment Protocol.   \ncmpv2:Certificate Management Protocol Version 2.   \nacme2:Automated Certificate Management Environment Version 2.   \nest:Enrollment over Secure Transport.",
+                  "enum": [
+                    "none",
+                    "scep",
+                    "cmpv2",
+                    "acme2",
+                    "est"
+                  ]
+                },
+                "private-key-retain": {
+                  "type": "string",
+                  "description": "Enable/disable retention of private key during SCEP renewal (default = disable).   \nenable:Keep the existing private key during SCEP renewal.   \ndisable:Generate a new private key during SCEP renewal.",
+                  "enum": [
+                    "enable",
+                    "disable"
+                  ]
+                },
+                "cmp-server": {
+                  "type": "string",
+                  "description": "Address and port for CMP server (format = address:port).",
+                  "maxLength": 63
+                },
+                "cmp-path": {
+                  "type": "string",
+                  "description": "Path location inside CMP server.",
+                  "maxLength": 255
+                },
+                "cmp-server-cert": {
+                  "type": "string",
+                  "description": "CMP server certificate.",
+                  "maxLength": 79
+                },
+                "cmp-regeneration-method": {
+                  "type": "string",
+                  "description": "CMP auto-regeneration method.   \nkeyupate:Key Update.   \nrenewal:Renewal.",
+                  "enum": [
+                    "keyupate",
+                    "renewal"
+                  ]
+                },
+                "acme-ca-url": {
+                  "type": "string",
+                  "description": "The URL for the ACME CA server (Let's Encrypt is the default provider).",
+                  "maxLength": 255
+                },
+                "acme-domain": {
+                  "type": "string",
+                  "description": "A valid domain that resolves to this FortiGate unit.",
+                  "maxLength": 255
+                },
+                "acme-email": {
+                  "type": "string",
+                  "description": "Contact email address that is required by some CAs like LetsEncrypt.",
+                  "maxLength": 255
+                },
+                "acme-rsa-key-size": {
+                  "type": "integer",
+                  "description": "Length of the RSA private key of the generated cert (Minimum 2048 bits).",
+                  "maximum": 4096,
+                  "minimum": 2048
+                },
+                "acme-renew-window": {
+                  "type": "integer",
+                  "description": "Beginning of the renewal window (in days before certificate expiration, 30 by default).",
+                  "maximum": 100,
+                  "minimum": 1
+                },
+                "est-server": {
+                  "type": "string",
+                  "description": "Address and port for EST server (e.g. https://example.com:1234).",
+                  "maxLength": 255
+                },
+                "est-ca-id": {
+                  "type": "string",
+                  "description": "CA identifier of the CA server for signing via EST.",
+                  "maxLength": 255
+                },
+                "est-http-username": {
+                  "type": "string",
+                  "description": "HTTP Authentication username for signing via EST.",
+                  "maxLength": 63
+                },
+                "est-http-password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "HTTP Authentication password for signing via EST."
+                },
+                "est-client-cert": {
+                  "type": "string",
+                  "description": "Certificate used to authenticate this FortiGate to EST server.",
+                  "maxLength": 79
+                },
+                "est-server-cert": {
+                  "type": "string",
+                  "description": "EST server's certificate must be verifiable by this certificate to be authenticated.",
+                  "maxLength": 79
+                },
+                "est-srp-username": {
+                  "type": "string",
+                  "description": "EST SRP authentication username.",
+                  "maxLength": 63
+                },
+                "est-srp-password": {
+                  "type": "string",
+                  "format": "password",
+                  "description": "EST SRP authentication password."
+                },
+                "est-regeneration-method": {
+                  "type": "string",
+                  "description": "EST behavioral options during re-enrollment.   \ncreate-new-key:Create new private key during re-enrollment.   \nuse-existing-key:Reuse existing private key during re-enrollment.",
+                  "enum": [
+                    "create-new-key",
+                    "use-existing-key"
+                  ]
+                },
+                "details": {
+                  "type": "string",
+                  "description": "Print local certificate detailed information."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_certificate_local"
+      }
+    },
+    "/certificate/remote/{name}": {
+      "get": {
+        "tags": [
+          "certificate/remote"
+        ],
+        "summary": "Select a specific entry from a CLI table.\n Access Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name.",
+                  "maxLength": 35
+                },
+                "remote": {
+                  "type": "string",
+                  "description": "Remote certificate."
+                },
+                "range": {
+                  "type": "string",
+                  "description": "Either the global or VDOM IP address range for the remote certificate.   \nglobal:Global range.   \nvdom:VDOM IP address range.",
+                  "enum": [
+                    "global",
+                    "vdom"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Remote certificate source type.   \nfactory:Factory installed certificate.   \nuser:User generated certificate.   \nbundle:Bundle file certificate.",
+                  "enum": [
+                    "factory",
+                    "user",
+                    "bundle"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/attr"
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/acs"
+          },
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "mkey"
+          }
+        ],
+        "operationId": "get_certificate_remote_{name}"
+      }
+    },
+    "/certificate/remote": {
+      "get": {
+        "tags": [
+          "certificate/remote"
+        ],
+        "summary": "Select all entries in a CLI table.\n Access Group: vpngrp",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name.",
+                  "maxLength": 35
+                },
+                "remote": {
+                  "type": "string",
+                  "description": "Remote certificate."
+                },
+                "range": {
+                  "type": "string",
+                  "description": "Either the global or VDOM IP address range for the remote certificate.   \nglobal:Global range.   \nvdom:VDOM IP address range.",
+                  "enum": [
+                    "global",
+                    "vdom"
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Remote certificate source type.   \nfactory:Factory installed certificate.   \nuser:User generated certificate.   \nbundle:Bundle file certificate.",
+                  "enum": [
+                    "factory",
+                    "user",
+                    "bundle"
+                  ]
+                }
+              },
+              "type": "object"
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/datasource"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Starting entry index."
+          },
+          {
+            "$ref": "#/components/parameters/count"
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "$ref": "#/components/parameters/with_meta"
+          },
+          {
+            "name": "with_contents_hash",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Enable to include a checksum of each object's contents."
+          },
+          {
+            "$ref": "#/components/parameters/skip"
+          },
+          {
+            "$ref": "#/components/parameters/format"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "exclude-default-values",
+            "in": "query",
+            "required": false,
+            "type": "boolean",
+            "description": "Exclude properties/objects with default value"
+          },
+          {
+            "name": "datasource_format",
+            "in": "query",
+            "required": false,
+            "type": "object",
+            "description": "A map of datasources to a string of attributes, separated by | (ie: policyid|srcintf). If specified, this will add the attributes listed for any linked objects."
+          },
+          {
+            "$ref": "#/components/parameters/skip_to"
+          },
+          {
+            "name": "unfiltered_count",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "description": "Maximum number of unfiltered entries to interate through."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this name."
+          },
+          {
+            "name": "pattern",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If present, objects will be filtered on property with this value."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "name": "stat-items",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Items to count occurrence in entire response (multiple items should be separated by '|')."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filtering multiple key/value pairs\nOperator     |   Description\n==     |   Case insensitive match with pattern.\n!=     |    Does not match with pattern (case insensitive).\n=@     |    Pattern found in object value (case insensitive).\n!@     |    \ufeffPattern not\ufeff found in object value (case insensitive).\n<=     |    Value must be less than or equal to \ufeffpattern\ufeff.\n<     |    Value must be less than pattern\ufeff.\n.>=    |    Value must be greater than or equal to \ufeffpattern\ufeff.\n.>     |    Value must be greater than \ufeffpattern\ufeff.\nLogical OR    |    Separate filters using commas ','\nLogical AND    |    Filter strings can be combined to create logical AND queries by including multiple filters in the request.\nCombining AND and OR    |    You can combine AND and OR filters together to create more complex filters.\n",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "primary_keys",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "The primary key to find indexes for."
+          },
+          {
+            "$ref": "#/components/parameters/scope"
+          },
+          {
+            "$ref": "#/components/parameters/action"
+          },
+          {
+            "$ref": "#/components/parameters/vdom"
+          }
+        ],
+        "operationId": "get_certificate_remote"
+      }
+    }
+  },
+  "definitions": {},
+  "securityDefinitions": {
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "access_token"
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "parameters": {
+      "attr": {
+        "name": "attr",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "Attribute name that references other table"
+      },
+      "count": {
+        "name": "count",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "Maximum number of entries to return."
+      },
+      "skip_to": {
+        "name": "skip_to",
+        "in": "query",
+        "required": false,
+        "type": "object",
+        "description": "Skip to provided table's Nth entry. E.g {datasource: 'firewall.address', pos: 10, global_entry: false}"
+      },
+      "acs": {
+        "name": "acs",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "If true, returned result are in ascending order."
+      },
+      "search": {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "If present, the objects will be filtered by the search value."
+      },
+      "scope": {
+        "name": "scope",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "Scope [global|vdom|both*]"
+      },
+      "datasource": {
+        "name": "datasource",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to include datasource information for each linked object."
+      },
+      "with_meta": {
+        "name": "with_meta",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to include meta information about each object (type id, references, etc)."
+      },
+      "skip": {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "type": "boolean",
+        "description": "Enable to call CLI skip operator to hide skipped properties."
+      },
+      "format": {
+        "name": "format",
+        "in": "query",
+        "description": "List of property names to include in results, separated by | (i.e. policyid|srcintf).",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "pipes",
+        "items": {
+          "type": "string"
+        }
+      },
+      "action": {
+        "name": "action",
+        "in": "query",
+        "description": "datasource: Return all applicable datasource entries for a specific attribute based on simulate data.\nstats: Return CMDB aggregated statistics.\nfind-index: Return indexes of provided primary keys with respect to filter.\ndefault: Return the CLI default values for this object type.\njson-schema: Return the JSON Schema for this object type.\nschema: Return the CLI schema for this object type.\nrevision: Return the CMDB revision for this object type.\ntransaction-list: List all configuration transaction(s).\ntransaction-show: Show the content of the configuration transaction by transcation ID.\n",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "default",
+          "schema",
+          "revision"
+        ]
+      },
+      "vdom": {
+        "name": "vdom",
+        "in": "query",
+        "description": "Specify the Virtual Domain(s) from which results are returned or changes are applied to. If this parameter is not provided, the management VDOM will be used. If the admin does not have access to the VDOM, a permission error will be returned.\nThe URL parameter is one of:\nvdom=root (Single VDOM)\nvdom=vdom1,vdom2 (Multiple VDOMs)\nvdom=* (All VDOMs)\n",
+        "required": false,
+        "type": "array",
+        "collectionFormat": "csv",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "400": {
+        "description": "Bad Request: Request cannot be processed by the API"
+      },
+      "401": {
+        "description": "Not Authorized: Request without successful login session"
+      },
+      "403": {
+        "description": "Forbidden: Request is missing CSRF token or administrator is missing access profile permissions."
+      },
+      "404": {
+        "description": "Resource Not Found: Unable to find the specified resource."
+      },
+      "405": {
+        "description": "Method Not Allowed: Specified HTTP method is not allowed for this resource. "
+      },
+      "413": {
+        "description": "Request Entity Too Large: Request cannot be processed due to large entity "
+      },
+      "424": {
+        "description": "Failed Dependency: Fail dependency can be duplicate resource, missing required parameter, missing required attribute, invalid attribute value"
+      },
+      "429": {
+        "description": "Access temporarily blocked: Maximum failed authentications reached. The offended source is temporarily blocked for certain amount of time."
+      },
+      "500": {
+        "description": "Internal Server Error: Internal error when processing the request "
+      }
+    }
+  }
+}

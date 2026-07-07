@@ -1,3 +1,5 @@
+> Historical design spec — for the current onboarding procedure see [../setup/quickstart.md](../setup/quickstart.md) and the [Tenant Onboarding runbook](../operations/tenant_onboarding.md).
+
 # Onboarding & Data Seeding Plan
 
 To fully operationalize the Support AI Agent, we need pipelines to populate the "Blank Slate" databases (PostgreSQL & Qdrant) with customer specific data.

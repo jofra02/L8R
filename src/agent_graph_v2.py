@@ -7,7 +7,7 @@ the graph provides state management and audit/observability wrapping.
 from langgraph.graph import StateGraph, END
 from src.core.models import GlobalState
 from src.agents.engineer import engineer_agent_node
-from src.agent_graph import audit_node  # Reuse existing Langfuse + audit wrapper
+from src.agents.audit_wrapper import audit_node
 
 workflow = StateGraph(GlobalState)
 workflow.add_node("engineer", audit_node(engineer_agent_node, "engineer"))

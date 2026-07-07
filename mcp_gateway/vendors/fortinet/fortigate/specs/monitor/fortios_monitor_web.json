@@ -1,0 +1,655 @@
+{
+  "info": {
+    "title": "FortiOS Monitor",
+    "description": "REST API for configuring FortiOS objects and settings",
+    "version": "v2",
+    "termsOfService": "http://fortinet.com/terms/",
+    "contact": {
+      "name": "FortiOS Web Application Team",
+      "email": "fosguiqateam@fortinet.com",
+      "url": "http://modskristensen.net"
+    }
+  },
+  "host": "172.16.177.65",
+  "basePath": "/api/v2/monitor",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "APIKeyQueryParam": []
+    }
+  ],
+  "paths": {
+    "/webfilter/override": {
+      "get": {
+        "tags": [
+          "webfilter"
+        ],
+        "operationId": "get_webfilter_override",
+        "summary": "List all administrative and user initiated webfilter overrides.\nAccess Group: utmgrp.webfilter",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/webfilter/override/delete": {
+      "post": {
+        "tags": [
+          "webfilter"
+        ],
+        "operationId": "post_webfilter_override_delete",
+        "summary": "Delete a configured webfilter override.\nAccess Group: utmgrp.webfilter",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mkey": {
+                    "description": "ID of webfilter override to delete.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        }
+      }
+    },
+    "/webfilter/malicious-urls": {
+      "get": {
+        "tags": [
+          "webfilter"
+        ],
+        "operationId": "get_webfilter_malicious_urls",
+        "summary": "List all URLs in FortiSandbox malicious URL database.\nAccess Group: utmgrp.webfilter",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "Webfilter Malicious URLs",
+              "description": "List of malicious URLs.",
+              "type": "array",
+              "items": {
+                "title": "Malicious URLs",
+                "description": "List of malicious URLs.",
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "title": "Malicious URL",
+                    "description": "URL of the malicious entry."
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/webfilter/malicious-urls/stat": {
+      "get": {
+        "tags": [
+          "webfilter"
+        ],
+        "operationId": "get_webfilter_malicious_urls_stat",
+        "summary": "Retrieve statistics for the FortiSandbox malicious URL database.\nAccess Group: utmgrp.webfilter",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "Webfilter Malicious URL Statistics",
+              "description": "Statistics of malicious URLs.",
+              "type": "object",
+              "properties": {
+                "url_pkg_ver": {
+                  "type": "string",
+                  "title": "URL Package Version",
+                  "description": "Malicious URL package version."
+                },
+                "count": {
+                  "type": "number",
+                  "title": "Malicious URL Count",
+                  "description": "Number of malicious URLs."
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/webfilter/category-quota": {
+      "get": {
+        "tags": [
+          "webfilter"
+        ],
+        "operationId": "get_webfilter_category_quota",
+        "summary": "Retrieve quota usage statistics for webfilter categories.\nAccess Group: utmgrp.webfilter",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "Quota Usage Statistics for Webfilter Categories",
+              "description": "Quota usage statistics for webfilter categories.",
+              "type": "array",
+              "items": {
+                "x-anyOf": [
+                  {
+                    "type": "object",
+                    "description": "Webfilter profile quota.",
+                    "title": "Webfilter Profile Quota",
+                    "required": [
+                      "id",
+                      "category"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "Profile ID.",
+                        "title": "Profile ID"
+                      },
+                      "category": {
+                        "type": "string",
+                        "description": "Category.",
+                        "title": "Category"
+                      },
+                      "time": {
+                        "type": "integer",
+                        "description": "Time usage.",
+                        "title": "Time"
+                      },
+                      "remaining_time": {
+                        "type": "integer",
+                        "description": "Available time remaining.",
+                        "title": "Remaining Time"
+                      },
+                      "traffic": {
+                        "type": "integer",
+                        "description": "Traffic usage.",
+                        "title": "Traffic"
+                      },
+                      "remaining_traffic": {
+                        "type": "integer",
+                        "description": "Available byte traffic remaining.",
+                        "title": "Remaining Traffic"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "description": "Webfilter user quota.",
+                    "title": "Webfilter User Quota",
+                    "required": [
+                      "profile",
+                      "time",
+                      "traffic"
+                    ],
+                    "properties": {
+                      "user": {
+                        "type": "string",
+                        "description": "User.",
+                        "title": "User"
+                      },
+                      "ip6": {
+                        "type": "string",
+                        "description": "Endpoint IPv6 address.",
+                        "title": "Endpoint IPv6 Address"
+                      },
+                      "ip": {
+                        "type": "string",
+                        "description": "Endpoint IP address.",
+                        "title": "Endpoint IP Address"
+                      },
+                      "profile": {
+                        "type": "string",
+                        "description": "Webfilter profile.",
+                        "title": "Webfilter Profile"
+                      },
+                      "time": {
+                        "type": "integer",
+                        "description": "Time usage.",
+                        "title": "Time"
+                      },
+                      "traffic": {
+                        "type": "integer",
+                        "description": "Traffic usage.",
+                        "title": "Traffic"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "query",
+            "description": "Webfilter profile.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "User or IP (required if profile specified).",
+            "required": false,
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "/webfilter/category-quota/reset": {
+      "post": {
+        "tags": [
+          "webfilter"
+        ],
+        "operationId": "post_webfilter_category_quota_reset",
+        "summary": "Reset webfilter quota for user or IP.\nAccess Group: utmgrp.webfilter",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "profile": {
+                    "description": "Webfilter profile to reset.",
+                    "type": "string"
+                  },
+                  "user": {
+                    "description": "User or IP to reset with.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        }
+      }
+    },
+    "/webfilter/fortiguard-categories": {
+      "get": {
+        "tags": [
+          "webfilter"
+        ],
+        "operationId": "get_webfilter_fortiguard_categories",
+        "summary": "Return FortiGuard web filter categories.\nAccess Group: any",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "FortiGuard Webfilter Categories",
+              "description": "List of FortiGuard webfilter categories.",
+              "type": "array",
+              "items": {
+                "title": "FortiGuard Webfilter Category",
+                "description": "A FortiGuard webfilter category.",
+                "type": "object",
+                "required": [
+                  "id",
+                  "group_id",
+                  "group"
+                ],
+                "properties": {
+                  "id": {
+                    "title": "Category ID",
+                    "description": "Webfilter category ID.",
+                    "type": "integer"
+                  },
+                  "group_id": {
+                    "title": "Category Group ID",
+                    "description": "Webfilter category group ID.",
+                    "type": "integer"
+                  },
+                  "group": {
+                    "title": "Category Group",
+                    "description": "Webfilter category group.",
+                    "type": "string"
+                  },
+                  "rating": {
+                    "title": "Category Rating",
+                    "description": "Webfilter category rating.",
+                    "type": "string"
+                  },
+                  "name": {
+                    "title": "Category Name",
+                    "description": "Webfilter category name.",
+                    "type": "string"
+                  },
+                  "default_wf_action": {
+                    "title": "Default Action",
+                    "description": "Default webfilter category action.",
+                    "type": "string"
+                  },
+                  "blocked_in_ratings": {
+                    "type": "array",
+                    "title": "Blocked in Ratings",
+                    "description": "Blocked in ratings.",
+                    "items": {
+                      "type": "string",
+                      "title": "One Rating",
+                      "description": "One rating."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "include_unrated",
+            "in": "query",
+            "description": "Include Unrated category in result list.",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "convert_unrated_id",
+            "in": "query",
+            "description": "Convert Unrated category id to the one for CLI use.",
+            "required": false,
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "/webfilter/trusted-urls": {
+      "get": {
+        "tags": [
+          "webfilter"
+        ],
+        "operationId": "get_webfilter_trusted_urls",
+        "summary": "List all URLs in FortiGuard trusted URL database.\nAccess Group: utmgrp.webfilter",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {},
+  "securityDefinitions": {
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "access_token"
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "parameters": {},
+    "responses": {
+      "400": {
+        "description": "Bad Request: Request cannot be processed by the API"
+      },
+      "401": {
+        "description": "Not Authorized: Request without successful login session"
+      },
+      "403": {
+        "description": "Forbidden: Request is missing CSRF token or administrator is missing access profile permissions."
+      },
+      "404": {
+        "description": "Resource Not Found: Unable to find the specified resource."
+      },
+      "405": {
+        "description": "Method Not Allowed: Specified HTTP method is not allowed for this resource. "
+      },
+      "413": {
+        "description": "Request Entity Too Large: Request cannot be processed due to large entity "
+      },
+      "424": {
+        "description": "Failed Dependency: Fail dependency can be duplicate resource, missing required parameter, missing required attribute, invalid attribute value"
+      },
+      "429": {
+        "description": "Access temporarily blocked: Maximum failed authentications reached. The offended source is temporarily blocked for certain amount of time."
+      },
+      "500": {
+        "description": "Internal Server Error: Internal error when processing the request "
+      }
+    }
+  }
+}

@@ -2,6 +2,8 @@
 
 > Docker Compose deployment, service configuration, and production hardening.
 
+This guide covers the **first installation**. To update an already-running deployment (new code, config changes, rollback), use the [Production Redeploy](../operations/production_redeploy.md) runbook and its scripts instead.
+
 ## Architecture
 
 The full stack consists of five services:
@@ -46,6 +48,8 @@ External dependencies (not containerized):
 - **OpenAI-compatible API** -- LLM inference endpoint
 
 ## Quick Deploy (Docker Compose)
+
+> For the non-Docker development path see the [Quickstart](quickstart.md).
 
 ### Prerequisites
 
@@ -187,7 +191,7 @@ The compose file uses `qdrant/qdrant:v1.14.0` with persistent storage.
 
 **Qdrant Cloud alternative**: Set `QDRANT_URL` and `QDRANT_API_KEY` to your cloud cluster. Remove or stop the `qdrant` service.
 
-**Backups**: Use Qdrant's snapshot API for `resolved_tickets` and `tool_knowledge` collections.
+**Backups**: See the [Backup & Restore runbook](../operations/backup_restore.md) (PostgreSQL + all Qdrant collections + evidence store).
 
 ### Application
 
@@ -212,18 +216,24 @@ The compose file includes a `frontend` service that builds from `./frontend`.
 
 ### MCP Servers
 
-MCP servers are external processes that provide read-only tool access. They are **not** containerized in this compose stack because they must be deployed near the target infrastructure.
+MCP servers provide read-only tool access. The platform ships its own: the **MCP Gateway** (`mcp_gateway/`), a generic OpenAPI→MCP server included in this compose stack as the `mcp-gateway` service (see [MCP Gateway architecture](../architecture/mcp_gateway.md)). Additional external MCP servers can be registered alongside it — e.g. when they must be deployed near the target infrastructure.
 
-Configure in `data/mcp/servers.yaml`:
+Configure in `data/mcp/servers.yaml`. `${VAR:-default}` placeholders are expanded from the environment:
 
 ```yaml
 servers:
+  mcp-gateway:
+    transport: sse
+    url: ${MCP_GATEWAY_URL:-http://localhost:8001/sse}   # compose sets MCP_GATEWAY_URL
+
   network-tools:
     transport: sse
     url: http://mcp-host:8001/sse
     vendor: fortinet        # optional — used for tool metadata extraction
     timeout: 45             # optional — overrides MCP_SERVER_TIMEOUT
 ```
+
+The `mcp-gateway` compose service needs `INVENTORY_MASTER_KEY` and `ACTIVE_CUSTOMER_ID` in `.env`, and mounts `./mcp_gateway/inventory` read-only (device credentials never enter the image).
 
 See `data/mcp/servers.example.yaml` for SSE and stdio transport examples. The YAML is loaded at startup by `src/config.py`; see [Configuration > MCP](configuration.md#mcp-model-context-protocol) for the full field reference.
 
@@ -275,6 +285,8 @@ docker compose exec app python src/main.py register-tenant --file data/tenants/<
 docker compose exec app python src/main.py seed-context --file data/tenants/<tenant>/context.yaml
 ```
 
+> `data/tenants/` is excluded from the image by `.dockerignore`; the compose file mounts `./data/tenants` read-only into the `app` container so these commands find the YAML files. Alternatively, run the same commands from the host (`uv run python src/main.py ...`) against the published ports.
+
 ### Knowledge Base Seeding
 
 Populate KB collections via the API or CLI tooling as documented in the tenant setup.
@@ -287,7 +299,7 @@ All services define Docker health checks:
 |---|---|---|
 | `postgres` | `pg_isready` | 5s |
 | `qdrant` | `GET /readyz` | 5s |
-| `app` | `GET /health` | 10s (30s start period) |
+| `app` | `GET /health` | 10s (120s start period, covers Alembic migrations) |
 | `frontend` | `curl -sf http://localhost:80/` | 10s |
 
 The `app` service uses `depends_on` with `condition: service_healthy` for `postgres` and `qdrant`, ensuring migrations only run after dependencies are ready.
@@ -388,4 +400,5 @@ See [Configuration Reference](configuration.md) for the full environment variabl
 
 - [Quickstart](quickstart.md) - Local development setup
 - [Configuration Reference](configuration.md) - All env vars
+- [Production Redeploy](../operations/production_redeploy.md) - Upgrading an existing deployment
 - [Observability](../architecture/observability.md) - Langfuse integration details

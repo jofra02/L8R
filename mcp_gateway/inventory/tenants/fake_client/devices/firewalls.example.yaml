@@ -1,0 +1,31 @@
+# Anonymized sample of a multi-device inventory file.
+# Copy to firewalls.yaml (gitignored) and fill in real values.
+#
+# - The device 'id' must match the device ids in the tenant's
+#   support_ai_agent context (data/tenants/<customer_id>/context.yaml).
+# - Encrypt tokens with: uv run python scripts/encrypt_secret.py "<api-token>"
+# - 'primary: true' marks the device used when a tool call has no 'device' header.
+- id: "fw_branch_1"
+  name: "Branch FortiGate-60F"
+  type: "fortios"
+  description: "Example branch firewall"
+  primary: true
+  tags:
+    - "example"
+  connection:
+    host: "10.0.0.1"
+    port: 443
+    token: "ENC(...encrypted-api-token...)"
+    verify_ssl: false
+
+- id: "fw_datacenter_1"
+  name: "Datacenter FortiGate-100F"
+  type: "fortios"
+  description: "Example datacenter firewall"
+  tags:
+    - "example"
+  connection:
+    host: "10.0.1.1"
+    port: 443
+    token: "ENC(...encrypted-api-token...)"
+    verify_ssl: false

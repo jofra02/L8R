@@ -1,0 +1,759 @@
+{
+  "info": {
+    "title": "FortiOS Monitor",
+    "description": "REST API for configuring FortiOS objects and settings",
+    "version": "v2",
+    "termsOfService": "http://fortinet.com/terms/",
+    "contact": {
+      "name": "FortiOS Web Application Team",
+      "email": "fosguiqateam@fortinet.com",
+      "url": "http://modskristensen.net"
+    }
+  },
+  "host": "172.16.177.65",
+  "basePath": "/api/v2/monitor",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "APIKeyQueryParam": []
+    }
+  ],
+  "paths": {
+    "/virtual-wan/health-check": {
+      "get": {
+        "tags": [
+          "virtual-wan"
+        ],
+        "summary": "Retrieve health-check statistics for each SD-WAN link.\nAccess Group: netgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "SD-WAN Health Check Statistics",
+              "description": "A map of health check names to their statistics.",
+              "type": "object",
+              "additionalProperties": {
+                "title": "Health Check Statistics",
+                "description": "A map of interface names to their health check statistics.",
+                "type": "object",
+                "additionalProperties": {
+                  "title": "Member Statistics",
+                  "description": "Health check statistics for an SD-WAN member.",
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "title": "Status",
+                      "description": "Status of the health check. If the SD-WAN interface is disabled, \"disable\" will be returned. If the interface does not participate in the health check, \"error\" will be returned.",
+                      "enum": [
+                        "up",
+                        "down",
+                        "disable",
+                        "error",
+                        "n/a"
+                      ]
+                    },
+                    "latency": {
+                      "title": "Latency",
+                      "description": "Measured latency.",
+                      "type": "number"
+                    },
+                    "jitter": {
+                      "title": "Jitter",
+                      "description": "Measured jitter.",
+                      "type": "number"
+                    },
+                    "packet_loss": {
+                      "title": "Packet Loss",
+                      "description": "Measured packet loss.",
+                      "type": "number"
+                    },
+                    "packet_sent": {
+                      "title": "Packets Sent",
+                      "description": "Number of packets sent for this health check.",
+                      "type": "integer"
+                    },
+                    "packet_received": {
+                      "title": "Packets Received",
+                      "description": "Number of packets received for this health check.",
+                      "type": "integer"
+                    },
+                    "session": {
+                      "title": "Sessions",
+                      "description": "Session count for the interface.",
+                      "type": "integer"
+                    },
+                    "tx_bandwidth": {
+                      "title": "Upload Bandwidth",
+                      "description": "Upload bandwidth of the interface.",
+                      "type": "integer"
+                    },
+                    "rx_bandwidth": {
+                      "title": "Download Bandwidth",
+                      "description": "Download bandwidth of the interface.",
+                      "type": "integer"
+                    },
+                    "state_changed": {
+                      "title": "Last State Change",
+                      "description": "Timestamp of the last link state change, in seconds.",
+                      "type": "integer"
+                    },
+                    "sla_targets_met": {
+                      "title": "SLA Targets Met",
+                      "description": "A list of SLA targets that are met.",
+                      "type": "array",
+                      "items": {
+                        "title": "SLA Target ID",
+                        "description": "ID of an SLA target.",
+                        "type": "integer"
+                      }
+                    },
+                    "child_intfs": {
+                      "title": "Child Interface Health Check Statistics",
+                      "description": "A map of child interface names to their health check statistics. This is applicable for shortcut tunnels created by ADVPN interfaces.",
+                      "type": "object",
+                      "additionalProperties": {
+                        "title": "Child Interface Statistics",
+                        "description": "Health check statistics for a child interface.",
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "title": "Status",
+                            "description": "Status of the health check. If the SD-WAN interface is disabled, \"disable\" will be returned. If the interface does not participate in the health check, \"error\" will be returned.",
+                            "enum": [
+                              "up",
+                              "down",
+                              "disable",
+                              "error"
+                            ]
+                          },
+                          "latency": {
+                            "title": "Latency",
+                            "description": "Measured latency.",
+                            "type": "number"
+                          },
+                          "jitter": {
+                            "title": "Jitter",
+                            "description": "Measured jitter.",
+                            "type": "number"
+                          },
+                          "packet_loss": {
+                            "title": "Packet Loss",
+                            "description": "Measured packet loss.",
+                            "type": "number"
+                          },
+                          "packet_sent": {
+                            "title": "Packets Sent",
+                            "description": "Number of packets sent for this health check.",
+                            "type": "integer"
+                          },
+                          "packet_received": {
+                            "title": "Packets Received",
+                            "description": "Number of packets received for this health check.",
+                            "type": "integer"
+                          },
+                          "session": {
+                            "title": "Sessions",
+                            "description": "Session count for the interface.",
+                            "type": "integer"
+                          },
+                          "tx_bandwidth": {
+                            "title": "Upload Bandwidth",
+                            "description": "Upload bandwidth of the interface.",
+                            "type": "integer"
+                          },
+                          "rx_bandwidth": {
+                            "title": "Download Bandwidth",
+                            "description": "Download bandwidth of the interface.",
+                            "type": "integer"
+                          },
+                          "state_changed": {
+                            "title": "Last State Change",
+                            "description": "Timestamp of the last link state change, in seconds.",
+                            "type": "integer"
+                          },
+                          "sla_targets_met": {
+                            "title": "SLA Targets Met",
+                            "description": "A list of SLA targets that are met.",
+                            "type": "array",
+                            "items": {
+                              "title": "SLA Target ID",
+                              "description": "ID of an SLA target.",
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "health_check_name",
+            "in": "query",
+            "description": "Health check name. If not provided, will return results of all health checks.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "operationId": "get_virtual_wan_health_check"
+      }
+    },
+    "/virtual-wan/interface-log": {
+      "get": {
+        "tags": [
+          "virtual-wan"
+        ],
+        "summary": "Retrieve log of SD-WAN interface quality information.\nAccess Group: netgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "interface",
+            "in": "query",
+            "description": "Filter: Interface name.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Filter: Only return SLA logs generated since this Unix timestamp.",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "seconds",
+            "in": "query",
+            "description": "Filter: Only return SLA logs generated in the last N seconds.",
+            "required": false,
+            "type": "integer"
+          }
+        ],
+        "operationId": "get_virtual_wan_interface_log"
+      }
+    },
+    "/virtual-wan/sla-log": {
+      "get": {
+        "tags": [
+          "virtual-wan"
+        ],
+        "summary": "Retrieve log of SLA probe results for for each SD-WAN SLA rule.\nAccess Group: netgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "SD-WAN SLA Log",
+              "description": "A list of SLA results.",
+              "type": "array",
+              "items": {
+                "title": "Health Check Entry",
+                "description": "SLA results for one health check of one interface.",
+                "type": "object",
+                "required": [
+                  "name",
+                  "interface",
+                  "logs"
+                ],
+                "properties": {
+                  "name": {
+                    "title": "Health Check Name",
+                    "description": "Name of the health check.",
+                    "type": "string"
+                  },
+                  "interface": {
+                    "title": "Interface Name",
+                    "description": "Name of the interface.",
+                    "type": "string"
+                  },
+                  "logs": {
+                    "title": "SLA Logs",
+                    "description": "A list of health check measurement results.",
+                    "type": "array",
+                    "items": {
+                      "title": "SLA Log Entry",
+                      "description": "Result of a health check measurement.",
+                      "type": "object",
+                      "properties": {
+                        "timestamp": {
+                          "title": "Timestamp",
+                          "description": "Unix timestamp for the measurement.",
+                          "type": "integer"
+                        },
+                        "link": {
+                          "title": "Link Status",
+                          "description": "Link status of the connection.",
+                          "type": "string",
+                          "enum": [
+                            "up",
+                            "down"
+                          ]
+                        },
+                        "latency": {
+                          "title": "Latency",
+                          "description": "Measured latency.",
+                          "type": "number"
+                        },
+                        "jitter": {
+                          "title": "Jitter",
+                          "description": "Measured jitter.",
+                          "type": "number"
+                        },
+                        "packetloss": {
+                          "title": "Packet Loss",
+                          "description": "Measured packet loss.",
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "child_intfs": {
+                    "title": "Child Interface SLA Logs",
+                    "description": "A map of child interface names to their SLA logs. This is applicable for shortcut tunnels created by ADVPN interfaces.",
+                    "type": "object",
+                    "additionalProperties": {
+                      "title": "SLA Logs",
+                      "description": "A list of health check measurement results.",
+                      "type": "array",
+                      "items": {
+                        "title": "SLA Log Entry",
+                        "description": "Result of a health check measurement.",
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "title": "Timestamp",
+                            "description": "Unix timestamp for the measurement.",
+                            "type": "integer"
+                          },
+                          "link": {
+                            "title": "Link Status",
+                            "description": "Link status of the connection.",
+                            "type": "string",
+                            "enum": [
+                              "up",
+                              "down"
+                            ]
+                          },
+                          "latency": {
+                            "title": "Latency",
+                            "description": "Measured latency.",
+                            "type": "number"
+                          },
+                          "jitter": {
+                            "title": "Jitter",
+                            "description": "Measured jitter.",
+                            "type": "number"
+                          },
+                          "packetloss": {
+                            "title": "Packet Loss",
+                            "description": "Measured packet loss.",
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "sla",
+            "in": "query",
+            "description": "Filter: SLA name.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "interface",
+            "in": "query",
+            "description": "Filter: Interface name.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Filter: Only return SLA logs generated since this Unix timestamp.",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "seconds",
+            "in": "query",
+            "description": "Filter: Only return SLA logs generated in the last N seconds.",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "sampling_interval",
+            "in": "query",
+            "description": "The interval to be used for sampling SLA logs, in seconds (default=5).",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "skip_vpn_child",
+            "in": "query",
+            "description": "If set, will skip all VPN child interfaces.",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "operationId": "get_virtual_wan_sla_log"
+      }
+    },
+    "/virtual-wan/members": {
+      "get": {
+        "tags": [
+          "virtual-wan"
+        ],
+        "summary": "Retrieve interface statistics for each SD-WAN link.\nAccess Group: netgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "SD-WAN Member Statistics List",
+              "description": "A list of SD-WAN members and their traffic statistics.",
+              "type": "array",
+              "items": {
+                "title": "SD-WAN Member Statistics",
+                "type": "object",
+                "description": "SD-WAN member traffic statistics.",
+                "required": [
+                  "interface",
+                  "seq_num"
+                ],
+                "properties": {
+                  "interface": {
+                    "title": "Interface",
+                    "description": "The interface name of the SD-WAN member.",
+                    "type": "string"
+                  },
+                  "seq_num": {
+                    "title": "Sequence Number",
+                    "description": "The sequence number of an SD-WAN member.",
+                    "type": "number"
+                  },
+                  "status": {
+                    "title": "Status",
+                    "description": "Status of traffic monitoring. If this value is present, traffic monitoring is not enabled and other statistics will be absent.",
+                    "type": "string",
+                    "enum": [
+                      "disable",
+                      "error"
+                    ]
+                  },
+                  "ipv4_gateway": {
+                    "title": "IPv4 Address",
+                    "description": "IPv4 address.",
+                    "type": "string"
+                  },
+                  "ipv6_gateway": {
+                    "title": "IPv6 Address",
+                    "description": "IPv6 address.",
+                    "type": "string"
+                  },
+                  "link": {
+                    "title": "Link Status",
+                    "description": "Interface link status for the SD-WAN member.",
+                    "type": "string",
+                    "enum": [
+                      "up",
+                      "down"
+                    ]
+                  },
+                  "session": {
+                    "title": "Session Count",
+                    "description": "Session count for the SD-WAN member.",
+                    "type": "integer"
+                  },
+                  "tx_bytes": {
+                    "title": "Bytes Sent",
+                    "description": "Amount of data transmitted by the SD-WAN member, in bytes.",
+                    "type": "integer"
+                  },
+                  "rx_bytes": {
+                    "title": "Bytes Received",
+                    "description": "Amount of data received by the SD-WAN member, in bytes.",
+                    "type": "integer"
+                  },
+                  "tx_bandwidth": {
+                    "title": "Upload Bandwidth",
+                    "description": "Upload bandwidth of the SD-WAN member, in bits per second.",
+                    "type": "integer"
+                  },
+                  "rx_bandwidth": {
+                    "title": "Download Bandwidth",
+                    "description": "Download bandwidth of the SD-WAN member, in bits per second.",
+                    "type": "integer"
+                  },
+                  "state_changed": {
+                    "title": "Last State Change",
+                    "description": "Timestamp of the last link state change, in seconds.",
+                    "type": "integer"
+                  },
+                  "child_intfs": {
+                    "title": "Child Interface",
+                    "description": "The dynamic tunnel of the SD-WAN member.",
+                    "type": "object",
+                    "additionalProperties": {
+                      "title": "Child Member Statistics",
+                      "description": "Traffic statistics for an SD-WAN member.",
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "title": "Status",
+                          "description": "Status of traffic monitoring. If this value is present, traffic monitoring is not enabled and other statistics will be absent.",
+                          "type": "string",
+                          "enum": [
+                            "disable",
+                            "error"
+                          ]
+                        },
+                        "link": {
+                          "title": "Link Status",
+                          "description": "Interface link status for the SD-WAN member.",
+                          "type": "string",
+                          "enum": [
+                            "up",
+                            "down"
+                          ]
+                        },
+                        "session": {
+                          "title": "Session Count",
+                          "description": "Session count for the SD-WAN member.",
+                          "type": "integer"
+                        },
+                        "tx_bytes": {
+                          "title": "Bytes Sent",
+                          "description": "Amount of data transmitted by the SD-WAN member, in bytes.",
+                          "type": "integer"
+                        },
+                        "rx_bytes": {
+                          "title": "Bytes Received",
+                          "description": "Amount of data received by the SD-WAN member, in bytes.",
+                          "type": "integer"
+                        },
+                        "tx_bandwidth": {
+                          "title": "Upload Bandwidth",
+                          "description": "Upload bandwidth of the SD-WAN member, in bits per second.",
+                          "type": "integer"
+                        },
+                        "rx_bandwidth": {
+                          "title": "Download Bandwidth",
+                          "description": "Download bandwidth of the SD-WAN member, in bits per second.",
+                          "type": "integer"
+                        },
+                        "state_changed": {
+                          "title": "Last State Change",
+                          "description": "Timestamp of the last link state change, in seconds.",
+                          "type": "integer"
+                        },
+                        "gateway": {
+                          "title": "Gateway Address",
+                          "description": "Gateway address.",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "zone",
+            "in": "query",
+            "description": "SD-WAN zone name. If not set, will return members of all SD-WAN zones.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "skip_vpn_child",
+            "in": "query",
+            "description": "If set, will skip all VPN child interfaces.",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "operationId": "get_virtual_wan_members"
+      }
+    }
+  },
+  "definitions": {},
+  "securityDefinitions": {
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "access_token"
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "parameters": {},
+    "responses": {
+      "400": {
+        "description": "Bad Request: Request cannot be processed by the API"
+      },
+      "401": {
+        "description": "Not Authorized: Request without successful login session"
+      },
+      "403": {
+        "description": "Forbidden: Request is missing CSRF token or administrator is missing access profile permissions."
+      },
+      "404": {
+        "description": "Resource Not Found: Unable to find the specified resource."
+      },
+      "405": {
+        "description": "Method Not Allowed: Specified HTTP method is not allowed for this resource. "
+      },
+      "413": {
+        "description": "Request Entity Too Large: Request cannot be processed due to large entity "
+      },
+      "424": {
+        "description": "Failed Dependency: Fail dependency can be duplicate resource, missing required parameter, missing required attribute, invalid attribute value"
+      },
+      "429": {
+        "description": "Access temporarily blocked: Maximum failed authentications reached. The offended source is temporarily blocked for certain amount of time."
+      },
+      "500": {
+        "description": "Internal Server Error: Internal error when processing the request "
+      }
+    }
+  }
+}

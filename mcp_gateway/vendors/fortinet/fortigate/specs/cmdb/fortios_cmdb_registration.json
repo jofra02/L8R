@@ -1,0 +1,1045 @@
+{
+  "info": {
+    "title": "FortiOS Monitor",
+    "description": "REST API for configuring FortiOS objects and settings",
+    "version": "v2",
+    "termsOfService": "http://fortinet.com/terms/",
+    "contact": {
+      "name": "FortiOS Web Application Team",
+      "email": "fosguiqateam@fortinet.com",
+      "url": "http://modskristensen.net"
+    }
+  },
+  "host": "172.16.177.65",
+  "basePath": "/api/v2/monitor",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "security": [
+    {
+      "APIKeyQueryParam": []
+    }
+  ],
+  "paths": {
+    "/registration/forticloud/login": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Login to FortiCloud.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "description": "Account email.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "Account password.",
+                    "type": "string"
+                  },
+                  "send_logs": {
+                    "description": "Send logs to FortiCloud.",
+                    "type": "boolean"
+                  },
+                  "domain": {
+                    "description": "FortiCloud domain.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_forticloud_login"
+      }
+    },
+    "/registration/forticloud/logout": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Logout from FortiCloud.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "operationId": "post_registration_forticloud_logout"
+      }
+    },
+    "/registration/forticloud/disclaimer": {
+      "get": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Retrieve the FortiCloud disclaimer.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "operationId": "get_registration_forticloud_disclaimer"
+      }
+    },
+    "/registration/forticloud/domains": {
+      "get": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Retrieve a list of FortiCloud login domains.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "FortiCloud Registration Domains",
+              "description": "FortiCloud registration domains.",
+              "type": "array",
+              "items": {
+                "title": "Domain",
+                "description": "FortiCloud registration domain.",
+                "type": "string"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "operationId": "get_registration_forticloud_domains"
+      }
+    },
+    "/registration/forticare/login": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Login to FortiCare.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "FortiCare Account Registration",
+              "description": "Register the FortiGate to a FortiCare account.",
+              "type": "object",
+              "properties": {
+                "forticare_error": {
+                  "title": "FortiCare Error Message",
+                  "description": "If present in the response an error occurred while registering.",
+                  "type": "string"
+                },
+                "forticare_success": {
+                  "title": "Successful",
+                  "description": "True when the registration is successful.",
+                  "type": "boolean"
+                },
+                "forticare_agreement": {
+                  "title": "Agreement",
+                  "description": "True when agreement is accepted.",
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "serial": {
+                    "description": "Serial number of an HA cluster member to register to login to FortiCare. Current device will be selected if not set.",
+                    "type": "string"
+                  },
+                  "email": {
+                    "description": "Account email.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "Account password.",
+                    "type": "string"
+                  },
+                  "reseller_name": {
+                    "description": "Reseller name.",
+                    "type": "string"
+                  },
+                  "reseller_id": {
+                    "description": "Reseller ID.",
+                    "type": "integer"
+                  },
+                  "agreement_accepted": {
+                    "description": "Set to true if the end-user accepted the agreement.",
+                    "type": "boolean"
+                  },
+                  "is_government": {
+                    "description": "Set to true if the end-user is affiliated with a government.",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_forticare_login"
+      }
+    },
+    "/registration/forticare/transfer": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Transfer to a new FortiCare account.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "FortiCare Account Title Transfer",
+              "description": "Transfer ownership of the FortiGate from one FortiCare account to another.",
+              "type": "object",
+              "properties": {
+                "forticare_error": {
+                  "title": "FortiCare Error Message",
+                  "description": "If present in the response an error occurred while transferring.",
+                  "type": "string"
+                },
+                "forticare_success": {
+                  "title": "FortiCare Success Status",
+                  "description": "True when the transfer is successful.",
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "description": "Account email.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "Account password.",
+                    "type": "string"
+                  },
+                  "old_email": {
+                    "description": "Old account email.",
+                    "type": "string"
+                  },
+                  "old_password": {
+                    "description": "Old account password.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_forticare_transfer"
+      }
+    },
+    "/registration/forticare/create": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Create a new FortiCare account.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "description": "Account email.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "Account password.",
+                    "type": "string"
+                  },
+                  "first_name": {
+                    "description": "First name.",
+                    "type": "string"
+                  },
+                  "last_name": {
+                    "description": "Last name.",
+                    "type": "string"
+                  },
+                  "title": {
+                    "description": "Title.",
+                    "type": "string"
+                  },
+                  "company": {
+                    "description": "Company.",
+                    "type": "string"
+                  },
+                  "address": {
+                    "description": "Address.",
+                    "type": "string"
+                  },
+                  "city": {
+                    "description": "City.",
+                    "type": "string"
+                  },
+                  "country_code": {
+                    "description": "Country code.",
+                    "type": "integer"
+                  },
+                  "state": {
+                    "description": "State/Province.",
+                    "type": "string"
+                  },
+                  "state_code": {
+                    "description": "State/Province code.",
+                    "type": "string"
+                  },
+                  "postal_code": {
+                    "description": "Postal code.",
+                    "type": "string"
+                  },
+                  "phone": {
+                    "description": "Phone number.",
+                    "type": "string"
+                  },
+                  "industry": {
+                    "description": "Industry.",
+                    "type": "string"
+                  },
+                  "industry_id": {
+                    "description": "Industry ID.",
+                    "type": "integer"
+                  },
+                  "orgsize_id": {
+                    "description": "Organization size ID.",
+                    "type": "integer"
+                  },
+                  "reseller_name": {
+                    "description": "Reseller name.",
+                    "type": "string"
+                  },
+                  "reseller_id": {
+                    "description": "Reseller ID.",
+                    "type": "integer"
+                  },
+                  "is_government": {
+                    "description": "Set to true if the end-user is affiliated with a government.",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_forticare_create"
+      }
+    },
+    "/registration/forticare/add-license": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Add a FortiCare license.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "registration_code": {
+                    "description": "FortiCare contract number.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_forticare_add_license"
+      }
+    },
+    "/registration/forticloud/register-device": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Register a device to FortiCloud through FortiGate. Currently FortiSwitch and FortiAP are supported.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "serial": {
+                    "description": "Device serial number",
+                    "type": "string"
+                  },
+                  "email": {
+                    "description": "FortiCloud email.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "Password.",
+                    "type": "string"
+                  },
+                  "reseller": {
+                    "description": "Reseller.",
+                    "type": "string"
+                  },
+                  "reseller_id": {
+                    "description": "Reseller ID.",
+                    "type": "integer"
+                  },
+                  "country": {
+                    "description": "Country.",
+                    "type": "string"
+                  },
+                  "is_government": {
+                    "description": "Set to true if the end-user is affiliated with a government.",
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_forticloud_register_device"
+      }
+    },
+    "/registration/forticare/deregister-device": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Deregister the FortiGate from a FortiCare account.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "FortiCare Account Deregistration",
+              "description": "Deregister the FortiGate from a FortiCare account.",
+              "type": "object",
+              "properties": {
+                "error": {
+                  "title": "FortiCare Error Message",
+                  "description": "If present in the response an error occurred while deregistering.",
+                  "type": "string"
+                },
+                "success": {
+                  "title": "Successful Deregistration",
+                  "description": "True when the deregistration is successful.",
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "description": "FortiCare email.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "Account password.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_forticare_deregister_device"
+      }
+    },
+    "/registration/forticloud/device-status": {
+      "get": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Fetch device registration status from FortiCloud. Currently FortiSwitch and FortiAP are supported.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful",
+            "schema": {
+              "title": "FortiCloud Device Registration Status",
+              "description": "FortiCloud registration status for a device.",
+              "type": "array",
+              "items": {
+                "title": "Device Registration Information",
+                "description": "Registration information for a device.",
+                "type": "object",
+                "required": [
+                  "serial",
+                  "status"
+                ],
+                "properties": {
+                  "serial": {
+                    "type": "string",
+                    "title": "Serial",
+                    "description": "Serial number."
+                  },
+                  "account": {
+                    "type": "string",
+                    "title": "FortiCloud Account Name",
+                    "description": "FortiCloud account name."
+                  },
+                  "status": {
+                    "type": "string",
+                    "title": "FortiCloud Registration Status",
+                    "description": "Status of the FortiCloud registration.",
+                    "enum": [
+                      "registered",
+                      "unregistrable",
+                      "registrable"
+                    ]
+                  },
+                  "time": {
+                    "type": "integer",
+                    "title": "Registration Time",
+                    "description": "Timestamp of when the device was registered."
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "serials",
+            "in": "query",
+            "description": "Serials of FortiSwitch and FortiAP to fetch registration status.",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "update_cache",
+            "in": "query",
+            "description": "Clear cache and retrieve updated data.",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "operationId": "get_registration_forticloud_device_status"
+      }
+    },
+    "/registration/vdom/add-license": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Add a VDOM license.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "license": {
+                    "description": "VDOM license key.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_vdom_add_license"
+      }
+    },
+    "/registration/forticloud/migrate": {
+      "post": {
+        "tags": [
+          "registration"
+        ],
+        "summary": "Migrate standalone FortiGate Cloud account to FortiCloud.\nAccess Group: sysgrp.cfg",
+        "responses": {
+          "200": {
+            "description": "OK: Request returns successful"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "405": {
+            "$ref": "#/components/responses/405"
+          },
+          "413": {
+            "$ref": "#/components/responses/413"
+          },
+          "424": {
+            "$ref": "#/components/responses/424"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "description": "Account email.",
+                    "type": "string"
+                  },
+                  "password": {
+                    "description": "Account password.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "Possible parameters to go in the body for the request.",
+          "required": true
+        },
+        "operationId": "post_registration_forticloud_migrate"
+      }
+    }
+  },
+  "definitions": {},
+  "securityDefinitions": {
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "access_token"
+    }
+  },
+  "openapi": "3.0.0",
+  "components": {
+    "parameters": {},
+    "responses": {
+      "400": {
+        "description": "Bad Request: Request cannot be processed by the API"
+      },
+      "401": {
+        "description": "Not Authorized: Request without successful login session"
+      },
+      "403": {
+        "description": "Forbidden: Request is missing CSRF token or administrator is missing access profile permissions."
+      },
+      "404": {
+        "description": "Resource Not Found: Unable to find the specified resource."
+      },
+      "405": {
+        "description": "Method Not Allowed: Specified HTTP method is not allowed for this resource. "
+      },
+      "413": {
+        "description": "Request Entity Too Large: Request cannot be processed due to large entity "
+      },
+      "424": {
+        "description": "Failed Dependency: Fail dependency can be duplicate resource, missing required parameter, missing required attribute, invalid attribute value"
+      },
+      "429": {
+        "description": "Access temporarily blocked: Maximum failed authentications reached. The offended source is temporarily blocked for certain amount of time."
+      },
+      "500": {
+        "description": "Internal Server Error: Internal error when processing the request "
+      }
+    }
+  }
+}
