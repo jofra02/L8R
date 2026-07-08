@@ -56,6 +56,13 @@ class GatewayAdminClient:
             )
 
     @staticmethod
+    def _error_code(response: httpx.Response) -> str:
+        try:
+            return response.json().get("error") or ""
+        except Exception:
+            return ""
+
+    @staticmethod
     def _error_detail(response: httpx.Response) -> str:
         try:
             body = response.json()
@@ -79,15 +86,37 @@ class GatewayAdminClient:
             warnings=body.get("warnings") or [],
         )
 
+    async def _create_device(self, customer_id: str, payload: Dict[str, Any]) -> httpx.Response:
+        """Device POST with tenant self-heal.
+
+        A 404 ``unknown_tenant`` means the tenant predates the tenant-sync
+        feature (or its inventory was never provisioned): provision it and
+        retry the device create once, so device CRUD from the app never
+        requires an out-of-band step.
+        """
+        response = await self._request(
+            "POST", f"/admin/tenants/{customer_id}/devices", json=payload
+        )
+        if response.status_code == 404 and self._error_code(response) == "unknown_tenant":
+            provision = await self._request(
+                "POST", "/admin/tenants", json={"id": customer_id, "name": customer_id}
+            )
+            # 409: another request provisioned it first — goal state reached
+            if provision.status_code >= 400 and provision.status_code != 409:
+                return provision  # surface the provisioning failure
+            logger.info(f"Gateway tenant '{customer_id}' auto-provisioned during device sync.")
+            response = await self._request(
+                "POST", f"/admin/tenants/{customer_id}/devices", json=payload
+            )
+        return response
+
     async def upsert_device(
         self, customer_id: str, payload: Dict[str, Any], *, create: bool
     ) -> GatewaySyncResult:
         device_id = payload.get("id")
         try:
             if create:
-                response = await self._request(
-                    "POST", f"/admin/tenants/{customer_id}/devices", json=payload
-                )
+                response = await self._create_device(customer_id, payload)
                 # Idempotent retry after a previously failed local/gateway sync:
                 # the device may already exist in the gateway.
                 if response.status_code == 409:
@@ -103,9 +132,7 @@ class GatewayAdminClient:
                 # Device missing in the gateway (drift or first-time enable on
                 # an existing component): fall back to create.
                 if response.status_code == 404:
-                    response = await self._request(
-                        "POST", f"/admin/tenants/{customer_id}/devices", json=payload
-                    )
+                    response = await self._create_device(customer_id, payload)
             return self._result_from_response(response)
         except Exception as e:
             logger.warning(f"Gateway inventory sync failed for device '{device_id}': {e}")

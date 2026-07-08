@@ -155,8 +155,10 @@ async def test_delete_has_data_guard_blocks_before_gateway():
 
 def make_client(responses) -> GatewayAdminClient:
     client = GatewayAdminClient("http://gw:8000", "tok")
+    client.calls = []
 
     async def fake_request(method, path, json=None):
+        client.calls.append((method, path))
         outcome = responses.pop(0)
         if isinstance(outcome, Exception):
             raise outcome
@@ -195,3 +197,62 @@ async def test_client_network_failure_is_error():
     client = make_client([httpx.ConnectError("boom")])
     result = await client.delete_tenant("t1")
     assert result.status == "error"
+
+
+# ---- Device sync self-heal (tenant missing in the gateway) ----
+
+UNKNOWN_TENANT = (404, {"error": "unknown_tenant", "message": "no inventory directory"})
+DEVICE = {"id": "fw1", "name": "FW 1", "type": "fortios", "connection": {"host": "10.0.0.1"}}
+
+
+async def test_device_create_autoprovisions_missing_tenant():
+    client = make_client(
+        [
+            UNKNOWN_TENANT,                     # POST device -> tenant missing
+            (201, {"tenant": {"id": "t1"}}),    # POST /admin/tenants
+            (201, {"device": {}, "reloaded": True, "warnings": []}),  # retried POST device
+        ]
+    )
+    result = await client.upsert_device("t1", DEVICE, create=True)
+    assert result.status == "synced"
+    assert ("POST", "/admin/tenants") in client.calls
+    assert client.calls.count(("POST", "/admin/tenants/t1/devices")) == 2
+
+
+async def test_device_create_provisioning_failure_is_error():
+    client = make_client(
+        [
+            UNKNOWN_TENANT,
+            (503, {"error": "admin_disabled", "message": "token not configured"}),
+        ]
+    )
+    result = await client.upsert_device("t1", DEVICE, create=True)
+    assert result.status == "error"
+    assert len(client.calls) == 2, "no retry loop after a provisioning failure"
+
+
+async def test_device_update_fallback_autoprovisions_too():
+    client = make_client(
+        [
+            (404, {"error": "not_found", "message": "device missing"}),  # PATCH device
+            UNKNOWN_TENANT,                     # fallback POST device -> tenant missing
+            (201, {"tenant": {"id": "t1"}}),
+            (201, {"device": {}, "reloaded": True, "warnings": []}),
+        ]
+    )
+    result = await client.upsert_device("t1", DEVICE, create=False)
+    assert result.status == "synced"
+    assert ("POST", "/admin/tenants") in client.calls
+
+
+async def test_device_level_404_does_not_provision_tenant():
+    """A device not_found on PATCH falls back to POST without touching tenants."""
+    client = make_client(
+        [
+            (404, {"error": "not_found", "message": "device missing"}),  # PATCH device
+            (201, {"device": {}, "reloaded": True, "warnings": []}),     # fallback POST
+        ]
+    )
+    result = await client.upsert_device("t1", DEVICE, create=False)
+    assert result.status == "synced"
+    assert ("POST", "/admin/tenants") not in client.calls
