@@ -121,6 +121,8 @@ App-side flow: `InventoryService` (platform API) calls the admin API through `sr
 
 Tenant lifecycle is synced the same way: `TenantService.create_tenant` provisions the gateway inventory **after** the local commit (best-effort; outcome returned as `gateway_sync` in `POST /tenants`), and `TenantService.delete_tenant` removes it before the local delete (best-effort; a `manual_devices_present` conflict is logged and requires operator cleanup on the gateway host). Both are idempotent: a create retry treats gateway 409 as synced, a delete retry treats 404 as synced. The `register-tenant` CLI (`seed_tenant`) provisions the gateway too when `MCP_GATEWAY_ADMIN_URL`/`MCP_GATEWAY_ADMIN_TOKEN` are configured.
 
+Drift self-heal: when a device create hits 404 `unknown_tenant` (tenant created before the sync feature, or while the gateway was down), `GatewayAdminClient.upsert_device` auto-provisions the tenant via `POST /admin/tenants` and retries the device create once — device CRUD from the app never requires out-of-band provisioning. App-side, tenant deletion cascades at the DB level: every FK to `platform_tenants` carries `ON DELETE CASCADE` (migration `d5e6f7a8b9c0`), so `DELETE /tenants/{cid}?force=true` removes all tenant rows (contexts, scopes, endpoints, keys, profile assignments, tickets and their children).
+
 ## Secrets
 
 - Device tokens are stored as `ENC(...)` (Fernet), decrypted in memory with `INVENTORY_MASTER_KEY`.

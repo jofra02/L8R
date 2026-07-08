@@ -10,7 +10,7 @@ from .database import Base
 class TenantMixin:
     """Enforce strict isolation by customer_id on all Data Plane tables."""
     customer_id: Mapped[str] = mapped_column(
-        ForeignKey("platform_tenants.customer_id"),
+        ForeignKey("platform_tenants.customer_id", ondelete="CASCADE"),
         index=True,
         nullable=False,
     )
@@ -28,15 +28,22 @@ class PlatformTenant(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())  # S8
 
-    # One-to-one relationship with endpoints
-    endpoints: Mapped["TenantEndpoint"] = relationship(back_populates="tenant", uselist=False)
-    scopes: Mapped[List["CapabilityScope"]] = relationship(back_populates="tenant")
+    # One-to-one relationship with endpoints. passive_deletes="all": tenant
+    # deletion is handled entirely by the DB-level ON DELETE CASCADE.
+    endpoints: Mapped["TenantEndpoint"] = relationship(
+        back_populates="tenant", uselist=False, passive_deletes="all"
+    )
+    scopes: Mapped[List["CapabilityScope"]] = relationship(
+        back_populates="tenant", passive_deletes="all"
+    )
 
 class TenantEndpoint(Base):
     """Infrastructure pointers for a tenant."""
     __tablename__ = "tenant_endpoints"
 
-    customer_id: Mapped[str] = mapped_column(ForeignKey("platform_tenants.customer_id"), primary_key=True)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("platform_tenants.customer_id", ondelete="CASCADE"), primary_key=True
+    )
     pg_dsn_ref: Mapped[Optional[str]] = mapped_column(String)   # Reference to Vault/Env for connection string
     qdrant_url_ref: Mapped[Optional[str]] = mapped_column(String)
     object_store_ref: Mapped[Optional[str]] = mapped_column(String)
@@ -48,7 +55,9 @@ class CapabilityScope(Base):
     __tablename__ = "capability_scopes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    customer_id: Mapped[str] = mapped_column(ForeignKey("platform_tenants.customer_id"), index=True)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("platform_tenants.customer_id", ondelete="CASCADE"), index=True
+    )
     scope_name: Mapped[str] = mapped_column(String)  # e.g., "network_read"
     allowed_tools: Mapped[List[str]] = mapped_column(JSON)  # e.g., ["ping", "dns*"]
     rate_limit: Mapped[Optional[int]] = mapped_column(Integer)
@@ -205,7 +214,7 @@ class ApiKeyORM(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     customer_id: Mapped[str] = mapped_column(
-        ForeignKey("platform_tenants.customer_id"), index=True, nullable=False,
+        ForeignKey("platform_tenants.customer_id", ondelete="CASCADE"), index=True, nullable=False,
     )
     key_hash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     key_prefix: Mapped[str] = mapped_column(String(12), nullable=False)
@@ -282,7 +291,9 @@ class UserTenantProfileORM(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    customer_id: Mapped[str] = mapped_column(ForeignKey("platform_tenants.customer_id"), nullable=False)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("platform_tenants.customer_id", ondelete="CASCADE"), nullable=False
+    )
     profile_id: Mapped[str] = mapped_column(ForeignKey("profiles.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
