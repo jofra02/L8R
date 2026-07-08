@@ -100,6 +100,8 @@ Guard: `gateway/tests/test_name_freeze.py` builds the gateway offline and assert
 |---|---|
 | `GET /admin/health` | Liveness + `admin_enabled` flag (no auth) |
 | `GET /admin/packs` | Discovered packs: vendor/appliance/device_type/prefix |
+| `POST /admin/tenants` | Provision a tenant: `inventory/tenants/<id>/` + `tenant.yaml` + `devices/` |
+| `DELETE /admin/tenants/{cid}` | Remove a tenant's inventory tree (409 if hand-maintained device files exist) |
 | `GET /admin/tenants/{cid}/devices` | All devices (managed + hand-maintained), tokens redacted |
 | `POST /admin/tenants/{cid}/devices` | Create a managed device (plaintext token in body → stored as `ENC(...)`) |
 | `PATCH /admin/tenants/{cid}/devices/{id}` | Partial update; token omitted ⇒ existing ciphertext kept byte-identical |
@@ -112,9 +114,12 @@ Rules:
 - **managed.yaml**: the API only ever writes `devices/managed.yaml` (atomic write via temp file + rename, header comment marks it machine-owned). Hand-maintained files are readable but immutable through the API (409) — their comments/formatting are never touched.
 - **Single primary**: marking a managed device `primary: true` clears the flag on other managed devices of the same type. If a hand-maintained device of that type is also primary it **wins** (file order) and the response carries a warning.
 - **Hot reload**: after a successful mutation for the active tenant, all `DeviceRegistry` instances `reload()` — new/changed/removed devices are routable immediately (`"reloaded": true` in the response). Mutations for other tenants only write files (`"reloaded": false`).
-- **Validation**: `type` must match a discovered pack's `device_type`; duplicate ids conflict (409). Device creation requires the tenant's `inventory/tenants/<cid>/` directory to already exist — an unknown `cid` answers 404 `unknown_tenant` instead of silently minting a new tenant directory.
+- **Validation**: `type` must match a discovered pack's `device_type`; duplicate ids conflict (409). Device creation requires the tenant's `inventory/tenants/<cid>/` directory to already exist — an unknown `cid` answers 404 `unknown_tenant` instead of silently minting a new tenant directory. Tenant ids are slug-validated (`[a-zA-Z0-9_-]+`) because they become directory names.
+- **Tenant lifecycle**: `POST /admin/tenants` writes a minimal `tenant.yaml` (adopting a bare pre-created directory); duplicate ⇒ 409 `tenant_exists`. `DELETE /admin/tenants/{cid}` removes the whole tenant tree, but **refuses (409 `manual_devices_present`)** while hand-maintained device files exist — the API never deletes operator-managed config. Deleting the active tenant reloads the registries to empty.
 
 App-side flow: `InventoryService` (platform API) calls the admin API through `src/api/services/gateway_admin_client.py` when a Component carries an `mcp_connection` block. The component is persisted locally **first** (sync status `pending`), then synced to the gateway, and the outcome is recorded in `Component.metadata["mcp"]["sync"]` and returned as `gateway_sync` (the token is write-only and never persisted app-side) — the gateway never holds a device the app has no record of.
+
+Tenant lifecycle is synced the same way: `TenantService.create_tenant` provisions the gateway inventory **after** the local commit (best-effort; outcome returned as `gateway_sync` in `POST /tenants`), and `TenantService.delete_tenant` removes it before the local delete (best-effort; a `manual_devices_present` conflict is logged and requires operator cleanup on the gateway host). Both are idempotent: a create retry treats gateway 409 as synced, a delete retry treats 404 as synced. The `register-tenant` CLI (`seed_tenant`) provisions the gateway too when `MCP_GATEWAY_ADMIN_URL`/`MCP_GATEWAY_ADMIN_TOKEN` are configured.
 
 ## Secrets
 

@@ -111,6 +111,35 @@ class GatewayAdminClient:
             logger.warning(f"Gateway inventory sync failed for device '{device_id}': {e}")
             return GatewaySyncResult(status="error", error=str(e))
 
+    async def create_tenant(
+        self, customer_id: str, name: str, description: Optional[str] = None
+    ) -> GatewaySyncResult:
+        payload: Dict[str, Any] = {"id": customer_id, "name": name}
+        if description:
+            payload["description"] = description
+        try:
+            response = await self._request("POST", "/admin/tenants", json=payload)
+            # Already provisioned (retry after a failed sync, or out-of-band
+            # provisioning): goal state reached.
+            if response.status_code == 409:
+                return GatewaySyncResult(status="synced")
+            return self._result_from_response(response)
+        except Exception as e:
+            logger.warning(f"Gateway tenant provisioning failed for '{customer_id}': {e}")
+            return GatewaySyncResult(status="error", error=str(e))
+
+    async def delete_tenant(self, customer_id: str) -> GatewaySyncResult:
+        try:
+            response = await self._request("DELETE", f"/admin/tenants/{customer_id}")
+            # Already absent in the gateway: treat as success (goal state reached)
+            if response.status_code == 404:
+                return GatewaySyncResult(status="synced")
+            # 409 manual_devices_present stays an error: operator action required
+            return self._result_from_response(response)
+        except Exception as e:
+            logger.warning(f"Gateway tenant delete failed for '{customer_id}': {e}")
+            return GatewaySyncResult(status="error", error=str(e))
+
     async def delete_device(self, customer_id: str, device_id: str) -> GatewaySyncResult:
         try:
             response = await self._request(

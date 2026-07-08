@@ -1,7 +1,9 @@
+import logging
+
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 from src.core.orm import (
     PlatformTenant,
@@ -13,11 +15,15 @@ from src.core.orm import (
 )
 from src.api.schemas.tenants import EndpointUpsert, ScopeCreate, ScopeUpdate
 from src.api.exceptions import APIError
+from src.api.services.gateway_admin_client import GatewayAdminClient, GatewaySyncResult
+
+logger = logging.getLogger(__name__)
 
 
 class TenantService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, gateway: Optional[GatewayAdminClient] = None):
         self.session = session
+        self.gateway = gateway if gateway is not None else GatewayAdminClient.from_settings()
 
     # ---- Tenant CRUD ----
 
@@ -67,7 +73,9 @@ class TenantService:
             for row in rows
         ]
 
-    async def create_tenant(self, customer_id: str, name: str, plan: str) -> PlatformTenant:
+    async def create_tenant(
+        self, customer_id: str, name: str, plan: str
+    ) -> Tuple[PlatformTenant, GatewaySyncResult]:
         existing = await self.session.get(PlatformTenant, customer_id)
         if existing:
             raise APIError(409, "tenant_exists", f"Tenant '{customer_id}' already exists")
@@ -81,7 +89,21 @@ class TenantService:
         self.session.add(tenant)
         await self.session.commit()
         await self.session.refresh(tenant)
-        return tenant
+
+        # Best-effort gateway provisioning after the local commit: the tenant
+        # must exist app-side even when the gateway is down or unconfigured.
+        sync = await self._provision_gateway_tenant(customer_id, name)
+        return tenant, sync
+
+    async def _provision_gateway_tenant(self, customer_id: str, name: str) -> GatewaySyncResult:
+        if not self.gateway:
+            return GatewaySyncResult(status="skipped")
+        sync = await self.gateway.create_tenant(customer_id, name)
+        if sync.status == "error":
+            logger.warning(
+                f"Gateway inventory provisioning failed for tenant '{customer_id}': {sync.error}"
+            )
+        return sync
 
     async def get_tenant(self, customer_id: str) -> Optional[PlatformTenant]:
         stmt = (
@@ -174,6 +196,15 @@ class TenantService:
                 f"{counts['ticket_count']} tickets, {counts['api_key_count']} API keys. "
                 f"Use ?force=true to delete.",
             )
+
+        # Best-effort gateway cleanup before the local delete; the local delete
+        # proceeds regardless (a 409 manual_devices_present needs an operator).
+        if self.gateway:
+            sync = await self.gateway.delete_tenant(customer_id)
+            if sync.status == "error":
+                logger.warning(
+                    f"Gateway inventory delete failed for tenant '{customer_id}': {sync.error}"
+                )
 
         await self.session.delete(tenant)
         await self.session.commit()

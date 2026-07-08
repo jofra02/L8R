@@ -64,6 +64,18 @@ async def seed_tenant(file_path: str):
         await session.commit()
         print(f"Tenant {customer_id} registered/updated.")
 
+    # Best-effort MCP gateway inventory provisioning (never fails the seed)
+    from src.api.services.gateway_admin_client import GatewayAdminClient
+    gateway = GatewayAdminClient.from_settings()
+    if not gateway:
+        print("Gateway sync skipped (MCP_GATEWAY_ADMIN_URL/TOKEN not configured).")
+        return
+    sync = await gateway.create_tenant(customer_id, tenant.name)
+    if sync.status == "synced":
+        print(f"Gateway inventory provisioned for {customer_id}.")
+    else:
+        print(f"Gateway inventory sync {sync.status}: {sync.error or ''}")
+
 async def seed_context(file_path: str):
     """Seed ClientContext in the Data Plane."""
     print(f"Reading Context YAML: {file_path}")

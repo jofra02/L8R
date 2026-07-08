@@ -11,16 +11,18 @@ Auth: shared secret in the ``X-Admin-Token`` header, compared against the
 admin endpoint (except ``/admin/health``) answers 503 — the API is opt-in.
 
 Tenancy: the gateway process serves one tenant (``ACTIVE_CUSTOMER_ID``); the
-API can write any *known* tenant's files (device creation requires the
-tenant's ``inventory/tenants/<cid>/`` directory to already exist), but
-registries are only reloaded when the target tenant is the active one
-(``"reloaded"`` in mutation responses).
+API can write any *known* tenant's files. Tenants are provisioned via
+``POST /admin/tenants`` (creates ``inventory/tenants/<cid>/`` + tenant.yaml)
+and removed via ``DELETE /admin/tenants/{cid}`` (refused while hand-maintained
+device files exist). Registries are only reloaded when the target tenant is
+the active one (``"reloaded"`` in mutation responses).
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import re
 import secrets as py_secrets
 from typing import Any, Dict, List, Optional
 
@@ -36,6 +38,9 @@ from .inventory import (
     DeviceNotFoundError,
     EncryptionUnavailableError,
     ManagedInventoryStore,
+    ManualDevicesPresentError,
+    TenantExistsError,
+    TenantNotFoundError,
     UnmanagedDeviceError,
 )
 from .vendor_pack import AppliancePack
@@ -45,6 +50,9 @@ log = logging.getLogger("gateway.admin")
 ADMIN_TOKEN_ENV = "GATEWAY_ADMIN_TOKEN"
 ADMIN_TOKEN_HEADER = "x-admin-token"
 REDACTED = "***"
+
+# Tenant ids become filesystem directory names: keep them to a safe slug.
+TENANT_ID_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 class ConnectionWrite(BaseModel):
@@ -78,6 +86,12 @@ class DevicePatch(BaseModel):
     tags: Optional[List[str]] = None
     primary: Optional[bool] = None
     connection: Optional[ConnectionPatch] = None
+
+
+class TenantWrite(BaseModel):
+    id: str = Field(..., pattern=TENANT_ID_RE.pattern)
+    name: str
+    description: Optional[str] = None
 
 
 def _redact(entry: Dict[str, Any], managed: bool) -> Dict[str, Any]:
@@ -122,8 +136,14 @@ def register_admin_routes(
     def _store_error(e: Exception) -> JSONResponse:
         if isinstance(e, DeviceExistsError) or isinstance(e, UnmanagedDeviceError):
             return _error(409, "conflict", str(e))
+        if isinstance(e, TenantExistsError):
+            return _error(409, "tenant_exists", str(e))
+        if isinstance(e, ManualDevicesPresentError):
+            return _error(409, "manual_devices_present", str(e))
         if isinstance(e, DeviceNotFoundError):
             return _error(404, "not_found", str(e))
+        if isinstance(e, TenantNotFoundError):
+            return _error(404, "unknown_tenant", str(e))
         if isinstance(e, EncryptionUnavailableError):
             return _error(503, "encryption_unavailable", str(e))
         log.exception("Unexpected admin API failure")
@@ -155,6 +175,47 @@ def register_admin_routes(
             ]
         )
 
+    @gateway.custom_route("/admin/tenants", methods=["POST"])
+    async def admin_create_tenant(request: Request) -> JSONResponse:
+        denied = _check_auth(request)
+        if denied:
+            return denied
+        try:
+            payload = TenantWrite(**(await request.json()))
+        except ValidationError as e:
+            return _validation_error(e)
+        except Exception:
+            return _error(400, "bad_request", "Body must be a JSON object.")
+
+        store = ManagedInventoryStore()
+        try:
+            entry = store.create_tenant(payload.id, payload.name, payload.description)
+        except Exception as e:
+            return _store_error(e)
+
+        reloaded = _reload_registries(payload.id)
+        log.info("Tenant '%s' provisioned via admin API.", payload.id)
+        return JSONResponse({"tenant": entry, "reloaded": reloaded}, status_code=201)
+
+    @gateway.custom_route("/admin/tenants/{cid}", methods=["DELETE"])
+    async def admin_delete_tenant(request: Request) -> JSONResponse:
+        denied = _check_auth(request)
+        if denied:
+            return denied
+        cid = request.path_params["cid"]
+        if not TENANT_ID_RE.match(cid):
+            return _error(422, "invalid_tenant_id", f"Tenant id '{cid}' is not a valid slug.")
+
+        store = ManagedInventoryStore()
+        try:
+            store.delete_tenant(cid)
+        except Exception as e:
+            return _store_error(e)
+
+        reloaded = _reload_registries(cid)
+        log.info("Tenant '%s' removed via admin API.", cid)
+        return JSONResponse({"deleted": cid, "reloaded": reloaded})
+
     @gateway.custom_route("/admin/tenants/{cid}/devices", methods=["GET"])
     async def admin_list_devices(request: Request) -> JSONResponse:
         denied = _check_auth(request)
@@ -180,7 +241,7 @@ def register_admin_routes(
                 404,
                 "unknown_tenant",
                 f"Tenant '{cid}' has no inventory directory; "
-                f"create inventory/tenants/{cid}/ first.",
+                f"provision it first via POST /admin/tenants.",
             )
         try:
             payload = DeviceWrite(**(await request.json()))

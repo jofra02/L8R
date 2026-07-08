@@ -9,6 +9,9 @@ from .store import (
     EncryptionUnavailableError,
     InventoryStoreError,
     ManagedInventoryStore,
+    ManualDevicesPresentError,
+    TenantExistsError,
+    TenantNotFoundError,
     UnmanagedDeviceError,
 )
 
@@ -20,9 +23,12 @@ __all__ = [
     "InventoryManager",
     "InventoryStoreError",
     "ManagedInventoryStore",
+    "ManualDevicesPresentError",
     "SecretManager",
     "Tenant",
     "TenantContext",
+    "TenantExistsError",
+    "TenantNotFoundError",
     "UnmanagedDeviceError",
     "get_inventory",
     "resolve_inventory_root",

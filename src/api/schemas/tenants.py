@@ -50,6 +50,12 @@ class TenantListItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class TenantCreateResponse(TenantListItem):
+    # Outcome of the best-effort MCP gateway inventory provisioning
+    # (GatewaySyncResult: status synced|error|skipped, reloaded, error, warnings)
+    gateway_sync: Optional[dict] = None
+
+
 class EndpointResponse(BaseModel):
     customer_id: str
     pg_dsn_ref: Optional[str] = None
