@@ -8,6 +8,7 @@ from src.api.schemas.tenants import (
     TenantCreate,
     TenantUpdate,
     TenantListItem,
+    TenantCreateResponse,
     TenantDetail,
     EndpointUpsert,
     EndpointResponse,
@@ -38,19 +39,19 @@ async def list_tenants(
     return await svc.list_tenants()
 
 
-@router.post("", response_model=TenantListItem, status_code=201)
+@router.post("", response_model=TenantCreateResponse, status_code=201)
 async def create_tenant(
     body: TenantCreate,
     auth: AuthContext = Depends(require_permission("tenants:manage")),
     db: AsyncSession = Depends(get_db),
 ):
     svc = _svc(db)
-    tenant = await svc.create_tenant(
+    tenant, gateway_sync = await svc.create_tenant(
         customer_id=body.customer_id,
         name=body.name,
         plan=body.plan,
     )
-    return TenantListItem(
+    return TenantCreateResponse(
         customer_id=tenant.customer_id,
         name=tenant.name,
         status=tenant.status,
@@ -60,6 +61,7 @@ async def create_tenant(
         last_activity=None,
         created_at=tenant.created_at,
         updated_at=tenant.updated_at,
+        gateway_sync=gateway_sync.model_dump(),
     )
 
 

@@ -246,6 +246,107 @@ def test_known_other_tenant_writes_files_but_does_not_reload(client_and_registry
     assert other.exists()
 
 
+def test_create_tenant_provisions_files(client_and_registry, inventory_root):
+    client, _ = client_and_registry
+    resp = client.post(
+        "/admin/tenants", headers=AUTH, json={"id": "acme", "name": "Acme Corp", "description": "d"}
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["reloaded"] is False  # not the active tenant
+    assert body["tenant"]["id"] == "acme"
+
+    tenant_yaml = inventory_root / "tenants" / "acme" / "tenant.yaml"
+    assert tenant_yaml.exists()
+    data = yaml.safe_load(tenant_yaml.read_text(encoding="utf-8"))
+    assert data == {
+        "id": "acme",
+        "name": "Acme Corp",
+        "context": {"critical_networks": [], "contacts": []},
+        "description": "d",
+    }
+    assert (inventory_root / "tenants" / "acme" / "devices").is_dir()
+
+    # Device create no longer answers unknown_tenant for the new tenant
+    resp = client.post("/admin/tenants/acme/devices", headers=AUTH, json=_device_payload())
+    assert resp.status_code == 201, resp.text
+
+
+def test_create_tenant_duplicate_conflicts(client_and_registry):
+    client, _ = client_and_registry
+    assert client.post("/admin/tenants", headers=AUTH, json={"id": "acme", "name": "A"}).status_code == 201
+    resp = client.post("/admin/tenants", headers=AUTH, json={"id": "acme", "name": "A"})
+    assert resp.status_code == 409
+    assert resp.json()["error"] == "tenant_exists"
+    # The pre-seeded tenant (bare fixture dir has device files but no tenant.yaml
+    # is not the case here: fake_client has devices/, tenant.yaml absent -> adopted)
+    resp = client.post("/admin/tenants", headers=AUTH, json={"id": TENANT, "name": "FC"})
+    assert resp.status_code == 201  # bare dir adoption
+
+
+def test_create_tenant_invalid_id_rejected(client_and_registry, inventory_root):
+    client, _ = client_and_registry
+    resp = client.post("/admin/tenants", headers=AUTH, json={"id": "../evil", "name": "x"})
+    assert resp.status_code == 422
+    assert not (inventory_root / "evil").exists()
+    assert not (inventory_root / "tenants" / ".." / "evil").exists()
+    assert client.post("/admin/tenants", headers=AUTH, json={"name": "x"}).status_code == 422
+
+
+def test_create_tenant_requires_auth(client_and_registry):
+    client, _ = client_and_registry
+    resp = client.post("/admin/tenants", headers={"X-Admin-Token": "wrong"}, json={"id": "a", "name": "a"})
+    assert resp.status_code == 401
+
+
+def test_delete_tenant_removes_tree(client_and_registry, inventory_root):
+    client, _ = client_and_registry
+    client.post("/admin/tenants", headers=AUTH, json={"id": "acme", "name": "Acme"})
+    client.post("/admin/tenants/acme/devices", headers=AUTH, json=_device_payload())
+    # Example files never block deletion
+    (inventory_root / "tenants" / "acme" / "devices" / "fw.example.yaml").write_text(
+        "[]", encoding="utf-8"
+    )
+
+    resp = client.delete("/admin/tenants/acme", headers=AUTH)
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == {"deleted": "acme", "reloaded": False}
+    assert not (inventory_root / "tenants" / "acme").exists()
+
+    assert client.delete("/admin/tenants/acme", headers=AUTH).status_code == 404
+
+
+def test_delete_tenant_with_manual_devices_conflicts(client_and_registry, inventory_root):
+    client, _ = client_and_registry
+    resp = client.delete(f"/admin/tenants/{TENANT}", headers=AUTH)
+    assert resp.status_code == 409
+    assert resp.json()["error"] == "manual_devices_present"
+    assert "firewalls.yaml" in resp.json()["message"]
+    assert (inventory_root / "tenants" / TENANT / "devices" / "firewalls.yaml").exists()
+
+
+def test_delete_active_tenant_reloads_empty(client_and_registry, inventory_root):
+    client, registry = client_and_registry
+    (inventory_root / "tenants" / TENANT / "devices" / "firewalls.yaml").unlink()
+    client.post(f"/admin/tenants/{TENANT}/devices", headers=AUTH, json=_device_payload())
+    registry.reload()
+    assert registry.devices
+
+    resp = client.delete(f"/admin/tenants/{TENANT}", headers=AUTH)
+    assert resp.status_code == 200
+    assert resp.json()["reloaded"] is True
+    assert registry.devices == {}
+
+
+def test_delete_tenant_invalid_id_rejected(client_and_registry):
+    client, _ = client_and_registry
+    resp = client.delete("/admin/tenants/%2E%2E", headers=AUTH)
+    assert resp.status_code in (404, 422)  # router or slug validation, never a deletion
+    resp = client.delete("/admin/tenants/bad.id", headers=AUTH)
+    assert resp.status_code == 422
+    assert resp.json()["error"] == "invalid_tenant_id"
+
+
 def test_reload_endpoint(client_and_registry, inventory_root):
     client, registry = client_and_registry
     # Simulate out-of-band edit

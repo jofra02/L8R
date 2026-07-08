@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -46,6 +47,18 @@ class UnmanagedDeviceError(InventoryStoreError):
 
 class EncryptionUnavailableError(InventoryStoreError):
     """A plaintext token was provided but INVENTORY_MASTER_KEY is not set."""
+
+
+class TenantExistsError(InventoryStoreError):
+    """Create of a tenant whose ``tenant.yaml`` already exists."""
+
+
+class TenantNotFoundError(InventoryStoreError):
+    """Delete of a tenant with no inventory directory."""
+
+
+class ManualDevicesPresentError(InventoryStoreError):
+    """Delete of a tenant whose ``devices/`` holds hand-maintained files."""
 
 
 class ManagedInventoryStore:
@@ -113,6 +126,64 @@ class ManagedInventoryStore:
             if entry.get("id"):
                 ids[str(entry["id"])] = True
         return ids
+
+    # --- tenant provisioning ---
+
+    def _tenant_dir(self, customer_id: str) -> Path:
+        """Tenant directory, guaranteed to stay under ``tenants_dir``."""
+        path = (self.tenants_dir / customer_id).resolve()
+        if path.parent != self.tenants_dir.resolve():
+            raise InventoryStoreError(f"Invalid tenant id '{customer_id}'.")
+        return path
+
+    def create_tenant(
+        self, customer_id: str, name: str, description: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Provision ``tenants/<cid>/`` with a minimal tenant.yaml.
+
+        A bare pre-created directory (no tenant.yaml) is adopted rather than
+        rejected, so out-of-band ``mkdir`` provisioning stays compatible.
+        """
+        with _WRITE_LOCK:
+            tenant_dir = self._tenant_dir(customer_id)
+            tenant_yaml = tenant_dir / "tenant.yaml"
+            if tenant_yaml.exists():
+                raise TenantExistsError(f"Tenant '{customer_id}' already exists.")
+
+            entry: Dict[str, Any] = {
+                "id": customer_id,
+                "name": name,
+                "context": {"critical_networks": [], "contacts": []},
+            }
+            if description:
+                entry["description"] = description
+
+            (tenant_dir / "devices").mkdir(parents=True, exist_ok=True)
+            tmp_path = tenant_yaml.with_suffix(".yaml.tmp")
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(entry, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            os.replace(tmp_path, tenant_yaml)
+            return entry
+
+    def delete_tenant(self, customer_id: str) -> None:
+        """Remove ``tenants/<cid>/`` unless hand-maintained device files exist."""
+        with _WRITE_LOCK:
+            tenant_dir = self._tenant_dir(customer_id)
+            if not tenant_dir.is_dir():
+                raise TenantNotFoundError(f"Tenant '{customer_id}' has no inventory directory.")
+
+            devices_dir = tenant_dir / "devices"
+            manual = [
+                p.name
+                for p in sorted(devices_dir.glob("*.yaml"))
+                if not p.name.endswith(".example.yaml") and p.name != MANAGED_FILE
+            ] if devices_dir.is_dir() else []
+            if manual:
+                raise ManualDevicesPresentError(
+                    f"Tenant '{customer_id}' has hand-maintained device files "
+                    f"({', '.join(manual)}); remove them on the gateway host first."
+                )
+            shutil.rmtree(tenant_dir)
 
     # --- mutations ---
 
