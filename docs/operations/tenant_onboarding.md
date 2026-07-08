@@ -30,7 +30,7 @@
    uv run python src/main.py create-tenant-key <customer_id> "integration"
    ```
    Save the raw key — shown once.
-6. **Gateway side** (if this tenant gets its own device inventory): add devices under `mcp_gateway/inventory/tenants/<customer_id>/devices/` and point the gateway at it with `ACTIVE_CUSTOMER_ID=<customer_id>` — see [Gateway Operations](gateway_operations.md). Device `id`s must match the ids used in `context.yaml`.
+6. **Gateway side** (if this tenant gets its own device inventory): creating the tenant from the app auto-provisions `mcp_gateway/inventory/tenants/<customer_id>/` on the gateway, and adding an MCP-managed device from the UI writes it there. The gateway is multi-tenant — no per-tenant setting needed; the app sends the tenant with each call. See [Gateway Operations](gateway_operations.md). Device `id`s must match the ids used in `context.yaml`.
 
 ## Verification
 
@@ -49,4 +49,4 @@ Tenant removal: `DELETE /api/v1/tenants/{customer_id}` (JWT admin; check `GET ..
 
 - `register-tenant` and `seed-context` are idempotent-ish (upsert), but `seed-kb` appends — re-seeding the same docs duplicates points; use `clean_and_reseed` for a clean slate.
 - Device ids are the contract between agent context and gateway inventory: `context.yaml` ids and `mcp_gateway/inventory/.../devices/*.yaml` ids must match.
-- The gateway serves **one tenant per process** (`ACTIVE_CUSTOMER_ID`); multiple tenants with devices need separate gateway instances (or a future multi-tenant gateway).
+- The gateway is **multi-tenant**: many tenants with their own devices are served by one process, routed per request. `DEFAULT_TENANT` is only an optional fallback for header-less/manual calls.

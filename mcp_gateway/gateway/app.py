@@ -15,7 +15,7 @@ from fastmcp import FastMCP
 
 from .admin_api import register_admin_routes
 from .auth import get_auth_strategy
-from .config import DeviceRegistry, GATEWAY_ROOT, get_settings
+from .config import GATEWAY_ROOT, TenantRegistries, get_settings
 from .routing_client import RoutingClient
 from .spec_pipeline import build_appliance_server
 from .vendor_pack import discover_packs
@@ -40,14 +40,18 @@ def build_gateway(vendors_root: Path = VENDORS_ROOT) -> FastMCP:
     if not packs:
         log.warning("No appliance packs found — the gateway will expose no tools.")
 
-    registries: dict[str, DeviceRegistry] = {}
+    # One TenantRegistries per device_type (lazy per-tenant DeviceRegistry cache),
+    # not bound to any single customer_id.
+    registries: dict[str, TenantRegistries] = {}
     for pack in packs:
-        registry = registries.get(pack.manifest.device_type)
-        if registry is None:
-            registry = DeviceRegistry(settings.active_customer_id, pack.manifest.device_type)
-            registries[pack.manifest.device_type] = registry
-        client = RoutingClient(registry, get_auth_strategy(pack.manifest.auth), settings)
-        appliance_server = build_appliance_server(pack, registry, client)
+        tenant_registries = registries.get(pack.manifest.device_type)
+        if tenant_registries is None:
+            tenant_registries = TenantRegistries(
+                pack.manifest.device_type, default_tenant=settings.default_tenant
+            )
+            registries[pack.manifest.device_type] = tenant_registries
+        client = RoutingClient(tenant_registries, get_auth_strategy(pack.manifest.auth), settings)
+        appliance_server = build_appliance_server(pack, tenant_registries, client)
         gateway.mount(appliance_server, prefix=pack.prefix)
         log.info(f"Mounted appliance pack '{pack.qualified_name}' at prefix '{pack.prefix}'.")
 

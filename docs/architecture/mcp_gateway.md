@@ -27,7 +27,7 @@ mcp_gateway/
 │   ├── schema_fixes.py     # Generic spec fixes + operationId sanitizer
 │   ├── routing_client.py   # Multi-device httpx client ('device' header routing)
 │   ├── auth.py             # AuthStrategy registry (bearer_header today)
-│   ├── config.py           # ACTIVE_CUSTOMER_ID, DeviceRegistry (reload(), primary flag)
+│   ├── config.py           # DEFAULT_TENANT, DeviceRegistry + TenantRegistries (lazy per-tenant, reload(), primary flag)
 │   ├── middleware.py       # Tracing + optional Prometheus histogram
 │   ├── inventory/          # Tenant/device YAML registry + Fernet secrets + managed.yaml store
 │   └── tests/              # test_name_freeze.py, test_admin_api.py, test_routing_reload.py
@@ -87,8 +87,9 @@ Guard: `gateway/tests/test_name_freeze.py` builds the gateway offline and assert
 
 ## Tenants, inventory and multi-device routing
 
-- The gateway serves **one tenant per process**: `ACTIVE_CUSTOMER_ID` (default `fake_client`). Tenant ids match the `customer_id` used across support_ai_agent — the device ids in `mcp_gateway/inventory/tenants/fake_client/devices/` are the same ones `query_client_db` returns from `data/tenants/fake_client/context.yaml`.
-- Every generated tool has an optional `device` header parameter. `RoutingClient.send()` resolves the target against the **live** `DeviceRegistry` on every request (header id, else the current **primary**: `primary: true` in YAML, else the first device loaded), rewrites the URL host/port and swaps the auth headers per the pack's `AuthStrategy`. Because resolution is per-request, admin-API hot reloads — including a primary change — take effect without a restart; the constructor's base_url only remains as the empty-registry fallback.
+- The gateway is **multi-tenant**: routing resolves `(tenant, device)` per request. Tenant ids match the `customer_id` used across support_ai_agent — the device ids in `mcp_gateway/inventory/tenants/<cid>/devices/` are the same ones `query_client_db` returns from that tenant's `context.yaml`.
+- Every generated tool has optional `tenant` and `device` header parameters. `RoutingClient.send()` resolves the tenant first (header, else the optional `DEFAULT_TENANT` fallback) into that tenant's lazily-built, **live** `DeviceRegistry`, then the device within it (header id, else the tenant's **primary**: `primary: true` in YAML, else the first device loaded), rewrites the URL host/port and swaps the auth headers per the pack's `AuthStrategy`. The `tenant` header is **framework-injected by the app** from the run's `customer_id` (never LLM-supplied); the LLM still supplies `device`. Because resolution is per-request, admin-API hot reloads — including a primary change — take effect without a restart; the constructor's base_url only remains as the no-route fallback. Multiple tenants are routable concurrently in one process — there is no active-tenant setting.
+- `TenantRegistries` (one per device_type) is a lazy cache of per-tenant `DeviceRegistry` objects; device ids stay unique only within a tenant, so each tenant keeps its own flat registry.
 - `fgt_get_inventory_tree` lists valid device ids for the agent.
 - The inventory root defaults to `mcp_gateway/inventory` and can be overridden with `INVENTORY_ROOT` (compose sets `/app/inventory`; the volume is mounted read-write so the admin API can persist).
 
@@ -113,9 +114,9 @@ Rules:
 - **Auth**: `X-Admin-Token` header must equal the `GATEWAY_ADMIN_TOKEN` env var. Unset var ⇒ every admin endpoint answers 503 (opt-in API).
 - **managed.yaml**: the API only ever writes `devices/managed.yaml` (atomic write via temp file + rename, header comment marks it machine-owned). Hand-maintained files are readable but immutable through the API (409) — their comments/formatting are never touched.
 - **Single primary**: marking a managed device `primary: true` clears the flag on other managed devices of the same type. If a hand-maintained device of that type is also primary it **wins** (file order) and the response carries a warning.
-- **Hot reload**: after a successful mutation for the active tenant, all `DeviceRegistry` instances `reload()` — new/changed/removed devices are routable immediately (`"reloaded": true` in the response). Mutations for other tenants only write files (`"reloaded": false`).
+- **Hot reload**: a successful mutation reloads that tenant's cached routing slice — new/changed/removed devices are routable immediately (`"reloaded": true`). If the tenant has no cached slice yet (never routed), the response is `"reloaded": false` and the change is still picked up lazily on the tenant's next request (built fresh from disk). Any tenant reloads independently — there is no active-tenant restriction.
 - **Validation**: `type` must match a discovered pack's `device_type`; duplicate ids conflict (409). Device creation requires the tenant's `inventory/tenants/<cid>/` directory to already exist — an unknown `cid` answers 404 `unknown_tenant` instead of silently minting a new tenant directory. Tenant ids are slug-validated (`[a-zA-Z0-9_-]+`) because they become directory names.
-- **Tenant lifecycle**: `POST /admin/tenants` writes a minimal `tenant.yaml` (adopting a bare pre-created directory); duplicate ⇒ 409 `tenant_exists`. `DELETE /admin/tenants/{cid}` removes the whole tenant tree, but **refuses (409 `manual_devices_present`)** while hand-maintained device files exist — the API never deletes operator-managed config. Deleting the active tenant reloads the registries to empty.
+- **Tenant lifecycle**: `POST /admin/tenants` writes a minimal `tenant.yaml` (adopting a bare pre-created directory); duplicate ⇒ 409 `tenant_exists`. `DELETE /admin/tenants/{cid}` removes the whole tenant tree, but **refuses (409 `manual_devices_present`)** while hand-maintained device files exist — the API never deletes operator-managed config. Deleting a cached tenant reloads its slice to empty.
 
 App-side flow: `InventoryService` (platform API) calls the admin API through `src/api/services/gateway_admin_client.py` when a Component carries an `mcp_connection` block. The component is persisted locally **first** (sync status `pending`), then synced to the gateway, and the outcome is recorded in `Component.metadata["mcp"]["sync"]` and returned as `gateway_sync` (the token is write-only and never persisted app-side) — the gateway never holds a device the app has no record of.
 
@@ -152,6 +153,6 @@ Operational procedures: [Gateway Operations](../operations/gateway_operations.md
 
 ## Future work
 
-- **SSE authentication**: the endpoint is currently unauthenticated — anyone who can reach the port can execute all tools. Acceptable only on trusted networks; add a bearer/API-key check before exposing beyond the compose network.
+- **SSE authentication**: the endpoint is currently unauthenticated — anyone who can reach the port can execute all tools. Acceptable only on trusted networks; add a bearer/API-key check before exposing beyond the compose network. This also means the per-request `tenant` header is **spoofable** by anything that can reach the port — cross-tenant isolation depends on the network boundary until SSE auth exists.
 - Second appliance pack (`vendors/fortinet/fortianalyzer/` or another vendor's product) to exercise the multi-pack path.
 - Optional pagination/filtering of the tool listing for clients that can't handle ~2.5k tools.

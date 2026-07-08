@@ -23,7 +23,7 @@ import traceback
 from fastmcp import FastMCP
 
 from . import schema_fixes
-from .config import DeviceRegistry
+from .config import TenantRegistries
 from .middleware import TracingMiddleware
 from .routing_client import RoutingClient
 from .vendor_pack import AppliancePack
@@ -35,7 +35,7 @@ _HTTP_METHODS = ("get", "post", "put", "delete", "patch")
 
 def build_appliance_server(
     pack: AppliancePack,
-    registry: DeviceRegistry,
+    registries: TenantRegistries,
     client: RoutingClient,
 ) -> FastMCP:
     """Build the FastMCP server tree for an appliance pack."""
@@ -95,6 +95,22 @@ def build_appliance_server(
                                 "description": pack.manifest.device_param_description,
                             })
 
+                        # 1b. Inject the 'tenant' routing parameter (header).
+                        # Framework-supplied by the caller (never the LLM); the
+                        # gateway resolves the tenant's inventory per request.
+                        # Params do not affect tool names — name-freeze safe.
+                        if not any(param.get("name") == "tenant" for param in op_spec["parameters"]):
+                            op_spec["parameters"].append({
+                                "name": "tenant",
+                                "in": "header",
+                                "schema": {"type": "string"},
+                                "required": False,
+                                "description": (
+                                    "Target tenant/customer_id whose inventory to route "
+                                    "against. Supplied automatically by the platform."
+                                ),
+                            })
+
                         # 2. Append vendor-provided help to matching parameters
                         for param in op_spec["parameters"]:
                             extra_doc = pack.parameter_doc_appends.get(param.get("name"))
@@ -121,19 +137,20 @@ def build_appliance_server(
         appliance_server.mount(group_server, prefix=group_name)
 
     if pack.manifest.inventory_tool:
-        _register_inventory_tool(appliance_server, registry)
+        _register_inventory_tool(appliance_server, registries)
 
     return appliance_server
 
 
-def _register_inventory_tool(appliance_server: FastMCP, registry: DeviceRegistry) -> None:
+def _register_inventory_tool(appliance_server: FastMCP, registries: TenantRegistries) -> None:
     @appliance_server.tool()
-    def get_inventory_tree() -> str:
+    def get_inventory_tree(tenant: str = "") -> str:
         """
         Returns a tree structure of the available inventory devices.
         Use this to find valid 'device' names for other tools.
         """
-        if not registry.devices:
+        registry = registries.get(tenant or None)
+        if registry is None or not registry.devices:
             return "No devices found in inventory."
 
         summary = ["Available Devices:"]

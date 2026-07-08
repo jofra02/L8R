@@ -8,7 +8,7 @@
 |---|---|---|---|
 | `postgres` | postgres:16-alpine | `POSTGRES_PORT` 5432 | volume `pgdata` |
 | `qdrant` | qdrant/qdrant:v1.14.0 | `QDRANT_PORT` 6333 / `QDRANT_GRPC_PORT` 6334 | volume `qdrant_data` |
-| `mcp-gateway` | build `./mcp_gateway` | `MCP_GATEWAY_PORT` 8001 → 8000 | needs `INVENTORY_MASTER_KEY`, `ACTIVE_CUSTOMER_ID`; mounts `./mcp_gateway/inventory:ro` |
+| `mcp-gateway` | build `./mcp_gateway` | `MCP_GATEWAY_PORT` 8001 → 8000 | needs `INVENTORY_MASTER_KEY` (optional `DEFAULT_TENANT` fallback); mounts `./mcp_gateway/inventory` read-write |
 | `app` | build `.` | `APP_PORT` 8000 | entrypoint runs migrations + init_qdrant, then uvicorn/gunicorn |
 | `frontend` | build `./frontend` | `FRONTEND_PORT` 3001 → 80 | nginx |
 | `langfuse` | langfuse/langfuse:2 | `LANGFUSE_PORT` 3000 | **profile `observability`** only |
