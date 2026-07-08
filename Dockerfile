@@ -41,6 +41,11 @@ RUN mkdir -p /app/data/evidence
 RUN chown -R appuser:appuser /app
 USER appuser
 
+# Deploy provenance: scripts/deploy/redeploy.sh bakes the deployed git SHA and
+# asserts it against the running container after `up`
+ARG GIT_SHA=unknown
+LABEL org.opencontainers.image.revision=$GIT_SHA
+
 EXPOSE 8000
 
 ENTRYPOINT ["bash", "scripts/entrypoint.sh"]

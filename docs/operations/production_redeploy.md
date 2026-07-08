@@ -32,6 +32,7 @@ bash scripts/deploy/redeploy.sh                # git pull --ff-only on the curre
 | `--no-pull` | Deploy the working tree as-is (config-only deploys, see below) |
 | `--skip-backup` | Skip the pre-deploy backup. Discouraged; requires typing `YES` (skipped by `--yes`) |
 | `--services "app frontend"` | Partial redeploy of specific compose services |
+| `--no-cache` | Rebuild all image layers from scratch (escape hatch for a corrupted/suspect layer cache) |
 | `--allow-name-drift` | Accept an intentional gateway tool-name baseline change |
 | `--rollback [backup-dir]` | Revert code to the SHA recorded in a backup manifest |
 | `--yes` | Non-interactive (skips confirmation prompts) |
@@ -41,11 +42,12 @@ bash scripts/deploy/redeploy.sh                # git pull --ff-only on the curre
 1. **Preflight** — required binaries, stack running, clean working tree (unless `--no-pull`), `.env` sanity: fails on placeholder `DB_PASS`/`JWT_SECRET_KEY`/missing `OPENAI_API_KEY`; warns on empty `GATEWAY_ADMIN_TOKEN`/`INVENTORY_MASTER_KEY` and `APP_ENV != production`.
 2. **Backup** — runs `scripts/deploy/backup.sh`: PostgreSQL `pg_dump -Fc`, per-collection Qdrant snapshots (downloaded out of the volume), secrets tar (inventory + `.env`), evidence blobs. Stored under `backups/<UTC-stamp>_<sha>_predeploy/` with a manifest recording the pre-deploy ref. See [Backup & Restore](backup_restore.md).
 3. **Fetch** — `git fetch` + checkout of `--ref`, or `git pull --ff-only`.
-4. **Build** — `docker compose build` for the target services. Runs **before** the live stack is touched: a build failure aborts with production intact and the previous ref restored.
+4. **Build** — `docker compose build --pull` for the target services (`--pull` refreshes base images; add `--no-cache` for a full rebuild). The deployed git SHA is baked into each image as the `org.opencontainers.image.revision` label. Runs **before** the live stack is touched: a build failure aborts with production intact and the previous ref restored.
 5. **Name-freeze gate** — boots the freshly built gateway image offline and compares its generated tool names against `mcp_gateway/baseline_tools.txt` (same assertion as `test_name_freeze.py`). A rename would silently invalidate the Qdrant `tool_catalog`; the gate aborts the deploy before that can happen. Intentional changes (new packs, fastmcp upgrade) require regenerating the baseline and deploying with `--allow-name-drift` — see [Gateway Upgrades](gateway_upgrades.md).
 6. **Confirm** — summary (old SHA → new SHA, services, backup dir); Enter to proceed.
 7. **Deploy** — `docker compose up -d --wait`. Compose recreates only containers whose image or configuration changed; postgres and qdrant run pinned images and are not touched. Recreating the app runs `alembic upgrade head` in its entrypoint ([Database Migrations](database_migrations.md)); the healthcheck `start_period` covers migration time, so `--wait` doubles as the migration gate. On failure the script prints the app logs and the rollback command — it does not roll back automatically.
-8. **Verify** — `/health` (liveness), poll `/ready` (readiness incl. tool indexing; ceiling 35 min, override with `READY_TIMEOUT_SECONDS=<s>`), gateway `/sse/` probe, frontend probe. A `degraded` readiness is reported as a warning, not a failure.
+8. **Verify images** — for each rebuilt service, asserts the running container's `org.opencontainers.image.revision` label equals the deployed SHA and its image ID equals the freshly built image. This proves the deploy actually shipped the new code — a stale layer cache or a container `up` failed to recreate fails the deploy loudly instead of passing silently.
+9. **Verify health** — `/health` (liveness), poll `/ready` (readiness incl. tool indexing; ceiling 35 min, override with `READY_TIMEOUT_SECONDS=<s>`), gateway `/sse/` probe, frontend probe. A `degraded` readiness is reported as a warning, not a failure.
 
 Expected downtime: the app is unavailable for roughly 10–60 seconds while its container is recreated and migrations run. Postgres, Qdrant and the gateway keep serving throughout (the gateway only restarts when its own image changed).
 

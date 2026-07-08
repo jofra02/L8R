@@ -12,12 +12,14 @@
 #   --no-pull                  deploy the working tree as-is (skips fetch/checkout)
 #   --skip-backup              skip the pre-deploy backup (discouraged)
 #   --services "app frontend"  partial redeploy (space-separated compose services)
+#   --no-cache                 rebuild all image layers from scratch (cache escape hatch)
 #   --allow-name-drift         accept an intentional gateway baseline change
 #   --rollback [backup-dir]    roll code back to the SHA recorded in the backup manifest
 #   --yes                      non-interactive (skip confirmation prompts)
 #
-# Sequence: preflight -> backup -> fetch -> build -> name-freeze gate ->
-# confirm -> up -d --wait (migrations run in the app entrypoint) -> verify.
+# Sequence: preflight -> backup -> fetch -> build (--pull, git SHA baked as image
+# label) -> name-freeze gate -> confirm -> up -d --wait (migrations run in the app
+# entrypoint) -> verify images match the deployed SHA -> verify health.
 # Database rollback is NEVER automatic; see docs/operations/production_redeploy.md.
 
 set -euo pipefail
@@ -30,6 +32,7 @@ REF=""
 NO_PULL=0
 SKIP_BACKUP=0
 SERVICES=""
+NO_CACHE=0
 ALLOW_NAME_DRIFT=0
 ROLLBACK=0
 ROLLBACK_DIR=""
@@ -41,13 +44,14 @@ while [ $# -gt 0 ]; do
         --no-pull) NO_PULL=1; shift ;;
         --skip-backup) SKIP_BACKUP=1; shift ;;
         --services) SERVICES="$2"; shift 2 ;;
+        --no-cache) NO_CACHE=1; shift ;;
         --allow-name-drift) ALLOW_NAME_DRIFT=1; shift ;;
         --rollback)
             ROLLBACK=1; shift
             if [ $# -gt 0 ] && [ "${1#-}" = "$1" ]; then ROLLBACK_DIR="$1"; shift; fi ;;
         --yes) ASSUME_YES=1; shift ;;
         -h|--help)
-            sed -n '2,21p' "${BASH_SOURCE[0]}" >&2
+            sed -n '2,23p' "${BASH_SOURCE[0]}" >&2
             exit 0 ;;
         *) echo "Unknown flag: $1" >&2; exit 2 ;;
     esac
@@ -84,10 +88,15 @@ getcfg() {
     printf '%s' "${val:-$def}"
 }
 
-gateway_in_scope() {
+# Services built from this repo; they carry the org.opencontainers.image.revision label
+BUILT_SERVICES="app mcp-gateway frontend"
+
+service_in_scope() {
     [ -z "$SERVICES" ] && return 0
-    case " $SERVICES " in *" mcp-gateway "*) return 0 ;; *) return 1 ;; esac
+    case " $SERVICES " in *" $1 "*) return 0 ;; *) return 1 ;; esac
 }
+
+gateway_in_scope() { service_in_scope mcp-gateway; }
 
 preflight() {
     PHASE="preflight"
@@ -208,9 +217,16 @@ restore_prev_code() {
 
 build_images() {
     PHASE="build_images"
-    log "building images (running stack untouched)..."
+    local build_flags="--pull"
+    if [ "$NO_CACHE" -eq 1 ]; then
+        build_flags="$build_flags --no-cache"
+        log "building images with --pull --no-cache (full rebuild, running stack untouched)..."
+    else
+        log "building images with --pull (running stack untouched)..."
+    fi
+    # GIT_SHA is baked as the image revision label and asserted by verify_images
     # shellcheck disable=SC2086
-    if ! docker compose build $SERVICES; then
+    if ! docker compose build $build_flags --build-arg GIT_SHA="$(git rev-parse HEAD)" $SERVICES; then
         restore_prev_code
         fail "image build failed; production was not modified"
     fi
@@ -270,6 +286,33 @@ deploy() {
         docker compose logs --tail=50 app >&2 || true
         fail "deploy failed. Revert code with: bash scripts/deploy/redeploy.sh --rollback${BACKUP_DIR:+ $BACKUP_DIR}"
     fi
+}
+
+# Prove the running containers came out of the build we just did: the revision
+# label must equal the deployed SHA, and the container's image ID must equal the
+# freshly tagged image. Catches both a stale layer cache and an `up` that never
+# recreated the container.
+verify_images() {
+    PHASE="verify_images"
+    local expected svc cid revision running_id built_id proj
+    expected="$(git rev-parse HEAD)"
+    log "verify: containers run the freshly built images (revision ${expected:0:12})..."
+    for svc in $BUILT_SERVICES; do
+        service_in_scope "$svc" || continue
+        cid="$(docker compose ps -q "$svc" | head -n1)"
+        [ -n "$cid" ] || fail "verify: no running container for service '$svc' after deploy"
+        revision="$(docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$cid")"
+        if [ "$revision" != "$expected" ]; then
+            fail "verify: '$svc' runs an image built from '${revision:-<unlabeled>}' instead of $expected — the container was NOT recreated from the fresh build. Try: docker compose up -d --force-recreate $svc"
+        fi
+        running_id="$(docker inspect -f '{{.Image}}' "$cid")"
+        proj="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "$cid")"
+        built_id="$(docker image inspect -f '{{.Id}}' "${proj}-${svc}" 2>/dev/null || true)"
+        if [ -n "$built_id" ] && [ "$running_id" != "$built_id" ]; then
+            fail "verify: '$svc' container uses image $running_id but the fresh build is $built_id — stale container. Try: docker compose up -d --force-recreate $svc"
+        fi
+        log "verify: $svc image OK"
+    done
 }
 
 verify() {
@@ -346,8 +389,9 @@ do_rollback() {
         read -r _
     fi
     git checkout "$ref"
-    docker compose build
+    docker compose build --pull --build-arg GIT_SHA="$(git rev-parse HEAD)"
     docker compose up -d --wait --wait-timeout 300
+    verify_images
     verify
     log "code rolled back. The database was NOT restored — migrations from the"
     log "failed deploy remain applied (they are additive by policy). If data must"
@@ -367,5 +411,6 @@ build_images
 name_freeze_gate
 confirm
 deploy
+verify_images
 verify
 summary
