@@ -122,6 +122,24 @@ preflight() {
     { [ -n "$key" ] && [ "$key" != "sk-..." ]; } || fail "OPENAI_API_KEY is not configured"
     [ -n "$(getcfg GATEWAY_ADMIN_TOKEN '')" ]   || log "WARNING: GATEWAY_ADMIN_TOKEN empty — gateway admin API and inventory sync are disabled"
     [ -n "$(getcfg INVENTORY_MASTER_KEY '')" ]  || log "WARNING: INVENTORY_MASTER_KEY empty — encrypted device tokens cannot be decrypted"
+
+    # The gateway container runs as uid 1000 (appuser) and provisions tenants by
+    # writing to the ./mcp_gateway/inventory bind mount. A repo cloned as root
+    # leaves it root-owned -> admin API answers 500 EACCES on the first write.
+    local inv_dir="$REPO_ROOT/mcp_gateway/inventory/tenants"
+    if [ -d "$inv_dir" ]; then
+        local inv_writable=1
+        if docker compose ps --services --status running 2>/dev/null | grep -qx mcp-gateway; then
+            docker compose exec -T mcp-gateway sh -c 'test -w /app/inventory/tenants' >/dev/null 2>&1 || inv_writable=0
+        else
+            [ "$(stat -c %u "$inv_dir" 2>/dev/null || echo '')" = "1000" ] || inv_writable=0
+        fi
+        if [ "$inv_writable" -ne 1 ]; then
+            log "WARNING: mcp_gateway/inventory is not writable by the gateway container (uid 1000)."
+            log "WARNING: tenant/device provisioning will fail with 'HTTP 500: Permission denied'."
+            log "WARNING: fix: chown -R 1000:1000 $REPO_ROOT/mcp_gateway/inventory"
+        fi
+    fi
     [ "$(getcfg APP_ENV development)" = "production" ] || log "WARNING: APP_ENV is not 'production'"
     # Only relevant when the tunnel profile is active (cloudflared in scope)
     if docker compose config --services 2>/dev/null | grep -qx cloudflared; then

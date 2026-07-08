@@ -56,6 +56,14 @@ curl -X POST http://localhost:8001/admin/tenants/fake_client/devices \
 
 Tenant inventories are provisioned automatically: creating a tenant in the app (`POST /tenants` or `register-tenant`) calls `POST /admin/tenants` on the gateway, which creates `inventory/tenants/<cid>/` + `tenant.yaml`. Deleting the tenant in the app calls `DELETE /admin/tenants/<cid>`; the gateway refuses (409) while hand-maintained device YAML files exist under `devices/` — remove those on the gateway host first.
 
+**Bind-mount permissions**: the gateway container runs as `appuser` (uid 1000) and writes tenants/devices into the `./mcp_gateway/inventory` bind mount. If the repo was cloned as root, that directory is root-owned and every provisioning write fails with `HTTP 500: [Errno 13] Permission denied` (the app surfaces it as the device's `sync.last_error`). One-time fix on the host, no restart needed:
+
+```bash
+chown -R 1000:1000 mcp_gateway/inventory
+```
+
+`redeploy.sh` warns about this in its preflight. The fix survives redeploys (the mount is not recreated) but must be repeated after a fresh `git clone`.
+
 ### Option B — hand-edit a YAML file
 
 1. Encrypt the device API token: see [Gateway Secrets](gateway_secrets.md).
