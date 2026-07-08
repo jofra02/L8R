@@ -233,7 +233,7 @@ servers:
     timeout: 45             # optional — overrides MCP_SERVER_TIMEOUT
 ```
 
-The `mcp-gateway` compose service needs `INVENTORY_MASTER_KEY` and `ACTIVE_CUSTOMER_ID` in `.env`, and mounts `./mcp_gateway/inventory` read-only (device credentials never enter the image).
+The `mcp-gateway` compose service needs `INVENTORY_MASTER_KEY` (and optionally `DEFAULT_TENANT`, the fallback for header-less calls) in `.env`, and mounts `./mcp_gateway/inventory` read-write (device credentials never enter the image; the admin API persists there).
 
 See `data/mcp/servers.example.yaml` for SSE and stdio transport examples. The YAML is loaded at startup by `src/config.py`; see [Configuration > MCP](configuration.md#mcp-model-context-protocol) for the full field reference.
 

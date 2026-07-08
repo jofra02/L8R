@@ -10,12 +10,13 @@ Auth: shared secret in the ``X-Admin-Token`` header, compared against the
 ``GATEWAY_ADMIN_TOKEN`` environment variable. When the variable is unset every
 admin endpoint (except ``/admin/health``) answers 503 — the API is opt-in.
 
-Tenancy: the gateway process serves one tenant (``ACTIVE_CUSTOMER_ID``); the
-API can write any *known* tenant's files. Tenants are provisioned via
+Tenancy: the gateway is multi-tenant (routing resolves the tenant per request).
+The API can write any tenant's files. Tenants are provisioned via
 ``POST /admin/tenants`` (creates ``inventory/tenants/<cid>/`` + tenant.yaml)
 and removed via ``DELETE /admin/tenants/{cid}`` (refused while hand-maintained
-device files exist). Registries are only reloaded when the target tenant is
-the active one (``"reloaded"`` in mutation responses).
+device files exist). A mutation reloads that tenant's cached routing slice if
+present (``"reloaded"`` in the response); an as-yet-uncached tenant is a no-op
+here — its next request builds it fresh from disk.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ from starlette.responses import JSONResponse
 
 from fastmcp import FastMCP
 
-from .config import DeviceRegistry, GatewaySettings
+from .config import GatewaySettings, TenantRegistries
 from .inventory import (
     DeviceExistsError,
     DeviceNotFoundError,
@@ -111,7 +112,7 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
 
 def register_admin_routes(
     gateway: FastMCP,
-    registries: Dict[str, DeviceRegistry],
+    registries: Dict[str, TenantRegistries],
     packs: List[AppliancePack],
     settings: GatewaySettings,
 ) -> None:
@@ -127,11 +128,17 @@ def register_admin_routes(
         return None
 
     def _reload_registries(customer_id: str) -> bool:
-        if customer_id != settings.active_customer_id:
-            return False
-        for registry in registries.values():
-            registry.reload()
-        return True
+        """Reload the tenant's cached routing slice across all device types.
+
+        Multi-tenant: any tenant's mutation refreshes its own registry. A tenant
+        not yet cached is a no-op here — its next request builds it fresh from
+        disk. Returns whether any cached slice was reloaded (informational).
+        """
+        reloaded_any = False
+        for tenant_registries in registries.values():
+            if tenant_registries.reload(customer_id):
+                reloaded_any = True
+        return reloaded_any
 
     def _store_error(e: Exception) -> JSONResponse:
         if isinstance(e, DeviceExistsError) or isinstance(e, UnmanagedDeviceError):
@@ -327,14 +334,14 @@ def register_admin_routes(
         denied = _check_auth(request)
         if denied:
             return denied
-        for registry in registries.values():
-            registry.reload()
+        for tenant_registries in registries.values():
+            tenant_registries.reload_all()
         return JSONResponse(
             {
                 "reloaded": True,
                 "registries": {
-                    device_type: len(registry.devices)
-                    for device_type, registry in registries.items()
+                    device_type: tr.cached_tenant_count()
+                    for device_type, tr in registries.items()
                 },
             }
         )

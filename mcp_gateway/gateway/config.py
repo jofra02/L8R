@@ -1,8 +1,11 @@
 """Gateway configuration and per-vendor device registry.
 
-The gateway serves one tenant per process, selected by ``ACTIVE_CUSTOMER_ID``
-(``ACTIVE_TENANT`` is accepted as a legacy fallback). The customer_id matches
-the tenant ids used by support_ai_agent (e.g. ``fake_client``).
+The gateway is multi-tenant: routing resolves ``(tenant, device)`` per request
+(both arrive as request headers). ``DEFAULT_TENANT`` (with ``ACTIVE_CUSTOMER_ID``
+/ ``ACTIVE_TENANT`` accepted as legacy fallbacks) is an optional fallback used
+only when a request carries no ``tenant`` header; when unset, header-less
+requests have no route. The customer_id matches the tenant ids used by
+support_ai_agent (e.g. ``fake_client``).
 """
 
 from __future__ import annotations
@@ -32,8 +35,13 @@ class GatewaySettings:
     """Process-level settings read from the environment."""
 
     def __init__(self) -> None:
-        self.active_customer_id: str = (
-            os.getenv("ACTIVE_CUSTOMER_ID") or os.getenv("ACTIVE_TENANT") or "fake_client"
+        # Optional fallback tenant for requests without a 'tenant' header.
+        # ACTIVE_CUSTOMER_ID/ACTIVE_TENANT kept as legacy aliases. May be None.
+        self.default_tenant: Optional[str] = (
+            os.getenv("DEFAULT_TENANT")
+            or os.getenv("ACTIVE_CUSTOMER_ID")
+            or os.getenv("ACTIVE_TENANT")
+            or None
         )
         self.http_timeout: float = float(os.getenv("GATEWAY_HTTP_TIMEOUT", "10"))
         self.http_connect_timeout: float = float(os.getenv("GATEWAY_HTTP_CONNECT_TIMEOUT", "5"))
@@ -111,3 +119,52 @@ class DeviceRegistry:
         if not self.primary:
             return {}
         return self.resolve_connection(self.primary)
+
+
+class TenantRegistries:
+    """Lazy per-tenant ``DeviceRegistry`` cache for one device_type.
+
+    The gateway is multi-tenant: routing resolves the tenant per request and
+    looks up (building on first use) that tenant's registry here. Device ids
+    are unique only within a tenant, so each tenant keeps its own flat
+    ``DeviceRegistry``. An optional ``default_tenant`` serves requests that
+    carry no ``tenant`` header (single-tenant/manual use).
+    """
+
+    def __init__(self, device_type: str, default_tenant: Optional[str] = None) -> None:
+        self.device_type = device_type
+        self.default_tenant = default_tenant
+        self._by_tenant: Dict[str, DeviceRegistry] = {}
+
+    def get(self, customer_id: Optional[str]) -> Optional[DeviceRegistry]:
+        """Registry for a tenant (falls back to default_tenant), or None.
+
+        Builds and caches the registry on first use; a cache miss reads the
+        tenant's inventory fresh from disk, so tenants added at runtime are
+        picked up without a reload.
+        """
+        cid = customer_id or self.default_tenant
+        if not cid:
+            return None
+        registry = self._by_tenant.get(cid)
+        if registry is None:
+            registry = DeviceRegistry(cid, self.device_type)
+            self._by_tenant[cid] = registry
+        return registry
+
+    def reload(self, customer_id: str) -> bool:
+        """Reload a tenant's cached registry. No-op if not yet cached
+        (the next get() builds it fresh). Returns whether a slice was reloaded.
+        """
+        registry = self._by_tenant.get(customer_id)
+        if registry is None:
+            return False
+        registry.reload()
+        return True
+
+    def reload_all(self) -> None:
+        for registry in self._by_tenant.values():
+            registry.reload()
+
+    def cached_tenant_count(self) -> int:
+        return len(self._by_tenant)

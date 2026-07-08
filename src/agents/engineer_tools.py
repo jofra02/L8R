@@ -350,6 +350,13 @@ def create_engineer_tools(
         if signature in state.executed_signatures:
             return f"SKIPPED: Tool '{tool_name}' with these exact arguments was already executed. Use different arguments or a different tool."
 
+        # Tenant routing: framework-inject the tenant selector so the gateway
+        # routes against this tenant's inventory. Never LLM-supplied (overrides
+        # any value the model produced); mirrors how 'device' travels as a
+        # gateway routing header, but authoritative from the run context. Set
+        # after the dedup signature so it stays about the LLM's own arguments.
+        parsed_args["tenant"] = customer_id
+
         # Direct execution — agent handles errors via its own reasoning
         try:
             result = await tool_obj.run(**parsed_args)

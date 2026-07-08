@@ -15,7 +15,7 @@ from starlette.testclient import TestClient
 from fastmcp import FastMCP
 
 from gateway.admin_api import register_admin_routes
-from gateway.config import DeviceRegistry, GatewaySettings
+from gateway.config import GatewaySettings, TenantRegistries
 from gateway.inventory.manager import get_inventory
 from gateway.vendor_pack import ApplianceManifest, AppliancePack
 
@@ -66,10 +66,14 @@ def _make_pack(tmp_path: Path) -> AppliancePack:
 
 @pytest.fixture()
 def client_and_registry(inventory_root):
-    registry = DeviceRegistry(TENANT, "fortios")
+    # TENANT is the default tenant (ACTIVE_CUSTOMER_ID set by inventory_root).
+    # Prime its slice so hot-reload tests can inspect the same DeviceRegistry the
+    # admin API reloads in place.
+    tenant_registries = TenantRegistries("fortios", default_tenant=TENANT)
+    registry = tenant_registries.get(TENANT)
     gateway = FastMCP("test-gateway")
     register_admin_routes(
-        gateway, {"fortios": registry}, [_make_pack(inventory_root)], GatewaySettings()
+        gateway, {"fortios": tenant_registries}, [_make_pack(inventory_root)], GatewaySettings()
     )
     app = gateway.http_app(path="/sse/", transport="sse")
     with TestClient(app) as client:

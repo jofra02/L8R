@@ -12,7 +12,7 @@ The gateway is its own uv project at `mcp_gateway/`. Architecture: [mcp_gateway.
 | Host dev | `cd mcp_gateway && uv sync && uv run python main.py` | port from `mcp_gateway/.env` (`SERVER_PORT`) |
 | stdio (Claude Desktop etc.) | `SERVER_TRANSPORT=stdio uv run python main.py` | stdio |
 
-All configuration is env-driven (no CLI flags): `ACTIVE_CUSTOMER_ID`, `INVENTORY_MASTER_KEY`, `INVENTORY_ROOT`, `GATEWAY_ADMIN_TOKEN`, `SERVER_HOST/PORT/TRANSPORT`, `LOG_LEVEL`, `GATEWAY_HTTP_TIMEOUT`.
+All configuration is env-driven (no CLI flags): `DEFAULT_TENANT` (optional fallback tenant for header-less calls; `ACTIVE_CUSTOMER_ID`/`ACTIVE_TENANT` legacy aliases), `INVENTORY_MASTER_KEY`, `INVENTORY_ROOT`, `GATEWAY_ADMIN_TOKEN`, `SERVER_HOST/PORT/TRANSPORT`, `LOG_LEVEL`, `GATEWAY_HTTP_TIMEOUT`.
 
 > The SSE endpoint has **no authentication** (planned future work) — expose it only on trusted networks / the compose network. The `/admin/*` inventory API is authenticated via `X-Admin-Token` (`GATEWAY_ADMIN_TOKEN`); when the env var is unset it answers 503.
 
@@ -56,6 +56,14 @@ curl -X POST http://localhost:8001/admin/tenants/fake_client/devices \
 
 Tenant inventories are provisioned automatically: creating a tenant in the app (`POST /tenants` or `register-tenant`) calls `POST /admin/tenants` on the gateway, which creates `inventory/tenants/<cid>/` + `tenant.yaml`. Deleting the tenant in the app calls `DELETE /admin/tenants/<cid>`; the gateway refuses (409) while hand-maintained device YAML files exist under `devices/` — remove those on the gateway host first.
 
+**Bind-mount permissions**: the gateway container runs as `appuser` (uid 1000) and writes tenants/devices into the `./mcp_gateway/inventory` bind mount. If the repo was cloned as root, that directory is root-owned and every provisioning write fails with `HTTP 500: [Errno 13] Permission denied` (the app surfaces it as the device's `sync.last_error`). One-time fix on the host, no restart needed:
+
+```bash
+chown -R 1000:1000 mcp_gateway/inventory
+```
+
+`redeploy.sh` warns about this in its preflight. The fix survives redeploys (the mount is not recreated) but must be repeated after a fresh `git clone`.
+
 ### Option B — hand-edit a YAML file
 
 1. Encrypt the device API token: see [Gateway Secrets](gateway_secrets.md).
@@ -77,9 +85,9 @@ Tenant inventories are provisioned automatically: creating a tenant in the app (
 
 ## Gotchas
 
-- The `device` header routes per request; without it, calls go to the `primary: true` device.
+- The `tenant` + `device` headers route per request. `tenant` is framework-injected by the app (run's `customer_id`); without it the optional `DEFAULT_TENANT` applies, else the call is unrouted (`unconfigured.invalid`). Without `device`, calls go to that tenant's `primary: true` device.
 - Devices with wrong `type` are silently filtered out for the pack — check the startup device count.
-- The gateway serves the tenant in `ACTIVE_CUSTOMER_ID` only; the admin API writes any tenant's files but only hot-reloads the active tenant.
+- Multi-tenant: any tenant is routable concurrently. A device mutation hot-reloads that tenant's cached slice; an as-yet-unrouted tenant is picked up lazily on its next call.
 - Hand-maintained devices cannot be modified through the admin API (409) — edit the file. A `primary: true` in a hand-maintained file outranks any managed primary (file order); the API warns when this happens.
 - In compose the inventory volume must stay **read-write** (`./mcp_gateway/inventory:/app/inventory`) or every admin write fails.
 - Sync drift (app says managed, gateway lost the entry): re-save the component from the UI (re-enter the token) — the app falls back between POST/PATCH automatically.

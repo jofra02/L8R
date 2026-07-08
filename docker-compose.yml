@@ -43,7 +43,9 @@ services:
     build: ./mcp_gateway
     <<: *restart
     environment:
-      ACTIVE_CUSTOMER_ID: ${ACTIVE_CUSTOMER_ID:-fake_client}
+      # Multi-tenant: the app sends the tenant per request. DEFAULT_TENANT is an
+      # optional fallback for header-less calls (manual curl / single-tenant).
+      DEFAULT_TENANT: ${DEFAULT_TENANT:-}
       INVENTORY_MASTER_KEY: ${INVENTORY_MASTER_KEY:-}
       INVENTORY_ROOT: /app/inventory
       GATEWAY_ADMIN_TOKEN: ${GATEWAY_ADMIN_TOKEN:-}
