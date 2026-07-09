@@ -28,6 +28,11 @@ USER appuser
 
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Deploy provenance: scripts/deploy/redeploy.sh bakes the deployed git SHA and
+# asserts it against the running container after `up`
+ARG GIT_SHA=unknown
+LABEL org.opencontainers.image.revision=$GIT_SHA
+
 EXPOSE ${SERVER_PORT}
 
 CMD ["python", "main.py"]
