@@ -1,806 +1,280 @@
-# Platform API Reference
+# API Reference
 
-> REST API v1 — Bearer token authentication, tenant-scoped endpoints, JSON error responses.
+> Single source of truth for every HTTP surface of the platform. Generated from the code — when this document and the code disagree, the code wins; fix the document.
 
-## Overview
+The platform exposes three HTTP surfaces:
 
-The Platform API (`src/api/app.py`) provides ~77 authenticated endpoints across nine routers (`auth`, `tickets`, `runs`, `audit`, `users`, `profiles`, `tenants`, `assignments`, `inventory`) plus a public health check and legacy webhook endpoints. All endpoints return JSON.
+| Surface | Base | Auth | Source |
+|---|---|---|---|
+| [Platform API](#platform-api) | `http://localhost:8000/api/v1` | `Authorization: Bearer <token>` (API key or JWT) | `src/api/app.py` + `src/api/routers/` |
+| [Legacy ingestion](#legacy-ingestion) | `http://localhost:8000/api/v1` | `X-Customer-ID` header (outside RBAC) | `src/api/app.py:_mount_legacy_webhook` |
+| [Gateway Admin API](#gateway-admin-api) | `http://localhost:8001` (MCP Gateway) | `X-Admin-Token` header | `mcp_gateway/gateway/admin_api.py` |
 
-The four core routers (auth, tickets, runs, audit) are documented in full below; the remaining five have per-endpoint summary tables in [Router Summaries](#router-summaries).
+All responses are JSON. The Platform API is FastAPI (interactive docs at `/docs`), version `0.2.0`. CORS is fully open (`allow_origins=["*"]`) — restrict at the reverse proxy in production.
 
-**Base URL**: `http://localhost:8000`
-
-**Authentication**: Bearer token via `Authorization` header:
-```
-Authorization: Bearer sk_live_...
-```
-
-**Error format** (all non-2xx responses):
-```json
-{"error": "error_code", "detail": "Human-readable message"}
-```
-
-**Role hierarchy** (ascending privilege, applies to **JWT users**):
-```
-viewer < operator < tenant_admin < platform_admin
-```
-
-Each endpoint enforces a minimum role for JWT users. **API keys always resolve to role `operator`** with `tickets:write` permission — they authenticate ticket ingestion only; administrative endpoints require a JWT user session.
-
-**Pagination**: Paginated endpoints accept `page` (default 1) and `page_size` (default 25, max 100) query params and return:
-```json
-{
-  "items": [...],
-  "total": 142,
-  "page": 1,
-  "page_size": 25,
-  "total_pages": 6
-}
-```
+---
 
 ## Authentication
 
-The auth middleware (`src/api/middleware/auth.py`) extracts the Bearer token, validates it against the `api_keys` table, and resolves an `AuthContext`:
+Single dependency (`src/api/middleware/auth.py:get_auth_context`): every authenticated endpoint requires `Authorization: Bearer <token>`. The token is routed by prefix:
+
+- **`sk_live_*` → API key.** Validated against the `api_keys` table (SHA-256 hash, active + not expired). API keys carry a **fixed, hardcoded permission set**: `tickets:write`, `tickets:read`, `runs:read` (`src/api/services/auth_service.py:_API_KEY_PERMISSIONS`). They are for machine ticket ingestion and polling — they cannot manage keys, users, tenants, or inventory, and any `role` concept does not apply to them (stored role is always `operator`, kept for backward compat).
+- **Anything else → JWT.** Decoded access token claims: `sub` (user id), `cid` (customer_id), `perms` (permission list), `ipa` (is_platform_admin), `mcp` (must_change_password). JWT users get their permissions from the **profile** assigned to them per tenant (see [Profiles](#profiles--apiv1profiles) and [Assignments](#user-tenant-assignments--apiv1tenantscustomer_idusers)).
+
+Authorization is **permission-based** (`require_permission`): an endpoint requires one permission; platform admins (`ipa: true`) pass every check. The legacy role hierarchy (`viewer < operator < tenant_admin < platform_admin`) is deprecated — kept only for backward compat in `require_role`.
+
+### Platform admin impersonation
+
+A platform admin's token is scoped to the sentinel tenant `__platform__`. To act on a specific tenant, pass `?customer_id=<tenant>` on any request — the context is re-scoped after verifying the tenant exists (404 `unknown_tenant` otherwise). Inventory endpoints **require** a concrete tenant and answer 400 `tenant_required` when called as `__platform__` without the override.
+
+### Force password change
+
+A JWT with `mcp: true` (fresh user, admin reset) is blocked from every route except `POST /auth/change-password`, `GET /auth/me`, and `POST /auth/logout` — anything else answers 403 `password_change_required`.
+
+### Permission catalog
+
+Seeded by migrations `b3f8a1c2d4e6` + `c4d5e6f7a8b9`:
+
+`tickets:read`, `tickets:write`, `runs:read`, `evidence:read`, `audit:read`, `keys:read`, `keys:manage`, `users:read`, `users:manage`, `profiles:read`, `profiles:manage`, `tenants:read`, `tenants:manage`, `inventory:read`, `inventory:write`
+
+Notes on actual enforcement:
+
+- `evidence:read`, `keys:read`, `keys:manage` are seeded but **not enforced by any endpoint today**: evidence is served under `tickets:read`, and API-key management requires a JWT session with no specific permission (`_require_jwt_auth`).
+- `POST /runs/{run_id}/cancel` requires only `runs:read` (not a write permission) — actual behavior, mind it when granting read-only profiles.
+
+System profiles (seeded, immutable): **Super Admin** (all permissions), **Super Admin Read-Only** (all `:read`), **Tenant Admin** (everything except `tenants:manage` and `profiles:manage`).
+
+### Common patterns
+
+**Pagination** — paginated endpoints accept `page` (≥1, default 1) and `page_size` (1–100, default 25) and return `PaginatedResponse`:
 
 ```json
-{"customer_id": "acme_corp", "role": "operator", "key_id": "uuid"}
+{"items": [...], "total": 142, "page": 1, "page_size": 25, "total_pages": 6}
 ```
 
-**Platform admin impersonation**: A `platform_admin` key can act on behalf of any tenant by passing `?customer_id=<target>` as a query parameter. Non-platform keys ignore this parameter.
+**Date filters** — list endpoints accept optional `date_from` / `date_to` (ISO 8601, inclusive).
 
-## Lifecycle
+**Errors** — all non-2xx responses use `{"error": "<code>", "detail": "<message>"}`. Common codes:
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API as Platform API
-    participant Pipeline as LangGraph Pipeline
-    participant DB as PostgreSQL
-
-    Client->>API: GET /api/v1/auth/me
-    API-->>Client: AuthContext (customer_id, role)
-
-    Client->>API: POST /api/v1/tickets
-    Note right of API: Bearer token required
-    API-->>Client: 202 {ticket_id, job_id}
-    API->>Pipeline: Background task
-
-    Pipeline->>DB: State updates + audit events
-
-    loop Poll
-        Client->>API: GET /api/v1/runs?ticket_id=...
-        API-->>Client: PaginatedResponse[RunListItem]
-    end
-
-    Client->>API: GET /api/v1/runs/{run_id}
-    API-->>Client: RunDetail (status, state_json)
-
-    Client->>API: GET /api/v1/tickets/{ticket_id}/report
-    API-->>Client: {ticket_id, job_id, status, report}
-```
-
-## Common Patterns
-
-### Pagination
-
-All list endpoints use `PaginatedResponse<T>`:
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `page` | `int` | `1` | Page number (1-indexed) |
-| `page_size` | `int` | `25` | Items per page (1-100) |
-
-### Date Filters
-
-Most list endpoints accept optional date range filters:
-
-| Parameter | Type | Format | Description |
-|---|---|---|---|
-| `date_from` | `datetime` | ISO 8601 | Inclusive start |
-| `date_to` | `datetime` | ISO 8601 | Inclusive end |
-
-### Error Responses
-
-| Status | Error Code | When |
+| Status | Code | When |
 |---|---|---|
-| `401` | `invalid_auth` | Missing or malformed `Authorization` header |
-| `401` | `invalid_key` | API key is invalid, expired, or revoked |
-| `403` | `insufficient_role` | Caller role below endpoint minimum |
-| `404` | `not_found` | Resource does not exist or not owned by tenant |
-| `422` | `validation_error` | Request body fails Pydantic validation |
-| `500` | `internal_error` | Unhandled server exception |
+| 401 | `invalid_auth` / `invalid_key` / `invalid_token` / `token_expired` | Missing or bad credentials |
+| 403 | `insufficient_permissions` | Caller lacks the required permission |
+| 403 | `jwt_required` | API key used on a JWT-only endpoint |
+| 403 | `password_change_required` | `mcp` flag set, non-exempt route |
+| 404 | `not_found` / `unknown_tenant` | Resource missing or not owned by the tenant |
+| 409 | `invalid_state` / `email_exists` / `name_exists` | State or uniqueness conflict |
+| 422 | — (FastAPI) | Request body fails Pydantic validation |
 
 ---
 
-## Auth Endpoints
+## Platform API
 
-Router prefix: `/api/v1/auth` — Source: `src/api/routers/auth.py`
+All routers mounted under `/api/v1`. Health endpoints are unauthenticated and live at the root.
 
-### `GET /api/v1/auth/me`
+### Health
 
-Return the authenticated caller's context. Min role: **viewer**.
-
-**Response** `200`:
-```json
-{
-  "customer_id": "acme_corp",
-  "role": "operator",
-  "key_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
----
-
-### `POST /api/v1/auth/keys`
-
-Issue a new API key. The raw key is returned **only once**. Requires a **JWT user session** (not an API key).
-
-**Body** (`ApiKeyCreate`):
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `name` | `str` | yes | — | Key name (1-128 chars) |
-| `role` | `str` | no | `operator` | **Ignored by the handler** — created keys always carry role `operator` with `tickets:write` permission |
-| `expires_at` | `datetime` | no | `null` | Expiration (ISO 8601). Null = never expires |
-
-**Response** `201` (`ApiKeyCreatedResponse`):
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "key_prefix": "sk_live_abc1",
-  "name": "CI Pipeline Key",
-  "role": "operator",
-  "is_active": true,
-  "expires_at": null,
-  "last_used_at": null,
-  "created_at": "2026-03-20T10:00:00Z",
-  "raw_key": "sk_live_abc1234567890abcdef..."
-}
-```
-
-**Errors**: `401` if the caller is not an authenticated JWT user.
-
-> **Role model note:** the `viewer`/`operator`/`tenant_admin`/`platform_admin` hierarchy applies to **JWT users**. API keys always resolve to role `operator` and can only ingest tickets — they cannot manage keys, users, or tenants. See the [API Keys & Users runbook](../operations/api_keys_and_users.md).
-
----
-
-### `GET /api/v1/auth/keys`
-
-List all API keys for the authenticated tenant. Min role: **tenant_admin**.
-
-**Response** `200` (`ApiKeyResponse[]`):
-```json
-[
-  {
-    "id": "550e8400-...",
-    "key_prefix": "sk_live_abc1",
-    "name": "CI Pipeline Key",
-    "role": "operator",
-    "is_active": true,
-    "expires_at": null,
-    "last_used_at": "2026-03-19T14:30:00Z",
-    "created_at": "2026-03-10T10:00:00Z"
-  }
-]
-```
-
----
-
-### `DELETE /api/v1/auth/keys/{key_id}`
-
-Revoke an API key. Min role: **tenant_admin**.
-
-| Parameter | Location | Type | Description |
+| Method | Path | Auth | Purpose |
 |---|---|---|---|
-| `key_id` | path | `str` | UUID of the key to revoke |
+| GET | `/health` | none | Liveness: `{"status": "ok", "app": ...}` |
+| GET | `/ready` | none | Readiness: `status` is `ready` \| `degraded` \| `initializing`, plus `tool_indexing` state |
 
-**Response**: `204 No Content`
+The API is usable before tool-catalog indexing finishes; `search_tool_catalog` may return partial results until `/ready` reports `ready`. `degraded` means indexing failed (`tool_indexing.error` has the cause).
 
-**Errors**: `404` if key not found or already revoked.
+### Auth — `/api/v1/auth`
 
----
+Source: `src/api/routers/auth.py`. Key management endpoints reject API-key auth (403 `jwt_required`).
 
-### `POST /api/v1/auth/keys/{key_id}/rotate`
-
-Revoke an existing key and issue a replacement with the same metadata. Min role: **tenant_admin**.
-
-| Parameter | Location | Type | Description |
+| Method | Path | Auth | Purpose |
 |---|---|---|---|
-| `key_id` | path | `str` | UUID of the key to rotate |
+| POST | `/auth/login` | none | Email + password → `TokenResponse` (401 `invalid_credentials`) |
+| POST | `/auth/refresh` | none | Refresh token → new access token (401 `invalid_refresh_token`) |
+| POST | `/auth/logout` | Bearer | Revoke a refresh token → 204 |
+| POST | `/auth/change-password` | Bearer (JWT) | Change own password → 204 (400 `password_policy` / `invalid_password`) |
+| POST | `/auth/switch-tenant` | Bearer (JWT) | New access token scoped to another tenant (403 `no_tenant_access`) |
+| GET | `/auth/me` | Bearer | The caller's resolved `AuthContext` |
+| POST | `/auth/keys` | Bearer (JWT only) | Create API key → 201, raw key returned **once** |
+| GET | `/auth/keys` | Bearer (JWT only) | List the tenant's API keys |
+| DELETE | `/auth/keys/{key_id}` | Bearer (JWT only) | Revoke a key → 204 (404 if missing/revoked) |
+| POST | `/auth/keys/{key_id}/rotate` | Bearer (JWT only) | Revoke + reissue with same metadata; new raw key returned once |
 
-**Response** `200` (`ApiKeyCreatedResponse`): Same shape as `POST /keys` — includes the new `raw_key`.
+**`POST /auth/login`** — body `LoginRequest {email, password, customer_id?}`:
 
-**Errors**: `404` if key not found, already revoked, or not owned by tenant.
-
----
-
-## Ticket Endpoints
-
-Router prefix: `/api/v1/tickets` — Source: `src/api/routers/tickets.py`
-
-### `POST /api/v1/tickets`
-
-Submit a new ticket for pipeline processing. Min role: **operator**.
-
-**Body** (`TicketSubmit`):
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `source` | `str` | no | `api` | Source identifier (e.g., `api`, `servicenow`) |
-| `mode` | `str` | no | `incident` | One of: `incident`, `change`, `validation`, `inquiry` |
-| `severity` | `str` | no | `medium` | One of: `low`, `medium`, `high`, `critical` |
-| `text` | `str` | yes | — | Ticket description |
-| `external_id` | `str` | no | `null` | External system ticket ID |
-| `raw_payload` | `object` | no | `null` | Additional source-specific fields |
-
-**Response** `202`:
 ```json
 {
-  "status": "accepted",
-  "ticket_id": "TKT-abc123",
-  "job_id": "550e8400-e29b-41d4-a716-446655440000"
+  "access_token": "eyJ...", "refresh_token": "...", "token_type": "bearer",
+  "expires_in": 1800, "must_change_password": false, "user": {"...": "..."}
 }
 ```
 
----
+**`POST /auth/keys`** — body `ApiKeyCreate {name (1–128), expires_at?}`. Any other field (e.g. `role`) is ignored — keys always get the fixed permission set. Response 201 `ApiKeyCreatedResponse`:
 
-### `GET /api/v1/tickets`
-
-Paginated ticket list with filters. Min role: **operator**.
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `severity` | query | `str` | Filter by severity |
-| `mode` | query | `str` | Filter by mode |
-| `status` | query | `str` | Filter by latest run status |
-| `search` | query | `str` | Search ticket text (case-insensitive) |
-| `date_from` | query | `datetime` | Created at >= |
-| `date_to` | query | `datetime` | Created at <= |
-| `page` | query | `int` | Page number |
-| `page_size` | query | `int` | Items per page |
-
-**Response** `200` (`PaginatedResponse[TicketListItem]`):
 ```json
 {
-  "items": [
-    {
-      "id": "TKT-abc123",
-      "external_id": "INC0012345",
-      "mode": "incident",
-      "severity": "high",
-      "source": "api",
-      "text": "VPN tunnel down between sites",
-      "created_at": "2026-03-20T10:00:00Z",
-      "updated_at": "2026-03-20T10:05:00Z",
-      "latest_run_status": "completed",
-      "latest_run_decision": "resolved_l1"
-    }
-  ],
-  "total": 42,
-  "page": 1,
-  "page_size": 25,
-  "total_pages": 2
+  "id": "550e8400-...", "key_prefix": "sk_live_abc1", "name": "ci-pipeline",
+  "is_active": true, "expires_at": null, "last_used_at": null,
+  "created_at": "2026-07-01T10:00:00Z",
+  "raw_key": "sk_live_abc1234567890..."
 }
 ```
 
----
+`GET /auth/keys` returns the same shape without `raw_key` (`ApiKeyResponse[]`).
 
-### `GET /api/v1/tickets/{ticket_id}`
+### Tickets — `/api/v1/tickets`
 
-Ticket detail with latest run summary. Min role: **operator**.
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `ticket_id` | path | `str` | Ticket ID |
-
-**Response** `200` (`TicketDetail`):
-```json
-{
-  "id": "TKT-abc123",
-  "external_id": "INC0012345",
-  "mode": "incident",
-  "severity": "high",
-  "source": "api",
-  "text": "VPN tunnel down between sites",
-  "created_at": "2026-03-20T10:00:00Z",
-  "updated_at": "2026-03-20T10:05:00Z",
-  "raw_payload": {},
-  "run_count": 2,
-  "latest_run_id": "550e8400-...",
-  "latest_run_status": "completed",
-  "latest_run_decision": "resolved_l1",
-  "latest_run_final_answer": "# Diagnosis Report\n..."
-}
-```
-
----
-
-### `GET /api/v1/tickets/{ticket_id}/timeline`
-
-Agent events for all runs of this ticket, ordered by timestamp and sequence. Min role: **operator**.
-
-**Response** `200` (`TicketTimelineEvent[]`):
-```json
-[
-  {
-    "id": 1,
-    "run_id": "550e8400-...",
-    "seq": 0,
-    "node": "engineer",
-    "created_at": "2026-03-20T10:00:01Z",
-    "input_summary": {},
-    "output_summary": {"summary": "..."}
-  }
-]
-```
-
----
-
-### `GET /api/v1/tickets/{ticket_id}/evidence`
-
-Evidence snapshots collected for this ticket. Min role: **operator**.
-
-**Response** `200` (`EvidenceItem[]`):
-```json
-[
-  {
-    "id": "ev-abc123",
-    "tool_name": "get_interface_status",
-    "content_hash": "sha256:abcdef...",
-    "storage_ref": "evidence/acme_corp/TKT-abc123/ev-abc123.json",
-    "summary": "Interface GigabitEthernet0/1 status: up/up",
-    "created_at": "2026-03-20T10:01:00Z"
-  }
-]
-```
-
----
-
-### `GET /api/v1/tickets/{ticket_id}/hypotheses`
-
-Hypotheses from the latest run's `state_json`. Min role: **operator**.
-
-**Response** `200` (`HypothesisItem[]`):
-```json
-[
-  {
-    "id": "hyp-001",
-    "title": "IPSec Phase 2 SA expired",
-    "description": "The IKE Phase 2 security association...",
-    "confidence": 0.85,
-    "status": "confirmed",
-    "evidence_refs": ["ev-abc123", "ev-def456"]
-  }
-]
-```
-
----
-
-### `GET /api/v1/tickets/{ticket_id}/facts`
-
-Structured facts from the latest run's `state_json`. Prefers `structured_facts` when available, falls back to flat `facts` dict. Min role: **operator**.
-
-**Response** `200` (`FactItem[]`):
-```json
-[
-  {
-    "key": "tunnel_status",
-    "value": "down",
-    "source_evidence_id": "ev-abc123",
-    "confidence": 0.95
-  }
-]
-```
-
----
-
-### `GET /api/v1/tickets/{ticket_id}/plan`
-
-Resolution plan from the latest run's `state_json`. Min role: **operator**.
-
-**Response** `200` (`PlanResponse`):
-```json
-{
-  "diagnosis_steps": [{"step": "Verify IKE Phase 1 status", "tool": "show_crypto_isakmp_sa"}],
-  "remediation_steps": [{"step": "Clear and re-establish tunnel", "command": "clear crypto sa"}],
-  "validation_steps": [{"step": "Confirm tunnel UP", "tool": "show_crypto_ipsec_sa"}],
-  "rollback_steps": [{"step": "Restore previous crypto map configuration"}]
-}
-```
-
----
-
-### `GET /api/v1/tickets/{ticket_id}/report`
-
-Final markdown report. Min role: **viewer**.
-
-**Response** `200` (`TicketReportResponse`):
-```json
-{
-  "ticket_id": "TKT-abc123",
-  "job_id": "550e8400-...",
-  "status": "completed",
-  "report": "# Diagnosis Report\n\n## Summary\n..."
-}
-```
-
-**Errors**: `404` if no runs exist for this ticket.
-
----
-
-### `POST /api/v1/tickets/{ticket_id}/retry`
-
-Re-run the pipeline for an existing ticket. Creates a new run. Min role: **operator**.
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `ticket_id` | path | `str` | Ticket ID to re-process |
-
-**Response** `202`:
-```json
-{
-  "status": "accepted",
-  "ticket_id": "TKT-abc123",
-  "job_id": "550e8400-new-run-uuid"
-}
-```
-
----
-
-## Run Endpoints
-
-Router prefix: `/api/v1/runs` — Source: `src/api/routers/runs.py`
-
-### `GET /api/v1/runs`
-
-Paginated run list with filters. Min role: **operator**.
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `status` | query | `str` | Filter by run status |
-| `ticket_id` | query | `str` | Filter by ticket |
-| `date_from` | query | `datetime` | Started at >= |
-| `date_to` | query | `datetime` | Started at <= |
-| `page` | query | `int` | Page number |
-| `page_size` | query | `int` | Items per page |
-
-**Response** `200` (`PaginatedResponse[RunListItem]`):
-```json
-{
-  "items": [
-    {
-      "id": "550e8400-...",
-      "ticket_id": "TKT-abc123",
-      "status": "completed",
-      "decision": "resolved_l1",
-      "hypothesis_count": 3,
-      "started_at": "2026-03-20T10:00:00Z",
-      "ended_at": "2026-03-20T10:05:30Z"
-    }
-  ],
-  "total": 15,
-  "page": 1,
-  "page_size": 25,
-  "total_pages": 1
-}
-```
-
----
-
-### `GET /api/v1/runs/stats`
-
-Aggregate run statistics for the tenant. Min role: **operator**.
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `date_from` | query | `datetime` | Started at >= |
-| `date_to` | query | `datetime` | Started at <= |
-
-**Response** `200` (`RunStats`):
-```json
-{
-  "total_runs": 150,
-  "by_status": {"completed": 130, "running": 5, "failed": 15},
-  "by_decision": {"resolved_l1": 90, "escalate_l2": 30, "needs_human": 10},
-  "avg_duration_seconds": 45.23,
-  "success_rate": 0.8667
-}
-```
-
----
-
-### `GET /api/v1/runs/{run_id}`
-
-Full run detail including `state_json` and `cost_json`. Min role: **operator**.
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `run_id` | path | `str` | Run UUID |
-
-**Response** `200` (`RunDetail`):
-```json
-{
-  "id": "550e8400-...",
-  "ticket_id": "TKT-abc123",
-  "trace_id": "trace-uuid",
-  "status": "completed",
-  "decision": "resolved_l1",
-  "hypothesis_count": 3,
-  "final_answer": "# Diagnosis Report\n...",
-  "cost_json": {"total_tokens": 15000, "total_cost_usd": 0.045},
-  "state_json": {"hypotheses": [], "facts": {}, "plan": {}},
-  "started_at": "2026-03-20T10:00:00Z",
-  "ended_at": "2026-03-20T10:05:30Z"
-}
-```
-
----
-
-### `GET /api/v1/runs/{run_id}/timeline`
-
-Agent events for a specific run, ordered by sequence. Min role: **operator**.
-
-**Response** `200` (`RunTimelineEvent[]`):
-```json
-[
-  {
-    "id": 1,
-    "seq": 0,
-    "node": "engineer",
-    "created_at": "2026-03-20T10:00:01Z",
-    "input_json": {},
-    "output_json": {"summary": "..."}
-  }
-]
-```
-
----
-
-### `GET /api/v1/runs/{run_id}/tool-calls`
-
-Tool execution audit trail for a run. Min role: **operator**.
-
-**Response** `200` (`RunToolCall[]`):
-```json
-[
-  {
-    "id": "tc-uuid",
-    "tool_name": "get_interface_status",
-    "args_redacted": {"device": "router-1", "interface": "GigabitEthernet0/1"},
-    "result_meta": {"rows": 1, "truncated": false},
-    "status": "success",
-    "error": null,
-    "started_at": "2026-03-20T10:01:00Z",
-    "ended_at": "2026-03-20T10:01:02Z"
-  }
-]
-```
-
----
-
-## Audit Endpoints
-
-Router prefix: `/api/v1/audit` — Source: `src/api/routers/audit.py`
-
-### `GET /api/v1/audit/logs`
-
-Paginated audit log with filters. Min role: **viewer**.
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `ticket_id` | query | `str` | Filter by ticket |
-| `actor` | query | `str` | Filter by actor |
-| `action` | query | `str` | Filter by action type |
-| `date_from` | query | `datetime` | Timestamp >= |
-| `date_to` | query | `datetime` | Timestamp <= |
-| `page` | query | `int` | Page number |
-| `page_size` | query | `int` | Items per page |
-
-**Response** `200` (`PaginatedResponse[AuditLogResponse]`):
-```json
-{
-  "items": [
-    {
-      "id": 1,
-      "ticket_id": "TKT-abc123",
-      "actor": "system",
-      "action": "run_started",
-      "details": {"run_id": "550e8400-..."},
-      "timestamp": "2026-03-20T10:00:00Z"
-    }
-  ],
-  "total": 200,
-  "page": 1,
-  "page_size": 25,
-  "total_pages": 8
-}
-```
-
----
-
-### `GET /api/v1/audit/tool-calls`
-
-Paginated tool call audit with filters. Min role: **viewer**.
-
-| Parameter | Location | Type | Description |
-|---|---|---|---|
-| `run_id` | query | `str` | Filter by run |
-| `tool_name` | query | `str` | Filter by tool name |
-| `status` | query | `str` | Filter by status |
-| `date_from` | query | `datetime` | Started at >= |
-| `date_to` | query | `datetime` | Started at <= |
-| `page` | query | `int` | Page number |
-| `page_size` | query | `int` | Items per page |
-
-**Response** `200` (`PaginatedResponse[ToolCallResponse]`):
-```json
-{
-  "items": [
-    {
-      "id": "tc-uuid",
-      "run_id": "550e8400-...",
-      "tool_name": "get_interface_status",
-      "args_redacted": {"device": "router-1"},
-      "result_meta": {"rows": 1},
-      "status": "success",
-      "error": null,
-      "started_at": "2026-03-20T10:01:00Z",
-      "ended_at": "2026-03-20T10:01:02Z"
-    }
-  ],
-  "total": 50,
-  "page": 1,
-  "page_size": 25,
-  "total_pages": 2
-}
-```
-
----
-
-## Health and Legacy Endpoints
-
-### `GET /health`
-
-Public health check (no authentication).
-
-**Response** `200`:
-```json
-{"status": "ok", "app": "SupportAI-Agent"}
-```
-
----
-
-### `POST /api/v1/webhook/{source_id}` (Legacy)
-
-Legacy webhook ingestion. Uses `X-Customer-ID` header instead of Bearer auth.
-
-| Parameter | Location | Type | Required | Description |
-|---|---|---|---|---|
-| `source_id` | path | `str` | yes | Source identifier |
-| `X-Customer-ID` | header | `str` | yes | Tenant identifier |
-| body | body | `JSON` | yes | Ticket payload |
-
-**Response** `202`:
-```json
-{
-  "status": "accepted",
-  "message": "Ticket ingested. Processing launched in background.",
-  "ticket_id": "TKT-abc123",
-  "job_id": "550e8400-..."
-}
-```
-
----
-
-### `GET /api/v1/jobs/{job_id}` (Legacy)
-
-Legacy job status polling. Optional `X-Customer-ID` header.
-
-| Parameter | Location | Type | Required | Description |
-|---|---|---|---|---|
-| `job_id` | path | `str` | yes | Job/run ID |
-| `X-Customer-ID` | header | `str` | no | Tenant scope |
-
-**Response** `200`:
-```json
-{
-  "job_id": "550e8400-...",
-  "status": "running",
-  "current_agent": "engineer",
-  "iteration": 4
-}
-```
-
----
-
-## Router Summaries
-
-The five routers below are summarized per endpoint (all mounted under `/api/v1`, JWT user auth with the listed permission). Request/response schemas live in `src/api/schemas/`.
-
-### Users — `src/api/routers/users.py` (prefix `/users`)
+Source: `src/api/routers/tickets.py`. "Latest run" endpoints read the most recent `AgentRunORM.state_json` for the ticket.
 
 | Method | Path | Permission | Purpose |
 |---|---|---|---|
-| GET | `/users` | `users:read` | List users |
-| POST | `/users` | `users:manage` | Create a user |
+| POST | `/tickets` | `tickets:write` | Submit a ticket; launches the Engineer run in background → 202 |
+| GET | `/tickets` | `tickets:read` | Paginated tenant ticket list with filters |
+| GET | `/tickets/global` | `tickets:read` + platform admin | Paginated cross-tenant list (adds `tenant` filter and `customer_id` per item) |
+| GET | `/tickets/{ticket_id}` | `tickets:read` | `TicketDetail` (raw payload, run count, latest-run summary) |
+| GET | `/tickets/{ticket_id}/timeline` | `tickets:read` | Agent events across all runs, ordered |
+| GET | `/tickets/{ticket_id}/evidence` | `tickets:read` | `EvidenceItem[]` — evidence snapshot refs |
+| GET | `/tickets/{ticket_id}/hypotheses` | `tickets:read` | `HypothesisItem[]` from the latest run |
+| GET | `/tickets/{ticket_id}/facts` | `tickets:read` | `FactItem[]` (prefers `structured_facts`, falls back to flat `facts`) |
+| GET | `/tickets/{ticket_id}/plan` | `tickets:read` | `PlanResponse` (diagnosis/remediation/validation/rollback steps) |
+| GET | `/tickets/{ticket_id}/report` | `tickets:read` | Final markdown report (404 if the ticket has no runs) |
+| POST | `/tickets/{ticket_id}/retry` | `tickets:write` | Re-run the same ticket → 202, new `job_id` |
+
+List filters (`GET /tickets`, `GET /tickets/global`): `severity`, `mode`, `status` (latest run status), `search` (case-insensitive text match), `date_from`, `date_to`; `/global` adds `tenant`.
+
+**`POST /tickets`** — body `TicketSubmit`:
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| `text` | str | — (required, ≥1 char) | Ticket description |
+| `mode` | str | `incident` | `incident` \| `change` \| `validation` \| `inquiry` |
+| `severity` | str | `medium` | `low` \| `medium` \| `high` \| `critical` |
+| `source` | str | `api` | Source identifier |
+| `external_id` | str? | null | External system ticket id |
+| `raw_payload` | object? | null | Extra source-specific fields, preserved verbatim |
+
+Response 202: `{"status": "accepted", "ticket_id": "...", "job_id": "..."}`. Execution is a fire-and-forget task in the API process — runs in flight are lost on restart (use `retry`).
+
+**`GET /tickets/{id}/report`** — response `TicketReportResponse`:
+
+```json
+{"ticket_id": "TKT-abc123", "job_id": "550e8400-...", "status": "completed", "report": "# Diagnosis Report\n..."}
+```
+
+### Runs — `/api/v1/runs`
+
+Source: `src/api/routers/runs.py`. All endpoints require `runs:read` (including `cancel` — see [enforcement notes](#permission-catalog)).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/runs` | Paginated run list; filters `status`, `ticket_id`, `date_from`, `date_to` |
+| GET | `/runs/stats` | `RunStats` aggregate (`total_runs`, `by_status`, `by_decision`, `avg_duration_seconds`, `success_rate`); filters `date_from`, `date_to` |
+| GET | `/runs/{run_id}` | `RunDetail` — includes `trace_id`, `final_answer`, `cost_json`, full `state_json` |
+| GET | `/runs/{run_id}/timeline` | `RunTimelineEvent[]` ordered by `seq` (full `input_json`/`output_json`) |
+| GET | `/runs/{run_id}/tool-calls` | `RunToolCall[]` — MCP tool audit trail (`args_redacted`, `result_meta`, `status`, `error`) |
+| POST | `/runs/{run_id}/cancel` | Cancel a running execution → `{"status": "cancelled", "run_id"}`; 409 `invalid_state` if not `running` |
+
+`RunListItem`: `{id, ticket_id, status, decision?, hypothesis_count?, started_at, ended_at?}`.
+
+### Audit — `/api/v1/audit`
+
+Source: `src/api/routers/audit.py`. Both require `audit:read`; both paginated.
+
+| Method | Path | Filters | Returns |
+|---|---|---|---|
+| GET | `/audit/logs` | `ticket_id`, `actor`, `action`, `date_from`, `date_to` | `AuditLogResponse {id, ticket_id, actor, action, details, timestamp}` |
+| GET | `/audit/tool-calls` | `run_id`, `tool_name`, `status`, `date_from`, `date_to` | `ToolCallResponse` (same shape as `RunToolCall` + `run_id`) |
+
+### Users — `/api/v1/users`
+
+Source: `src/api/routers/users.py` (models inline in the router). User accounts are global; tenant access is granted via [assignments](#user-tenant-assignments--apiv1tenantscustomer_idusers).
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/users` | `users:read` | List all users |
+| POST | `/users` | `users:manage` | Create user → 201; always `must_change_password=true` (409 `email_exists`, 400 `password_policy`) |
 | GET | `/users/{user_id}` | `users:read` | User detail |
-| PATCH | `/users/{user_id}` | `users:manage` | Update a user |
-| POST | `/users/{user_id}/reset-password` | `users:manage` | Reset a user's password |
+| PATCH | `/users/{user_id}` | `users:manage` | Update `display_name`, `is_active`, `is_platform_admin` |
+| POST | `/users/{user_id}/reset-password` | `users:manage` | Admin password reset → 204 |
 
-### Profiles — `src/api/routers/profiles.py` (prefix `/profiles`)
+`UserResponse`: `{id, email, display_name, is_active, is_platform_admin, must_change_password, last_login_at?, created_at}`.
+
+### Profiles — `/api/v1/profiles`
+
+Source: `src/api/routers/profiles.py` (models inline). A profile is a named permission set; system profiles cannot be modified or deleted (400 `invalid_operation`).
 
 | Method | Path | Permission | Purpose |
 |---|---|---|---|
-| GET | `/profiles` | `profiles:read` | List permission profiles |
-| POST | `/profiles` | `profiles:manage` | Create a profile |
-| GET | `/profiles/permissions` | `profiles:read` | List all available permissions |
+| GET | `/profiles` | `profiles:read` | List profiles (with their permissions) |
+| POST | `/profiles` | `profiles:manage` | Create profile → 201 (`name`, `description`, `permission_ids[]`; 409 `name_exists`) |
+| GET | `/profiles/permissions` | `profiles:read` | The full grantable [permission catalog](#permission-catalog) |
 | GET | `/profiles/{profile_id}` | `profiles:read` | Profile detail |
-| PATCH | `/profiles/{profile_id}` | `profiles:manage` | Update a profile |
-| DELETE | `/profiles/{profile_id}` | `profiles:manage` | Delete a profile |
+| PATCH | `/profiles/{profile_id}` | `profiles:manage` | Update name/description/permissions |
+| DELETE | `/profiles/{profile_id}` | `profiles:manage` | Delete → 204 |
 
-### Tenants — `src/api/routers/tenants.py` (prefix `/tenants`)
+### Tenants — `/api/v1/tenants`
+
+Source: `src/api/routers/tenants.py`, schemas in `src/api/schemas/tenants.py`.
 
 | Method | Path | Permission | Purpose |
 |---|---|---|---|
-| GET | `/tenants` | `tenants:read` | List tenants |
-| POST | `/tenants` | `tenants:manage` | Create a tenant |
-| GET | `/tenants/{customer_id}` | `tenants:read` | Tenant detail |
-| PATCH | `/tenants/{customer_id}` | `tenants:manage` | Update tenant metadata |
-| DELETE | `/tenants/{customer_id}` | `tenants:manage` | Delete a tenant (cascades) |
-| POST | `/tenants/{customer_id}/suspend` | `tenants:manage` | Suspend a tenant |
-| POST | `/tenants/{customer_id}/activate` | `tenants:manage` | Reactivate a tenant |
-| GET | `/tenants/{customer_id}/cascade-warning` | `tenants:read` | Preview what a delete would cascade to |
-| GET | `/tenants/{customer_id}/endpoints` | `tenants:read` | Infrastructure endpoint pointers |
-| PUT | `/tenants/{customer_id}/endpoints` | `tenants:manage` | Upsert endpoint pointers |
+| GET | `/tenants` | `tenants:read` | List tenants (`TenantListItem[]`, not paginated) |
+| POST | `/tenants` | `tenants:manage` | Create tenant → 201; also provisions the gateway inventory (`gateway_sync` in response) |
+| GET | `/tenants/{customer_id}` | `tenants:read` | `TenantDetail` (+ `endpoints`, `scopes`) |
+| PATCH | `/tenants/{customer_id}` | `tenants:manage` | Update `name` / `plan` |
+| DELETE | `/tenants/{customer_id}?force=bool` | `tenants:manage` | Delete → 204; DB cascades remove all tenant rows |
+| POST | `/tenants/{customer_id}/suspend` | `tenants:manage` | Suspend |
+| POST | `/tenants/{customer_id}/activate` | `tenants:manage` | Reactivate |
+| GET | `/tenants/{customer_id}/cascade-warning` | `tenants:manage` | Pre-delete impact: `{user_count, ticket_count, api_key_count, message}` |
+| GET | `/tenants/{customer_id}/endpoints` | `tenants:read` | Per-tenant infra endpoint refs (`pg_dsn_ref`, `qdrant_url_ref`, `object_store_ref`) |
+| PUT | `/tenants/{customer_id}/endpoints` | `tenants:manage` | Upsert endpoint refs |
 | GET | `/tenants/{customer_id}/scopes` | `tenants:read` | List capability scopes (tool allowlists) |
-| POST | `/tenants/{customer_id}/scopes` | `tenants:manage` | Create a capability scope |
-| PATCH | `/tenants/{customer_id}/scopes/{scope_id}` | `tenants:manage` | Update a capability scope |
-| DELETE | `/tenants/{customer_id}/scopes/{scope_id}` | `tenants:manage` | Delete a capability scope |
+| POST | `/tenants/{customer_id}/scopes` | `tenants:manage` | Create scope → 201 (`scope_name`, `allowed_tools[]`, `rate_limit?`) |
+| PATCH | `/tenants/{customer_id}/scopes/{scope_id}` | `tenants:manage` | Update scope |
+| DELETE | `/tenants/{customer_id}/scopes/{scope_id}` | `tenants:manage` | Delete scope → 204 |
 
-### Assignments — `src/api/routers/assignments.py` (prefix `/tenants/{customer_id}/users`)
+`TenantCreate`: `{customer_id (slug [a-zA-Z0-9_-]+), name, plan="standard"}`. Tenant create/delete is synced to the MCP Gateway inventory (best-effort; see [Gateway Admin API](#gateway-admin-api) and [MCP Gateway architecture](../architecture/mcp_gateway.md)) — the create response carries `gateway_sync: {status: synced|error|skipped, ...}`.
 
-| Method | Path | Permission | Purpose |
-|---|---|---|---|
-| GET | `/tenants/{customer_id}/users` | `assignments:read` | List users assigned to a tenant |
-| POST | `/tenants/{customer_id}/users` | `assignments:manage` | Assign a user to a tenant |
-| PATCH | `/tenants/{customer_id}/users/{user_id}` | `assignments:manage` | Update an assignment (profile/role) |
-| DELETE | `/tenants/{customer_id}/users/{user_id}` | `assignments:manage` | Remove a user from a tenant |
+### User-tenant assignments — `/api/v1/tenants/{customer_id}/users`
 
-### Inventory — `src/api/routers/inventory.py` (prefix `/inventory`)
-
-Manages the tenant's logical inventory (the `ClientContext` the Engineer reads via `query_client_db`).
+Source: `src/api/routers/assignments.py` (models inline). Links a user to a tenant with a profile.
 
 | Method | Path | Permission | Purpose |
 |---|---|---|---|
-| GET | `/inventory` | `inventory:read` | Inventory overview (counts) |
-| GET | `/inventory/full` | `inventory:read` | Full inventory document |
-| POST | `/inventory/import` | `inventory:manage` | Bulk import (replaces context content) |
+| GET | `/tenants/{customer_id}/users` | `users:read` | List assignments (`AssignmentResponse[]` with user email/name and profile name) |
+| POST | `/tenants/{customer_id}/users` | `users:manage` | Assign → 201 (`{user_id, profile_id}`) |
+| PATCH | `/tenants/{customer_id}/users/{user_id}` | `users:manage` | Change the assignment's profile |
+| DELETE | `/tenants/{customer_id}/users/{user_id}` | `users:manage` | Remove the user from the tenant → 204 |
+
+### Inventory — `/api/v1/inventory`
+
+Source: `src/api/routers/inventory.py`, schemas in `src/api/schemas/inventory.py`. Manages the tenant's logical inventory — the `ClientContext` the Engineer reads via `query_client_db`. Every endpoint uses `require_tenant_permission`: platform admins **must** target a tenant with `?customer_id=<tenant>` (otherwise 400 `tenant_required`).
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/inventory` | `inventory:read` | Overview counts (`InventoryOverview`) |
+| GET | `/inventory/full` | `inventory:read` | Full context document |
+| POST | `/inventory/import` | `inventory:write` | Bulk import — **replaces** the whole context |
 | GET | `/inventory/components` | `inventory:read` | List components/devices |
-| POST | `/inventory/components` | `inventory:manage` | Create a component |
+| POST | `/inventory/components` | `inventory:write` | Create component → 201 (may sync a device to the gateway, see below) |
 | GET | `/inventory/components/{component_id}` | `inventory:read` | Component detail |
-| PATCH | `/inventory/components/{component_id}` | `inventory:manage` | Update a component |
-| DELETE | `/inventory/components/{component_id}` | `inventory:manage` | Delete a component |
+| PATCH | `/inventory/components/{component_id}` | `inventory:write` | Update component |
+| DELETE | `/inventory/components/{component_id}` | `inventory:write` | Delete component (also deletes its gateway device if managed) |
 | GET | `/inventory/dependencies` | `inventory:read` | List dependencies (topology edges) |
-| POST | `/inventory/dependencies` | `inventory:manage` | Create a dependency |
-| DELETE | `/inventory/dependencies` | `inventory:manage` | Delete a dependency |
+| POST | `/inventory/dependencies` | `inventory:write` | Create dependency → 201 |
+| DELETE | `/inventory/dependencies?source_id&target_id&relation` | `inventory:write` | Delete dependency (identified by query params) |
 | GET | `/inventory/baselines` | `inventory:read` | List metric baselines |
-| POST | `/inventory/baselines` | `inventory:manage` | Create a baseline |
-| PATCH | `/inventory/baselines/{component_id}/{metric}` | `inventory:manage` | Update a baseline |
-| DELETE | `/inventory/baselines/{component_id}/{metric}` | `inventory:manage` | Delete a baseline |
+| POST | `/inventory/baselines` | `inventory:write` | Create baseline → 201 |
+| PATCH | `/inventory/baselines/{component_id}/{metric}` | `inventory:write` | Update baseline |
+| DELETE | `/inventory/baselines/{component_id}/{metric}` | `inventory:write` | Delete baseline |
 | GET | `/inventory/changes` | `inventory:read` | List known changes |
-| POST | `/inventory/changes` | `inventory:manage` | Record a known change |
-| PATCH | `/inventory/changes/{index}` | `inventory:manage` | Update a known change |
-| DELETE | `/inventory/changes/{index}` | `inventory:manage` | Delete a known change |
+| POST | `/inventory/changes` | `inventory:write` | Record known change → 201 |
+| PATCH | `/inventory/changes/{index}` | `inventory:write` | Update known change |
+| DELETE | `/inventory/changes/{index}` | `inventory:write` | Delete known change |
 
-#### MCP managed devices (gateway sync)
-
-Component create/update accept an optional `mcp_connection` block that also registers the device in the MCP gateway inventory (see [MCP Gateway](../architecture/mcp_gateway.md), "Inventory admin API"):
+**MCP managed devices** — `ComponentCreate`/`ComponentUpdate` accept an optional `mcp_connection` block that also registers the device in the MCP Gateway inventory:
 
 ```json
 {
-  "id": "fw_branch_2",
-  "ref": "Branch 2 FortiGate",
-  "role": "firewall",
+  "id": "fw_branch_2", "ref": "Branch 2 FortiGate", "role": "firewall",
   "mcp_connection": {
     "vendor": "fortinet", "appliance": "fortigate", "device_type": "fortios",
     "host": "10.0.2.1", "port": 443,
@@ -810,15 +284,69 @@ Component create/update accept an optional `mcp_connection` block that also regi
 }
 ```
 
-- `PATCH /inventory/components/{id}` with `"mcp_managed": false` detaches the device from the gateway (deletes its gateway entry).
-- The local save always succeeds; the gateway outcome is returned as `gateway_sync` (`status`: `synced` | `error` | `skipped`) and persisted in `metadata.mcp.sync`. The token is never stored or returned by this API.
-- Deleting a managed component also deletes it from the gateway inventory.
-- Requires `MCP_GATEWAY_ADMIN_URL` + `MCP_GATEWAY_ADMIN_TOKEN` on the app (otherwise `gateway_sync.status = "skipped"`).
+- The component is saved locally first; the gateway outcome comes back as `gateway_sync` (`status`: `synced` | `error` | `skipped`) and is persisted in `metadata.mcp.sync`. The token is never stored or returned by the Platform API.
+- `PATCH` with `"mcp_managed": false` detaches the device from the gateway.
+- Requires `MCP_GATEWAY_ADMIN_URL` + `MCP_GATEWAY_ADMIN_TOKEN` in the app environment (otherwise `gateway_sync.status = "skipped"`).
 
-## See Also
+---
 
-- [Quickstart](../setup/quickstart.md) — Running the API server
+## Legacy ingestion
+
+Mounted on the live app for backward compatibility (`src/api/app.py:_mount_legacy_webhook`, tag `legacy`). **Prefer `POST /api/v1/tickets` with an API key** — the webhook authenticates with a bare `X-Customer-ID` header, entirely outside the RBAC system, so anyone who can reach the port can submit tickets as any tenant.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/v1/webhook/{source_id}` | `X-Customer-ID` header (required) | Ingest a raw JSON payload → 202 `{status, message, ticket_id, job_id}` |
+| GET | `/api/v1/jobs/{job_id}` | `X-Customer-ID` header (optional, tenant-scopes) | Job/run status (404 if unknown) |
+
+`source_id` is any string used for traceability (e.g. `servicenow`, `jira`). The body is arbitrary JSON; `IngestionService` (`src/ingestion/service.py`) normalizes it into a `Ticket`: extracts text from `text` / `description` / `short_description`, maps source priority to `severity`, generates an id when absent, and preserves the raw payload for audit. Processing then follows the same background-run path as `POST /tickets`.
+
+> `src/ingestion/api.py` is a separate standalone legacy FastAPI app with an overlapping webhook surface. It is **not** mounted by the platform app and is not a supported interface — do not build against it.
+
+---
+
+## Gateway Admin API
+
+REST routes on the MCP Gateway (`mcp_gateway/gateway/admin_api.py`), mounted via `FastMCP.custom_route` — no MCP tools are added, so the tool-name freeze is unaffected. Manages the gateway's device inventory (`inventory/tenants/<cid>/`); device tokens are Fernet-encrypted by the gateway and never leave it.
+
+**Normal consumers are automatic**: `TenantService` and `InventoryService` in the Platform API call these endpoints through `src/api/services/gateway_admin_client.py` on tenant create/delete and component sync. Manual calls are an operator tool — see the [Gateway Operations runbook](../operations/gateway_operations.md).
+
+**Auth**: header `X-Admin-Token` compared (constant-time) against the `GATEWAY_ADMIN_TOKEN` env var. When the var is unset, every endpoint except `/admin/health` answers **503 `admin_disabled`** — the API is opt-in.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/admin/health` | Liveness + `admin_enabled` flag (**no auth**) |
+| GET | `/admin/packs` | Discovered appliance packs: `{vendor, appliance, device_type, prefix}` |
+| POST | `/admin/tenants` | Provision a tenant inventory dir + `tenant.yaml` → 201 (`TenantWrite`) |
+| DELETE | `/admin/tenants/{cid}` | Remove a tenant's inventory tree (409 `manual_devices_present` while hand-maintained device files exist) |
+| GET | `/admin/tenants/{cid}/devices` | All devices, manual + managed; tokens redacted as `***` |
+| POST | `/admin/tenants/{cid}/devices` | Create managed device → 201 (`DeviceWrite`; 404 `unknown_tenant` if the tenant dir is missing) |
+| PATCH | `/admin/tenants/{cid}/devices/{device_id}` | Partial update (`DevicePatch`); omitting `token` keeps the stored ciphertext |
+| DELETE | `/admin/tenants/{cid}/devices/{device_id}` | Delete managed device |
+| POST | `/admin/reload` | Re-read the inventory into all cached tenant registries |
+
+**Models** (Pydantic, in `admin_api.py`):
+
+- `TenantWrite`: `id` (slug `[a-zA-Z0-9_-]+` — becomes a directory name), `name`, `description?`
+- `DeviceWrite`: `id`, `name`, `type` (must match a pack's `device_type`, else 422 `unknown_device_type`), `description?`, `tags[]`, `primary=false`, `connection`
+- `ConnectionWrite`: `host`, `port=443`, `token?` (plaintext, **write-only**), `verify_ssl=false`
+- `DevicePatch` / `ConnectionPatch`: all-optional variants
+
+**Behavior**:
+
+- Mutations hot-reload the tenant's cached routing slice; responses carry `"reloaded": bool` (false ⇒ tenant not cached yet — picked up lazily on its next request). Device create/update also return `"warnings"` (e.g. a hand-maintained primary outranking the managed one).
+- The API only writes `devices/managed.yaml`; hand-maintained device files are readable but immutable through the API (409 `conflict`).
+- Error codes: 409 `conflict` / `tenant_exists` / `manual_devices_present`, 404 `not_found` / `unknown_tenant`, 422 `validation_error` / `unknown_device_type` / `invalid_tenant_id`, 503 `admin_disabled` / `encryption_unavailable`.
+
+**SSE endpoint** — `/sse/` is the MCP transport the Engineer (and other MCP clients) connect to. It is **unauthenticated**: anyone who can reach the port can execute all tools and spoof the per-request `tenant` header. Cross-tenant isolation depends on the network boundary until SSE auth exists — expose it only on trusted networks (see [MCP Gateway architecture](../architecture/mcp_gateway.md), Future work).
+
+---
+
+## See also
+
+- [Quickstart](../setup/quickstart.md) — run the API server end to end
+- [API Keys & Users runbook](../operations/api_keys_and_users.md) — admin bootstrap, CLI key minting, JWT workflows
+- [Ticket Operations runbook](../operations/ticket_operations.md) — submit/follow/triage walkthrough
+- [Gateway Operations runbook](../operations/gateway_operations.md) — gateway run modes, device onboarding
+- [MCP Gateway architecture](../architecture/mcp_gateway.md) — packs, name-freeze, inventory model, secrets
 - [Deployment](../setup/deployment.md) — Docker Compose production setup
-- [Webhooks](webhooks.md) — Legacy webhook flow details
-- [API Keys & Users runbook](../operations/api_keys_and_users.md)
-- [Ticket Operations runbook](../operations/ticket_operations.md)

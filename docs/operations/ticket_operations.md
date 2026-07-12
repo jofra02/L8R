@@ -19,7 +19,7 @@ curl -X POST http://localhost:8000/api/v1/tickets \
 # → 202 {"ticket_id": "...", "job_id": "..."}
 ```
 
-`mode`: `incident` | `change` | `validation` | `inquiry` (auto-detected from text if omitted). Legacy no-key variant: `POST /api/v1/webhook/{source}` with header `X-Customer-ID: <customer_id>`.
+`mode`: `incident` | `change` | `validation` | `inquiry` (defaults to `incident`). Legacy no-key variant: `POST /api/v1/webhook/{source}` with header `X-Customer-ID: <customer_id>`. Full endpoint contract: [API Reference](../integrations/api_reference.md#tickets--apiv1tickets).
 
 Execution is a fire-and-forget background task in the API process — **runs in flight are lost if the API restarts** (no durable queue); re-submit or use `retry`.
 

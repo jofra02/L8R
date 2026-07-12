@@ -14,7 +14,7 @@ Contents: [Ingestion](#1-ingestion) · [Engineer Agent](#2-engineer-agent) · [C
 
 **Code**: `src/ingestion/service.py`, `src/ingestion/normalizers/`, `src/api/routers/tickets.py`.
 
-**Related**: [Ticket Operations runbook](../operations/ticket_operations.md) · [Webhooks](../integrations/webhooks.md)
+**Related**: [Ticket Operations runbook](../operations/ticket_operations.md) · [API Reference](../integrations/api_reference.md)
 
 ---
 

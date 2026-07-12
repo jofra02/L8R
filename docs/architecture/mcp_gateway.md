@@ -97,26 +97,11 @@ Guard: `gateway/tests/test_name_freeze.py` builds the gateway offline and assert
 
 `gateway/admin_api.py` mounts REST routes on the same server (via `FastMCP.custom_route` — **no MCP tools are added**, so the name-freeze is unaffected). The support_ai_agent platform calls it when a user manages devices from the frontend inventory UI; tokens are encrypted (Fernet) and persisted by the gateway, so **appliance credentials never leave this process**.
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /admin/health` | Liveness + `admin_enabled` flag (no auth) |
-| `GET /admin/packs` | Discovered packs: vendor/appliance/device_type/prefix |
-| `POST /admin/tenants` | Provision a tenant: `inventory/tenants/<id>/` + `tenant.yaml` + `devices/` |
-| `DELETE /admin/tenants/{cid}` | Remove a tenant's inventory tree (409 if hand-maintained device files exist) |
-| `GET /admin/tenants/{cid}/devices` | All devices (managed + hand-maintained), tokens redacted |
-| `POST /admin/tenants/{cid}/devices` | Create a managed device (plaintext token in body → stored as `ENC(...)`) |
-| `PATCH /admin/tenants/{cid}/devices/{id}` | Partial update; token omitted ⇒ existing ciphertext kept byte-identical |
-| `DELETE /admin/tenants/{cid}/devices/{id}` | Remove a managed device |
-| `POST /admin/reload` | Force re-read of the inventory into all registries |
+The endpoint contract (routes, `X-Admin-Token` auth, request models, error codes, hot-reload semantics) is documented in the [API Reference — Gateway Admin API](../integrations/api_reference.md#gateway-admin-api). Design rules specific to this component:
 
-Rules:
-
-- **Auth**: `X-Admin-Token` header must equal the `GATEWAY_ADMIN_TOKEN` env var. Unset var ⇒ every admin endpoint answers 503 (opt-in API).
-- **managed.yaml**: the API only ever writes `devices/managed.yaml` (atomic write via temp file + rename, header comment marks it machine-owned). Hand-maintained files are readable but immutable through the API (409) — their comments/formatting are never touched.
+- **managed.yaml**: the API only ever writes `devices/managed.yaml` (atomic write via temp file + rename, header comment marks it machine-owned). Hand-maintained files are readable but immutable through the API — their comments/formatting are never touched.
 - **Single primary**: marking a managed device `primary: true` clears the flag on other managed devices of the same type. If a hand-maintained device of that type is also primary it **wins** (file order) and the response carries a warning.
-- **Hot reload**: a successful mutation reloads that tenant's cached routing slice — new/changed/removed devices are routable immediately (`"reloaded": true`). If the tenant has no cached slice yet (never routed), the response is `"reloaded": false` and the change is still picked up lazily on the tenant's next request (built fresh from disk). Any tenant reloads independently — there is no active-tenant restriction.
-- **Validation**: `type` must match a discovered pack's `device_type`; duplicate ids conflict (409). Device creation requires the tenant's `inventory/tenants/<cid>/` directory to already exist — an unknown `cid` answers 404 `unknown_tenant` instead of silently minting a new tenant directory. Tenant ids are slug-validated (`[a-zA-Z0-9_-]+`) because they become directory names.
-- **Tenant lifecycle**: `POST /admin/tenants` writes a minimal `tenant.yaml` (adopting a bare pre-created directory); duplicate ⇒ 409 `tenant_exists`. `DELETE /admin/tenants/{cid}` removes the whole tenant tree, but **refuses (409 `manual_devices_present`)** while hand-maintained device files exist — the API never deletes operator-managed config. Deleting a cached tenant reloads its slice to empty.
+- **Tenant lifecycle**: `POST /admin/tenants` writes a minimal `tenant.yaml` (adopting a bare pre-created directory). `DELETE /admin/tenants/{cid}` removes the whole tenant tree, but refuses while hand-maintained device files exist — the API never deletes operator-managed config. Deleting a cached tenant reloads its slice to empty.
 
 App-side flow: `InventoryService` (platform API) calls the admin API through `src/api/services/gateway_admin_client.py` when a Component carries an `mcp_connection` block. The component is persisted locally **first** (sync status `pending`), then synced to the gateway, and the outcome is recorded in `Component.metadata["mcp"]["sync"]` and returned as `gateway_sync` (the token is write-only and never persisted app-side) — the gateway never holds a device the app has no record of.
 
