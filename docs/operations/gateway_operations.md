@@ -2,7 +2,7 @@
 
 > Run the MCP Gateway, verify the tool-name freeze, and manage device inventory.
 
-The gateway is its own uv project at `mcp_gateway/`. Architecture: [mcp_gateway.md](../architecture/mcp_gateway.md).
+The gateway is its own uv project at `mcp_gateway/`. Architecture: [mcp_gateway.md](../architecture/mcp_gateway.md) · Admin API contract: [API Reference](../integrations/api_reference.md#gateway-admin-api).
 
 ## Run modes
 
@@ -52,7 +52,7 @@ curl -X POST http://localhost:8001/admin/tenants/fake_client/devices \
        "connection":{"host":"10.0.2.1","port":443,"token":"<plaintext>","verify_ssl":false}}'
 ```
 
-`PATCH`/`DELETE /admin/tenants/<cid>/devices/<id>` update/remove; `GET .../devices` lists (tokens redacted); `POST /admin/reload` forces a re-read after out-of-band edits.
+`PATCH`/`DELETE /admin/tenants/<cid>/devices/<id>` update/remove; `GET .../devices` lists (tokens redacted); `POST /admin/reload` forces a re-read after out-of-band edits. Full contract: [API Reference](../integrations/api_reference.md#gateway-admin-api).
 
 Tenant inventories are provisioned automatically: creating a tenant in the app (`POST /tenants` or `register-tenant`) calls `POST /admin/tenants` on the gateway, which creates `inventory/tenants/<cid>/` + `tenant.yaml`. Deleting the tenant in the app calls `DELETE /admin/tenants/<cid>`; the gateway refuses (409) while hand-maintained device YAML files exist under `devices/` — remove those on the gateway host first.
 

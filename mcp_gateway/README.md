@@ -7,7 +7,7 @@ Full documentation: [docs/architecture/mcp_gateway.md](../docs/architecture/mcp_
 ## Quick start
 
 ```bash
-cp .env.example .env          # set INVENTORY_MASTER_KEY and ACTIVE_CUSTOMER_ID
+cp .env.example .env          # set INVENTORY_MASTER_KEY (DEFAULT_TENANT optional — routing is per-request)
 uv sync
 uv run python main.py         # SSE on http://localhost:8000/sse/ (8001 with the sample .env)
 ```

@@ -2,10 +2,10 @@
 
 > Bootstrap the first admin, manage JWT users, create/rotate/revoke API keys.
 
-**The real access model** (important — some older docs overstated this):
+**The real access model** (full contract: [API Reference — Authentication](../integrations/api_reference.md#authentication)):
 
-- **API keys** (`sk_live_...`) always carry role `operator` with **`tickets:write` only**. They are for machine ticket ingestion. They cannot manage keys, users, or tenants.
-- **JWT users** carry the role hierarchy `viewer < operator < tenant_admin < platform_admin` plus permission profiles; all administrative endpoints require a JWT session.
+- **API keys** (`sk_live_...`) carry a **fixed permission set**: `tickets:write`, `tickets:read`, `runs:read`. They are for machine ticket ingestion and result polling. They cannot manage keys, users, tenants, or inventory.
+- **JWT users** get their permissions from the profile assigned per tenant; all administrative endpoints require a JWT session. The old role hierarchy (`viewer < operator < ...`) is deprecated.
 
 ## Bootstrap the first admin
 
@@ -35,7 +35,7 @@ Via CLI (no server needed):
 
 ```bash
 uv run python src/main.py create-admin-key "platform-ops"     # platform-admin key (bootstrap only)
-uv run python src/main.py create-tenant-key fake_client "ci"  # tenant key (operator, tickets:write)
+uv run python src/main.py create-tenant-key fake_client "ci"  # tenant key (tickets:write/read + runs:read)
 ```
 
 Via API (JWT session required):
@@ -55,7 +55,7 @@ Raw keys are shown **once** at creation/rotation. Rotation revokes the old key a
 
 ## Users & permissions (JWT)
 
-Managed via the API routers (see [API summary tables](../integrations/api_reference.md#router-summaries)):
+Managed via the API routers (see the [API Reference](../integrations/api_reference.md#platform-api)):
 - `/api/v1/users` — create/update users, reset passwords (`users:manage`).
 - `/api/v1/profiles` — permission profiles; `GET /profiles/permissions` lists all grantable permissions.
 - `/api/v1/tenants/{customer_id}/users` — assign users to tenants.

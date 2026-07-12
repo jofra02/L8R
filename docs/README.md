@@ -70,9 +70,8 @@ graph TD
 ### Integrations
 | Doc | Description |
 |---|---|
-| [API Reference](integrations/api_reference.md) | REST endpoints, payloads, lifecycle |
+| [API Reference](integrations/api_reference.md) | All HTTP surfaces: Platform API, legacy webhook ingestion, gateway admin API |
 | [MCP Tools](integrations/mcp_tools.md) | MCP server setup, tool discovery, capability packs |
-| [Webhooks](integrations/webhooks.md) | Webhook ingestion flow, normalizers |
 
 ### Planning (Historical Design Specs)
 | Doc | Description |

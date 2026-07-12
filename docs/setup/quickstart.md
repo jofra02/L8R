@@ -83,16 +83,7 @@ This creates a `fake_client` tenant in the database with allowed tools and conte
 
 ## 6. Create an API Key
 
-API keys authenticate **programmatic clients** of the Platform API (ticket ingestion and result polling). They are **not** used by the frontend dashboard — the dashboard uses email + password login (JWT, see step 8). Each key is scoped to a tenant.
-
-**Roles** (ascending privilege): `viewer` < `operator` < `tenant_admin` < `platform_admin`
-
-| Role | Can do |
-|---|---|
-| `viewer` | View reports, audit logs |
-| `operator` | Submit tickets, view runs/evidence/hypotheses, retry runs |
-| `tenant_admin` | Everything above + manage API keys for the tenant |
-| `platform_admin` | Everything above + act on behalf of any tenant |
+API keys authenticate **programmatic clients** of the Platform API (ticket ingestion and result polling). They are **not** used by the frontend dashboard — the dashboard uses email + password login (JWT, see step 8). Each key is scoped to a tenant. Access model details: [API Reference — Authentication](../integrations/api_reference.md#authentication).
 
 ### Option A: Tenant Key (most common)
 
@@ -106,7 +97,7 @@ uv run python src/main.py create-tenant-key fake_client
 uv run python src/main.py create-tenant-key fake_client "CI Pipeline"
 ```
 
-> API keys carry a fixed permission set: `tickets:write`, `tickets:read`, `runs:read` — enough to submit tickets and poll their runs/reports, nothing else (no inventory, no user management). There is no role argument. The role hierarchy above applies to JWT **users** (see the [API Keys & Users runbook](../operations/api_keys_and_users.md)).
+> API keys carry a fixed permission set: `tickets:write`, `tickets:read`, `runs:read` — enough to submit tickets and poll their runs/reports, nothing else (no inventory, no user management). There is no role argument; broader access requires a JWT **user** with a permission profile (see the [API Keys & Users runbook](../operations/api_keys_and_users.md)).
 
 Output:
 
