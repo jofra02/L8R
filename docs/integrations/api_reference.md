@@ -12,6 +12,21 @@ The platform exposes three HTTP surfaces:
 
 All responses are JSON. The Platform API is FastAPI (interactive docs at `/docs`), version `0.2.0`. CORS is fully open (`allow_origins=["*"]`) — restrict at the reverse proxy in production.
 
+**Request skeleton** (Platform API):
+
+```bash
+curl -X <METHOD> "http://localhost:8000/api/v1/<resource>?customer_id=<tenant>" \
+  -H "Authorization: Bearer <sk_live_... | JWT access token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "<field>": "<value>"
+  }'
+```
+
+- `<METHOD>`: `GET` | `POST` | `PATCH` | `PUT` | `DELETE` — omit `-d` (and `Content-Type`) on `GET`/`DELETE`.
+- `?customer_id=<tenant>`: only for platform admins acting on a tenant (see [impersonation](#platform-admin-impersonation)); tenant-scoped credentials omit it.
+- Gateway Admin API requests use `-H "X-Admin-Token: $GATEWAY_ADMIN_TOKEN"` against port `8001` instead of the Bearer header.
+
 ---
 
 ## Authentication
