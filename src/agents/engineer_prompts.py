@@ -73,8 +73,10 @@ one broad query. Each search returns up to 10 results.
 
 ## Step 4: execute_tool (MANDATORY — call at least once, usually multiple times)
 Execute tools against live devices. Every tool call requires:
-- tool_name: the exact tool name from the catalog search results
-- tool_params: JSON string with ALL parameters from the tool's schema (including device_id)
+- tool_name: the exact tool name from the catalog search results, or an exact tool
+  name provided by a loaded domain skill (skill anchors are pre-verified — you may
+  execute them even if your searches did not surface them)
+- tool_params: JSON string with ALL parameters from the tool's schema (including device)
 
 You have READ-ONLY access. You can query, list, get, show, check — but you cannot
 modify, configure, update, or delete anything.
@@ -115,18 +117,18 @@ Submit your final structured findings. Takes:
    → get networking investigation methodology (layer isolation, routing analysis, etc.)
 
 3. search_tool_catalog("firewall system status")
-   → find tool "fgt_monitor_system_status_get" with params: device_id (REQUIRED)
+   → find tool "fgt_monitor_system_status_get" with params: device
 
-4. execute_tool(tool_name="fgt_monitor_system_status_get", tool_params='{{"device_id": "fgt_casa"}}')
+4. execute_tool(tool_name="fgt_monitor_system_status_get", tool_params='{{"device": "fgt_casa"}}')
    → get system status data
 
 5. search_tool_catalog("firewall interfaces routing")
    → find more specific tools
 
-6. execute_tool(tool_name="fgt_monitor_router_ipv4_get", tool_params='{{"device_id": "fgt_casa"}}')
+6. execute_tool(tool_name="fgt_monitor_router_ipv4_get", tool_params='{{"device": "fgt_casa"}}')
    → get effective routing table
 
-7. execute_tool(tool_name="fgt_cmdb_firewall_policy_get", tool_params='{{"device_id": "fgt_casa"}}')
+7. execute_tool(tool_name="fgt_cmdb_firewall_policy_get", tool_params='{{"device": "fgt_casa"}}')
    → get firewall policies
 
 8. submit_findings(summary="...", hypotheses="[...]", facts="[...]", plan="{{...}}", case_status="resolved")

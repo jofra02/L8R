@@ -8,9 +8,11 @@ Verify the licensing and entitlement state of a FortiGate: what the device is en
 
 This skill is a **starting frame, not a rail**. The tool anchors below are verified against this platform's catalog, but the catalog evolves and every environment differs:
 
-- Always confirm tools via `search_tool_catalog` before executing — the anchors tell you what to search for and what a good match looks like.
+- **Anchor names are pre-verified: pass them directly to `execute_tool`.** You do not need a `search_tool_catalog` hit to justify executing an anchor — search is discovery, not permission. If a search does not surface an anchor, the anchor still exists.
+- Use `search_tool_catalog` for anything **beyond** the anchors, or to find better matches for needs this skill does not cover.
 - If evidence points outside licensing (time, DNS, routing, outbound policy), follow it. Load other domain skills or `load_domain_skill("lateral_thinking")` when the picture stops making sense.
 - Nothing here forbids a lateral search. The only hard limits are the platform rules: read-only, evidence-only, configuration-first.
+- Routing note: the device selector parameter on every tool is `device` (the component id from the tenant inventory).
 
 ## The FortiGate Licensing Model (mental map)
 
@@ -31,12 +33,12 @@ Tool names verified in this platform's indexed catalog. Search for them by funct
 
 | Tool | What it answers |
 |---|---|
-| `fgt_monitor_lic_get_license_status` | **Primary snapshot.** Full license & registration status: FortiCare account, support contracts, every FortiGuard subscription with status/expiry/version. Start here. |
+| `fgt_monitor_lic_get_license_status` | **Primary snapshot — answers most licensing AND definition-version questions in one call.** Per service (IPS, AV, app control, web filtering, industrial DB, malware DBs, security rating, ...): entitlement status, expiry, **installed signature/engine `version`, `last_update`, `last_update_attempt`, `last_update_result_status`**; plus FortiCare registration/contract and VM license. If the ticket asks for IPS/AV versions or update timestamps, execute this first. |
 | `fgt_monitor_sys_get_status` | Serial, model, firmware version, hostname — and the device clock context needed to trust expiry evaluations. |
 | `fgt_monitor_sys_get_fortiguard_server_info` | FortiGuard server list and per-server state — is the update path alive, which server is used. |
 | `fgt_monitor_net_get_network_fortiguard_live_services_latency` | Live FortiGuard service reachability/latency — distinguishes "entitled but unreachable" from "not entitled". |
 | `fgt_cmdb_sys_get_fortiguard` | FortiGuard service **configuration**: update source/override (FortiManager?), protocol, port, anycast, schedule. |
-| `fgt_cmdb_fguard_get_fortiguard_service_communication_stats` | Historical FortiGuard communication stats — when did updates last succeed. |
+| `fgt_cmdb_fguard_get_fortiguard_service_communication_stats` | Historical FortiGuard communication stats — when did updates last succeed. `service_type` and `timeslot` are **optional**: if a call errors, retry with only `device`. |
 | `fgt_cmdb_registration_get_forticloud_device_status` | FortiCloud registration state of the device. |
 | `fgt_monitor_lic_get_license_fortianalyzer_status` | License/registration of the connected FortiAnalyzer (fabric logging entitlement). |
 | `fgt_monitor_sys_get_vdom_resource` / `fgt_cmdb_sys_get_vdom` | VDOM count and resources — context for VDOM/VM capacity licenses. |
@@ -62,8 +64,12 @@ Skip steps that the evidence has already answered. Add steps the frame does not 
 
 ## Interpreting the License Snapshot
 
-- The snapshot is organized **per service**. For each service read three things together: entitlement status, expiry timestamp, and the locally installed definition/engine version with its last-update time.
-- Expiry fields are typically epoch seconds — convert before reporting.
+- The snapshot is organized **per service**, keyed by service name (`ips`, `antivirus`, `appctrl`, `web_filtering`, `forticare`, `internet_service_db`, `ai_malware_detection`, ...). Entries carry a `type` that tells you how to read them:
+  - `downloaded_fds_object` — a definition/signature package: `status`, `version`, `expires`, `last_update`, `last_update_attempt`, `last_update_result_status` (e.g. `update_result_success`, `update_result_not_authorized`), `entitlement` code.
+  - `live_fortiguard_service` — a query-time cloud service (web filtering, anti-spam, outbreak prevention): `status`, `expires`, no local version to report.
+  - `cloud_service_status` / `live_cloud_service` — FortiCare/FortiCloud/FortiGuard connection and cloud entitlements; `fortiguard` here carries `connected`, `last_connection_success`, `next_scheduled_update`.
+- `last_update_result_status: update_result_not_authorized` on a `downloaded_fds_object` means the device tried to update but the entitlement no longer authorizes it — the definitive signature that **expiry is blocking updates** (definitions freeze at their last version).
+- Expiry and update fields are epoch seconds — convert before reporting.
 - Verdict matrix:
   - **Entitled + current definitions** → healthy.
   - **Entitled + stale definitions** → delivery problem (path, schedule, override source), not a licensing problem.
