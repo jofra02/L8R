@@ -76,6 +76,7 @@ graph TD
 ### Planning (Historical Design Specs)
 | Doc | Description |
 |---|---|
+| [Roadmap](planning/roadmap.md) | Planned work: report export service (MD → HTML / plain text) |
 | [Redesign Minimal Agent Architecture](planning/Redesign%20Minimal%20Agent%20Architecture.md) | Engineer ReAct architecture design |
 | [Skills Implementation](planning/skills_implementation.md) | Domain skill system design |
 | [Data Layer Blueprint](planning/data_layer_blueprint.md) | Data layer design decisions |

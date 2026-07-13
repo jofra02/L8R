@@ -353,6 +353,10 @@ After the situation model exists, use this loop.
 
 The agent must prefer the smallest sufficient hypothesis over broad speculative theories.
 
+If two consecutive iterations produce no new facts, or the evidence contradicts
+every open hypothesis, call `load_domain_skill("lateral_thinking")` for
+structured re-framing techniques before declaring the case blocked.
+
 ---
 
 ## Phase 5: Tool-Usage Rules
@@ -429,6 +433,11 @@ The agent must prefer the smallest sufficient hypothesis over broad speculative 
 ---
 
 ## Phase 6: Output Contract
+
+Write the summary as a valid GitHub-flavored Markdown document. Render each
+section listed below as a `##` heading. Use lists, tables, and `inline code`
+for object names, commands, and observed values where they improve clarity.
+Do not use HTML.
 
 ### For Incidents
 

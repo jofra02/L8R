@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -21,6 +23,40 @@ from src.core.models import (
 from src.core.topology_utils import seed_topology_from_context
 
 logger = logging.getLogger(__name__)
+
+
+async def _audit_tool_call(
+    run_id: str, customer_id: str, tool_name: str, args: Dict[str, Any],
+    status: str, error: Optional[str], started_at: datetime,
+    result_meta: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Best-effort tool_calls_audit record (parity with AdaptiveExecutor's audit).
+
+    The engineer's direct execution path bypasses AdaptiveExecutor, which is
+    where tool calls were audited — without this, engineer runs leave
+    tool_calls_audit empty and forensics go blind.
+    """
+    if not run_id:
+        return
+    try:
+        from src.core.database import async_session_factory
+        from src.core.orm import ToolCallAuditORM
+        async with async_session_factory() as session:
+            session.add(ToolCallAuditORM(
+                id=str(uuid.uuid4()),
+                run_id=run_id,
+                customer_id=customer_id,
+                tool_name=tool_name,
+                args_redacted=args,
+                result_meta=result_meta or {},
+                status=status,
+                error=error,
+                started_at=started_at,
+                ended_at=datetime.utcnow(),
+            ))
+            await session.commit()
+    except Exception as e:
+        logger.error(f"Engineer: failed to audit tool call {tool_name}: {e}")
 
 # ---------------------------------------------------------------------------
 # Domain skill mapping (keyword → filename)
@@ -50,6 +86,20 @@ DOMAIN_SKILL_MAP = {
     "tools": "tool_catalog.md",
     "tool_search": "tool_catalog.md",
     "catalog": "tool_catalog.md",
+    # Licensing / entitlements (FortiGate appliance pack)
+    "license": "fortigate_licensing.md",
+    "licensing": "fortigate_licensing.md",
+    "licenses": "fortigate_licensing.md",
+    "entitlement": "fortigate_licensing.md",
+    "entitlements": "fortigate_licensing.md",
+    "subscription": "fortigate_licensing.md",
+    "forticare": "fortigate_licensing.md",
+    "fortiguard": "fortigate_licensing.md",
+    # Investigation strategy
+    "lateral": "lateral_thinking.md",
+    "lateral_thinking": "lateral_thinking.md",
+    "stuck": "lateral_thinking.md",
+    "reframing": "lateral_thinking.md",
 }
 
 
@@ -180,7 +230,9 @@ def create_engineer_tools(
                     Examples: "networking", "routing", "firewall", "vpn",
                     "ipsec", "virtualization", "vcenter", "storage", "san",
                     "security", "nat", "bgp", "ospf", "dns", "dhcp",
-                    "tool_catalog" (learn advanced search techniques)
+                    "tool_catalog" (learn advanced search techniques),
+                    "licensing" (FortiGate license/FortiGuard entitlement verification),
+                    "lateral_thinking" (re-framing techniques when the investigation stalls)
         """
         domain_lower = domain.lower().strip().replace(" ", "_").replace("-", "_")
 
@@ -307,10 +359,12 @@ def create_engineer_tools(
         the tool catalog. Results are automatically stored as evidence.
 
         Args:
-            tool_name: Exact tool name from the tool catalog search results.
+            tool_name: Exact tool name from the tool catalog search results,
+                       or an exact tool name provided by a loaded domain skill
+                       (skill anchors are pre-verified in this catalog).
             tool_params: JSON string with ALL parameters from the tool's schema.
                          Include every required parameter shown in the catalog.
-                         Example: '{"device_id": "fgt_casa", "vdom": "root"}'
+                         Example: '{"device": "fgt_casa", "vdom": "root"}'
         """
         from src.core.registry import CapabilityRegistry
         from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
@@ -355,13 +409,19 @@ def create_engineer_tools(
         # any value the model produced); mirrors how 'device' travels as a
         # gateway routing header, but authoritative from the run context. Set
         # after the dedup signature so it stays about the LLM's own arguments.
+        llm_args = dict(parsed_args)  # what the LLM asked for, pre-injection
         parsed_args["tenant"] = customer_id
 
         # Direct execution — agent handles errors via its own reasoning
+        started_at = datetime.utcnow()
         try:
             result = await tool_obj.run(**parsed_args)
         except Exception as e:
             state.tool_call_count += 1
+            await _audit_tool_call(
+                run_id, customer_id, tool_name, llm_args,
+                status="error", error=str(e), started_at=started_at,
+            )
             return f"ERROR executing {tool_name}: {e}"
 
         state.tool_call_count += 1
@@ -389,8 +449,19 @@ def create_engineer_tools(
                 content=content,
             )
             state.evidence_refs.append(snapshot.id)
+            evidence_id = snapshot.id
         except Exception as e:
             logger.error(f"Engineer: Failed to store evidence for {tool_name}: {e}")
+            evidence_id = None
+
+        await _audit_tool_call(
+            run_id, customer_id, tool_name, llm_args,
+            status="success", error=None, started_at=started_at,
+            result_meta={
+                "result_chars": len(str(result)) if result is not None else 0,
+                "evidence_id": evidence_id,
+            },
+        )
 
         # Return result to agent
         if isinstance(result, (dict, list)):

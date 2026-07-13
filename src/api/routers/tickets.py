@@ -378,10 +378,12 @@ async def get_ticket_hypotheses(
     items = []
     for h in raw:
         if isinstance(h, dict):
+            # Engineer-mode Hypothesis models use summary/rationale;
+            # legacy pipeline state uses title/description.
             items.append(HypothesisItem(
                 id=h.get("id"),
-                title=h.get("title", ""),
-                description=h.get("description", ""),
+                title=h.get("title") or h.get("summary", ""),
+                description=h.get("description") or h.get("rationale", ""),
                 confidence=h.get("confidence"),
                 status=h.get("status"),
                 evidence_refs=h.get("evidence_refs", []),
@@ -437,11 +439,13 @@ async def get_ticket_plan(
     if not plan or not isinstance(plan, dict):
         return PlanResponse()
 
+    # Engineer-mode Plan models use proposed_changes/validation/rollback;
+    # legacy pipeline state uses remediation_steps/validation_steps/rollback_steps.
     return PlanResponse(
         diagnosis_steps=plan.get("diagnosis_steps", []),
-        remediation_steps=plan.get("remediation_steps", []),
-        validation_steps=plan.get("validation_steps", []),
-        rollback_steps=plan.get("rollback_steps", []),
+        remediation_steps=plan.get("remediation_steps") or plan.get("proposed_changes", []),
+        validation_steps=plan.get("validation_steps") or plan.get("validation", []),
+        rollback_steps=plan.get("rollback_steps") or plan.get("rollback", []),
     )
 
 

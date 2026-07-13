@@ -94,4 +94,32 @@ def fix_sdwan_monolith(spec: dict) -> dict:
     return spec
 
 
-SPEC_FIXES = [fix_sdwan_monolith]
+# Vocabulary bridge for the license/entitlement snapshot: the stock summary
+# ("Get current license & registration status") says nothing about signature
+# versions or update timestamps, so semantic tool search never surfaces it for
+# queries like "IPS definitions version". Appending response vocabulary fixes
+# discoverability. Name-freeze safe: descriptions change, operationIds do not.
+LICENSE_STATUS_DOC_APPEND = (
+    "\nResponse includes, per security service (IPS engine and definitions, "
+    "antivirus/AV definitions, application control, web filtering, anti-spam, "
+    "industrial DB, internet service DB, mobile/AI malware, security rating, "
+    "outbreak prevention) and for FortiCare registration, support contract and "
+    "VM license: entitlement status (licensed, expired, pending), expiration "
+    "date, installed signature database version, engine version, last update "
+    "time, last update attempt and result. Primary tool to verify installed "
+    "definition/signature versions and when they were last updated."
+)
+
+
+def enrich_license_status(spec: dict) -> dict:
+    """Append response vocabulary to /license/status so tool search can find it."""
+    for path, ops in spec.get("paths", {}).items():
+        if path.endswith("/license/status") and isinstance(ops.get("get"), dict):
+            op = ops["get"]
+            if op.get("summary"):
+                op["summary"] = op["summary"] + LICENSE_STATUS_DOC_APPEND
+                logger.info(f"Enriched {path} GET summary for tool-search discoverability.")
+    return spec
+
+
+SPEC_FIXES = [fix_sdwan_monolith, enrich_license_status]

@@ -120,7 +120,7 @@ function OverviewTab({ ticket }: { ticket: import("@/api/types").TicketDetail })
     <div className="space-y-4">
       <div>
         <h3 className="text-xs font-semibold text-text-secondary uppercase mb-2">Description</h3>
-        <p className="text-sm text-text-primary whitespace-pre-wrap">{ticket.text}</p>
+        <MarkdownRenderer variant="compact" content={ticket.text} />
       </div>
       {ticket.external_id && (
         <div>
@@ -185,7 +185,9 @@ function EvidenceTab({ ticketId }: { ticketId: string }) {
         {data.map((e) => (
           <tr key={e.id} className="border-b border-border-subtle">
             <td className="px-4 py-2 font-mono text-xs text-accent">{e.tool_name}</td>
-            <td className="px-4 py-2 text-text-primary">{e.summary}</td>
+            <td className="px-4 py-2 text-text-primary">
+              <MarkdownRenderer variant="inline" content={e.summary} />
+            </td>
             <td className="px-4 py-2"><TimeAgo date={e.created_at} /></td>
           </tr>
         ))}
@@ -207,7 +209,7 @@ function HypothesesTab({ ticketId }: { ticketId: string }) {
             <h4 className="text-sm font-medium text-text-primary">{h.title}</h4>
             {h.status && <StatusBadge value={h.status} type="status" />}
           </div>
-          <p className="text-xs text-text-secondary">{h.description}</p>
+          <MarkdownRenderer variant="inline" className="text-xs text-text-secondary" content={h.description} />
           {h.confidence != null && (
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
@@ -248,7 +250,11 @@ function FactsTab({ ticketId }: { ticketId: string }) {
           <tr key={i} className="border-b border-border-subtle">
             <td className="px-4 py-2 font-mono text-xs text-accent">{f.key}</td>
             <td className="px-4 py-2 text-text-primary text-xs">
-              {typeof f.value === "string" ? f.value : JSON.stringify(f.value)}
+              {typeof f.value === "string" ? (
+                <MarkdownRenderer variant="inline" content={f.value} />
+              ) : (
+                JSON.stringify(f.value)
+              )}
             </td>
             <td className="px-4 py-2 font-mono text-xs text-text-muted">
               {f.source_evidence_id ? f.source_evidence_id.slice(0, 8) : "-"}
@@ -303,10 +309,40 @@ function PlanSection({ label, steps }: { label: string; steps: Record<string, un
             <div key={i} className="flex gap-3">
               <span className="text-xs text-text-muted mt-0.5 w-5 text-right flex-shrink-0">{i + 1}.</span>
               <div className="text-sm text-text-secondary">
-                {typeof step === "string" ? step : <JsonViewer data={step} />}
+                {typeof step === "string" ? (
+                  <MarkdownRenderer variant="inline" content={step} />
+                ) : typeof step.description === "string" && step.description ? (
+                  <PlanStepDetail step={step} />
+                ) : (
+                  <JsonViewer data={step} />
+                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlanStepDetail({ step }: { step: Record<string, unknown> }) {
+  const tool = typeof step.tool === "string" ? step.tool : "";
+  const risk = typeof step.risk === "string" ? step.risk : "";
+  const expected = typeof step.expected_outcome === "string" ? step.expected_outcome : "";
+  return (
+    <div className="space-y-1">
+      <MarkdownRenderer variant="inline" content={String(step.description)} />
+      {(tool || risk) && (
+        <p className="text-xs text-text-muted">
+          {tool && <span className="font-mono">{tool}</span>}
+          {tool && risk && " | "}
+          {risk && <span>risk: {risk}</span>}
+        </p>
+      )}
+      {expected && (
+        <div className="text-xs text-text-muted">
+          <span className="font-semibold">Expected: </span>
+          <MarkdownRenderer variant="inline" className="inline [&_p]:inline" content={expected} />
         </div>
       )}
     </div>
