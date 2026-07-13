@@ -50,6 +50,20 @@ DOMAIN_SKILL_MAP = {
     "tools": "tool_catalog.md",
     "tool_search": "tool_catalog.md",
     "catalog": "tool_catalog.md",
+    # Licensing / entitlements (FortiGate appliance pack)
+    "license": "fortigate_licensing.md",
+    "licensing": "fortigate_licensing.md",
+    "licenses": "fortigate_licensing.md",
+    "entitlement": "fortigate_licensing.md",
+    "entitlements": "fortigate_licensing.md",
+    "subscription": "fortigate_licensing.md",
+    "forticare": "fortigate_licensing.md",
+    "fortiguard": "fortigate_licensing.md",
+    # Investigation strategy
+    "lateral": "lateral_thinking.md",
+    "lateral_thinking": "lateral_thinking.md",
+    "stuck": "lateral_thinking.md",
+    "reframing": "lateral_thinking.md",
 }
 
 
@@ -180,7 +194,9 @@ def create_engineer_tools(
                     Examples: "networking", "routing", "firewall", "vpn",
                     "ipsec", "virtualization", "vcenter", "storage", "san",
                     "security", "nat", "bgp", "ospf", "dns", "dhcp",
-                    "tool_catalog" (learn advanced search techniques)
+                    "tool_catalog" (learn advanced search techniques),
+                    "licensing" (FortiGate license/FortiGuard entitlement verification),
+                    "lateral_thinking" (re-framing techniques when the investigation stalls)
         """
         domain_lower = domain.lower().strip().replace(" ", "_").replace("-", "_")
 

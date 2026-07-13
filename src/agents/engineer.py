@@ -172,6 +172,8 @@ async def engineer_agent_node(state: GlobalState) -> Dict[str, Any]:
         invoke_config["callbacks"] = [langfuse_handler]
 
     # 6. Run with timeout
+    loop_error = None
+    timed_out = False
     try:
         result = await asyncio.wait_for(
             react_agent.ainvoke(
@@ -184,14 +186,34 @@ async def engineer_agent_node(state: GlobalState) -> Dict[str, Any]:
     except asyncio.TimeoutError:
         logger.warning(f"Engineer: Timeout after {settings.ENGINEER_TIMEOUT_SECONDS}s for ticket {ticket_id}")
         messages = []
+        timed_out = True
     except Exception as e:
         logger.error(f"Engineer: ReAct loop failed: {e}")
         messages = []
+        loop_error = str(e)
 
     # 6. Read findings from tool state (set by submit_findings tool)
     if tool_state.findings:
         findings = tool_state.findings
         logger.info(f"Engineer: Findings submitted via submit_findings tool")
+    elif loop_error:
+        # Hard failure before any usable output: propagate so the run is
+        # persisted as "failed" instead of "completed" with a blank report.
+        raise RuntimeError(f"Engineer ReAct loop failed: {loop_error}")
+    elif timed_out:
+        findings = {
+            "summary": (
+                "## Investigation Interrupted\n\n"
+                f"The investigation exceeded the {settings.ENGINEER_TIMEOUT_SECONDS}s time limit "
+                "before findings could be submitted. "
+                f"Evidence snapshots collected before the interruption: {len(tool_state.evidence_refs)}."
+            ),
+            "hypotheses": [],
+            "facts": [],
+            "plan": {},
+            "case_status": "blocked",
+            "evidence_refs": tool_state.evidence_refs,
+        }
     else:
         logger.warning(f"Engineer: Agent did not call submit_findings — using fallback extraction")
         findings = _fallback_findings(messages, tool_state.evidence_refs)

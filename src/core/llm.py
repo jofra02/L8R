@@ -40,4 +40,10 @@ class LLMFactory:
         if reasoning and agent_name != "engineer" and any(token in model_name for token in ["o1", "o3", "gpt-5"]):
             kwargs["reasoning_effort"] = reasoning
 
+        # Engineer reasoning effort is configured separately: some models reject
+        # function tools on chat completions unless reasoning_effort is explicit
+        # (e.g. "none").
+        if agent_name == "engineer" and settings.LLM_REASONING_EFFORT_ENGINEER:
+            kwargs["reasoning_effort"] = settings.LLM_REASONING_EFFORT_ENGINEER
+
         return ChatOpenAI(**kwargs)

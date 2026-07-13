@@ -149,6 +149,9 @@ class Settings(BaseSettings):
     
     # Global Tuning
     LLM_REASONING_EFFORT: Optional[str] = None  # "low", "medium", "high", or None to skip
+    # Engineer-specific reasoning effort (None = omit the parameter). Some models
+    # reject function tools on chat completions unless an explicit "none" is sent.
+    LLM_REASONING_EFFORT_ENGINEER: Optional[str] = None
     LLM_TEMPERATURE_DEFAULT: float = 0.0
     
     # Safety & Governance
