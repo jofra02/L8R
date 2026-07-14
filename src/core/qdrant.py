@@ -587,30 +587,38 @@ class VectorStore:
         Return the set of tool_names already indexed in tool_catalog for a tenant.
         Uses scroll (no embedding call) — cheap and fast.
         """
+        return set(await self.get_indexed_tool_descriptions(customer_id))
+
+    async def get_indexed_tool_descriptions(self, customer_id: str) -> Dict[str, str]:
+        """
+        Return tool_name -> stored description for a tenant's indexed catalog.
+        Uses scroll (no embedding call) — cheap and fast. Lets the registry diff
+        detect description changes, not just missing names.
+        """
         await self.ensure_collection("tool_catalog")
-        
-        indexed = set()
+
+        indexed: Dict[str, str] = {}
         offset = None
         tenant_filter = self._build_tenant_filter(customer_id)
-        
+
         while True:
             results, next_offset = await self.client.scroll(
                 collection_name="tool_catalog",
                 scroll_filter=tenant_filter,
                 limit=250,
                 offset=offset,
-                with_payload=["tool_name"],
+                with_payload=["tool_name", "description"],
                 with_vectors=False,
             )
             for pt in results:
                 name = pt.payload.get("tool_name")
                 if name:
-                    indexed.add(name)
-            
+                    indexed[name] = pt.payload.get("description") or ""
+
             if next_offset is None:
                 break
             offset = next_offset
-        
+
         return indexed
 
     # Tool catalog is global (shared across all tenants).

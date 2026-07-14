@@ -212,9 +212,11 @@ class CapabilityRegistry:
         cid = cls.TOOL_CATALOG_SENTINEL
         tools = cls.list_tools()
         registry_names = {t.name for t in tools}
+        tools_by_name = {t.name: t for t in tools}
 
-        # Fast scroll — no embeddings, just payload field
-        already_indexed = await vector_store.get_indexed_tool_names(cid)
+        # Fast scroll — no embeddings, just payload fields
+        indexed_descriptions = await vector_store.get_indexed_tool_descriptions(cid)
+        already_indexed = set(indexed_descriptions)
 
         # Migration: detect old-format points without vendor metadata
         if already_indexed:
@@ -222,29 +224,47 @@ class CapabilityRegistry:
             if needs_migration:
                 logger.info("Registry: tool_catalog missing metadata fields — forcing full re-index.")
                 already_indexed = set()
+                indexed_descriptions = {}
 
         new_tools = registry_names - already_indexed
         stale_tools = already_indexed - registry_names  # tools removed from MCP
+        # Description drift: same name, different indexed description (e.g. a
+        # gateway pack enriched a summary). Deterministic ids make re-indexing an
+        # in-place upsert. The payload stores `description or name` — compare
+        # against that same expression to avoid false positives.
+        changed_tools = {
+            name for name in (registry_names & already_indexed)
+            if (tools_by_name[name].description or name) != indexed_descriptions[name]
+        }
 
-        if not new_tools and not stale_tools:
+        if len(changed_tools) > settings.TOOL_CATALOG_REINDEX_CAP:
+            deferred = len(changed_tools) - settings.TOOL_CATALOG_REINDEX_CAP
+            logger.warning(
+                f"Registry: {len(changed_tools)} tools have changed descriptions; "
+                f"re-indexing {settings.TOOL_CATALOG_REINDEX_CAP} this startup "
+                f"(TOOL_CATALOG_REINDEX_CAP) and deferring {deferred} to the next one."
+            )
+            changed_tools = set(sorted(changed_tools)[: settings.TOOL_CATALOG_REINDEX_CAP])
+
+        if not new_tools and not changed_tools and not stale_tools:
             logger.info(
                 f"Registry: tool_catalog up to date "
-                f"({len(already_indexed)} tools). Skipping indexing."
+                f"({len(already_indexed)} tools, descriptions unchanged). Skipping indexing."
             )
             return
 
         if stale_tools:
             logger.info(f"Registry: {len(stale_tools)} stale tools detected (not cleaning up yet)")
 
+        to_index = new_tools | changed_tools
         logger.info(
-            f"Registry: Indexing {len(new_tools)} NEW tools "
-            f"(skipping {len(already_indexed)} already indexed)"
+            f"Registry: Indexing {len(new_tools)} NEW + {len(changed_tools)} CHANGED tools "
+            f"(skipping {len(already_indexed) - len(changed_tools)} unchanged)"
         )
 
-        tools_by_name = {t.name: t for t in tools}
         texts, metadatas, ids = [], [], []
 
-        for tool_name in new_tools:
+        for tool_name in to_index:
             tool = tools_by_name[tool_name]
             try:
                 args_schema_json = {}
@@ -309,7 +329,7 @@ class CapabilityRegistry:
                 texts=texts, metadatas=metadatas, ids=ids, customer_id=cid,
             )
 
-        logger.info(f"Registry: Indexed {len(texts)}/{len(new_tools)} new tools (global)")
+        logger.info(f"Registry: Indexed {len(texts)}/{len(to_index)} new/changed tools (global)")
 
     @classmethod
     async def _classify_tools_via_llm(cls, metadatas: List[dict]) -> List[dict]:

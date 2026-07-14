@@ -90,7 +90,7 @@ which still takes a backup and verifies health. Two traps:
 ## Special cases
 
 - **Frontend-only change**: `bash scripts/deploy/redeploy.sh --services frontend`. No migrations, no gateway involvement; the backup still runs by default (cheap insurance).
-- **New gateway appliance pack / spec changes**: follow [Gateway Upgrades](gateway_upgrades.md) — regenerate `baseline_tools.txt`, deploy with `--allow-name-drift`. Genuinely new tools are indexed incrementally (minutes, only the new tools go through LLM classification); renamed tools require a full `tool_catalog` re-index (~30 min, LLM cost).
+- **New gateway appliance pack / spec changes**: follow [Gateway Upgrades](gateway_upgrades.md) — regenerate `baseline_tools.txt`, deploy with `--allow-name-drift`. Genuinely new tools and tools with **changed descriptions** are indexed incrementally on the next startup (minutes; only those go through LLM classification, bounded by `TOOL_CATALOG_REINDEX_CAP` per boot); renamed tools require a full `tool_catalog` re-index (~30 min, LLM cost).
 - **Full catalog re-index**: `/ready` reports `initializing` for the duration; `search_tool_catalog` may return partial results meanwhile. The API and frontend keep serving.
 
 ## Backups and retention
