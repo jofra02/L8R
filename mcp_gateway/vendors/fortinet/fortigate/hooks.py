@@ -122,4 +122,55 @@ def enrich_license_status(spec: dict) -> dict:
     return spec
 
 
-SPEC_FIXES = [fix_sdwan_monolith, enrich_license_status]
+# Vocabulary bridge for historical log retrieval: the stock summaries ("Log
+# data for the given log type...") say nothing about web browsing, visited
+# URLs, or where the logs are stored, so semantic tool search never surfaces
+# the retrieval tools — whose names for local disk lack the word "log"
+# entirely (fgt_cmdb_disk_get_*). All four backend families (disk, memory,
+# FortiAnalyzer, FortiCloud) get the same append so no backend is demoted.
+# Name-freeze safe: descriptions change, operationIds do not.
+
+_LOG_BACKEND_LABELS = {
+    "/disk/": "stored locally on the device's disk",
+    "/memory/": "stored locally in device memory (volatile, recent window)",
+    "/fortianalyzer/": "stored on the connected FortiAnalyzer",
+    "/forticloud/": "stored in FortiCloud",
+}
+
+LOG_RETRIEVAL_DOC_APPEND = (
+    "\nRetrieves historical log entries {backend}. Log categories (type): "
+    "traffic, event, webfilter (web browsing history, visited websites/URLs, "
+    "web navigation per host), virus, ips, dns, app-ctrl, anomaly, ssl. "
+    "Filter entries with expressions like srcip==<ip> to get the activity of "
+    "a specific host. Use for questions like: what websites did a host "
+    "visit, historical traffic/security/web logs, past events."
+)
+
+DEVICE_STATE_DOC_APPEND = (
+    "\nReports which log storage backends are enabled and available on this "
+    "device: local disk, local memory, FortiAnalyzer, FortiCloud. Call this "
+    "FIRST when retrieving historical logs (traffic, web browsing, events) "
+    "to pick a backend that actually holds data."
+)
+
+
+def enrich_log_retrieval(spec: dict) -> dict:
+    """Append storage/vocabulary context to log retrieval + device-state ops."""
+    base = spec.get("basePath", "")
+    for path, ops in spec.get("paths", {}).items():
+        op = ops.get("get")
+        if not isinstance(op, dict) or not op.get("summary"):
+            continue
+        if base == "/api/v2/log":
+            for prefix, label in _LOG_BACKEND_LABELS.items():
+                if path.startswith(prefix):
+                    op["summary"] = op["summary"] + LOG_RETRIEVAL_DOC_APPEND.format(backend=label)
+                    logger.info(f"Enriched {path} GET summary for log-retrieval discoverability.")
+                    break
+        elif path.endswith("/log/device/state"):
+            op["summary"] = op["summary"] + DEVICE_STATE_DOC_APPEND
+            logger.info(f"Enriched {path} GET summary for log-retrieval discoverability.")
+    return spec
+
+
+SPEC_FIXES = [fix_sdwan_monolith, enrich_license_status, enrich_log_retrieval]
