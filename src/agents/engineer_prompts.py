@@ -50,7 +50,8 @@ step-by-step investigation templates, and common pitfalls for that area.
 
 Args:
     domain: The IT domain to load. Examples: "networking", "routing", "firewall",
-            "vpn", "ipsec", "virtualization", "storage", "security"
+            "vpn", "ipsec", "virtualization", "storage", "security",
+            "licensing", "logs"
 
 **Always load the relevant domain skill before starting deep investigation.**
 

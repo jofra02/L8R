@@ -95,6 +95,21 @@ DOMAIN_SKILL_MAP = {
     "subscription": "fortigate_licensing.md",
     "forticare": "fortigate_licensing.md",
     "fortiguard": "fortigate_licensing.md",
+    # Logs / log retrieval (FortiGate appliance pack)
+    "logs": "fortigate_logs.md",
+    "log": "fortigate_logs.md",
+    "logging": "fortigate_logs.md",
+    "log_retrieval": "fortigate_logs.md",
+    "syslog": "fortigate_logs.md",
+    "web_logs": "fortigate_logs.md",
+    "traffic_logs": "fortigate_logs.md",
+    "browsing": "fortigate_logs.md",
+    "browsing_history": "fortigate_logs.md",
+    "web_history": "fortigate_logs.md",
+    "navigation": "fortigate_logs.md",
+    "webfilter": "fortigate_logs.md",
+    "fortianalyzer": "fortigate_logs.md",
+    "forticloud": "fortigate_logs.md",
     # Investigation strategy
     "lateral": "lateral_thinking.md",
     "lateral_thinking": "lateral_thinking.md",
@@ -232,6 +247,7 @@ def create_engineer_tools(
                     "security", "nat", "bgp", "ospf", "dns", "dhcp",
                     "tool_catalog" (learn advanced search techniques),
                     "licensing" (FortiGate license/FortiGuard entitlement verification),
+                    "logs" (historical log retrieval: web browsing, traffic, events),
                     "lateral_thinking" (re-framing techniques when the investigation stalls)
         """
         domain_lower = domain.lower().strip().replace(" ", "_").replace("-", "_")

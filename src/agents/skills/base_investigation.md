@@ -357,6 +357,13 @@ If two consecutive iterations produce no new facts, or the evidence contradicts
 every open hypothesis, call `load_domain_skill("lateral_thinking")` for
 structured re-framing techniques before declaring the case blocked.
 
+If a remote or centralized log backend (e.g. a log analyzer appliance, cloud
+logging, a syslog collector) returns an error or reports disabled, do not
+conclude the logs are unavailable: most devices also keep local log stores
+(disk and/or memory). Call `load_domain_skill("logs")` and check which log
+storage backends the device itself reports as active before abandoning the
+branch.
+
 ---
 
 ## Phase 5: Tool-Usage Rules

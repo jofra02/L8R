@@ -11,13 +11,13 @@ Tools are indexed by their **description and parameter descriptions** as embedde
 Tools follow a vendor-prefixed pattern:
 
 ```
-{vendor_prefix}_{subsystem}_{resource}_{operation}
+{vendor_prefix}_{subsystem}_{module}_{operation}_{resource}
 ```
 
 Examples:
-- `fgt_cmdb_firewall_policy_get` — FortiGate, CMDB subsystem, firewall policy, read
-- `fgt_monitor_system_status_get` — FortiGate, monitor subsystem, system status, read
-- `fgt_monitor_router_ipv4_get` — FortiGate, monitor subsystem, IPv4 routing, read
+- `fgt_monitor_fw_get_firewall_policy` — FortiGate, monitor subsystem, read, firewall policy runtime stats
+- `fgt_monitor_sys_get_status` — FortiGate, monitor subsystem, read, system status
+- `fgt_monitor_router_get_ipv4` — FortiGate, monitor subsystem, read, IPv4 routing table
 
 You don't need to guess the name. The search matches on description content.
 
