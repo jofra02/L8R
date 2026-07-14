@@ -8,9 +8,9 @@ At API startup, `CapabilityRegistry` ([src/core/registry.py](../../src/core/regi
 
 1. Discovers tools from every server in `data/mcp/servers.yaml` (the MCP Gateway exposes **2546**).
 2. Safety-filters them (`_is_safe`, keyword blocklist) → **2182** registered.
-3. **Diff-based indexing** into Qdrant `tool_catalog` (global collection, `customer_id="__global__"`): only tools not already indexed are embedded and classified. When nothing changed the log shows:
-   `tool_catalog up to date (2182 tools). Skipping indexing.`
-4. New tools go through an **LLM classification pass** (IT-domain categories, discovery tier, identifiers) in batches of 15 — this is the expensive part.
+3. **Diff-based indexing** into Qdrant `tool_catalog` (global collection, `customer_id="__global__"`): the diff compares tool **names and descriptions** against the indexed payload. Missing names are indexed as NEW; tools whose description changed (e.g. a gateway pack enriched a summary) are re-embedded and re-classified as CHANGED via an in-place upsert on the same deterministic point id — no manual deletion needed. When nothing changed the log shows:
+   `tool_catalog up to date (2182 tools, descriptions unchanged). Skipping indexing.`
+4. New and changed tools go through an **LLM classification pass** (IT-domain categories, discovery tier, identifiers) in batches of 15 — this is the expensive part. `TOOL_CATALOG_REINDEX_CAP` (default 200, env-overridable) bounds how many CHANGED tools are re-indexed per startup; any excess is deferred to the next startup (alphabetical order, logged as a WARNING).
 5. Stale entries (indexed but no longer registered) are logged, **not** deleted.
 
 There is **no force-reindex flag**.
@@ -18,6 +18,7 @@ There is **no force-reindex flag**.
 ## When to force a re-index
 
 - Tool names changed (fastmcp upgrade, appliance pack changes — see [Gateway Upgrades](gateway_upgrades.md)).
+- Parameter documentation changed without the description changing (param docs are part of the embedding, but the diff only compares descriptions).
 - Corrupt/outdated classification metadata.
 - The startup diff keeps logging large "stale" sets.
 

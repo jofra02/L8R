@@ -186,6 +186,12 @@ class Settings(BaseSettings):
     TOOL_CATEGORY_TIER1_MIN: int = 3
     TOOL_CATEGORY_TIER2_MIN: int = 3
 
+    # Tool Catalog Indexing
+    # Max CHANGED-description tools re-embedded per startup; the remainder is
+    # deferred to the next startup (bounds embedding + classification cost if a
+    # pack update rewrites many summaries at once).
+    TOOL_CATALOG_REINDEX_CAP: int = 200
+
     # Bootstrap
     BOOTSTRAP_ADMIN_EMAIL: str = "admin@localhost"
 
