@@ -1,0 +1,459 @@
+FortiGates
+
+Monitoreo Constante de Threat Intelligence
+
+
+	Management plane hardening
+	   - Red de management dedicada
+	     - interfaz o VLAN exclusiva
+	     - sin exposición directa a Internet
+	     - acceso solo desde jump server, VPN administrativa o bastion cuando sea posible
+	     - separación de mgmt respecto a usuarios y servidores
+	   - Trusted hosts
+	     - configurados en todos los admin users
+	     - limitar GUI/SSH/API/SNMP a IPs administrativas
+	     - evitar admins sin trusted hosts
+	     - revisar cambios después de incidentes o rotación de personal
+	   - Local-in policies
+	     - controlar tráfico hacia el propio FortiGate
+	     - permitir solo servicios necesarios
+	     - restringir HTTPS/SSH/SNMP/IPsec/SSL-VPN/BGP/FGFM/FortiGuard según rol
+	     - negar explícitamente desde redes no confiables
+	   - Servicios administrativos
+	     - deshabilitar HTTP, Telnet, ping innecesario, FMG access si no se usa
+	     - cambiar puertos no como control principal, solo como reducción de ruido
+	     - usar certificados válidos para GUI/API
+	     - revisar ciphers/TLS permitidos
+	   - Admin access
+	     - cuentas nominales, no compartidas
+	     - perfiles de mínimo privilegio
+	     - MFA obligatorio para administradores
+	     - remote auth con fallback local controlado
+	     - break-glass account offline/documentada
+	     - bloqueo por intentos fallidos
+	     - timeout de sesión administrativa
+	     - logging de login/logout/config-change
+
+	Resiliencia y configuración base
+	   - Backups
+	     - backup automático post-change
+	     - backup programado diario/semanal
+	     - copia fuera del appliance
+	     - cifrado de backups *
+	     - control de acceso al repositorio
+	     - backup antes de upgrade
+	     - backup antes de cambios masivos
+	   - HA
+	     - modo HA documentado
+	     - interfaces heartbeat y session sync dedicadas cuando sea posible
+	     - session pickup según criticidad
+	     - override controlado
+	     - monitoreo de interfaces críticas
+	     - sincronización validada
+	     - prueba de failover programada
+	     - monitoreo de split-brain
+	     - logging del cambio de rol
+	   - Time / NTP
+	     - NTP interno confiable
+	     - zona horaria correcta
+	     - consistencia con SIEM/FAZ/EDR/AV/etc
+	     - alerta por drift horario
+	   - DNS del sistema
+	     - resolvers confiables
+	     - DNS over TLS si aplica
+	     - evitar DNS no controlado
+	     - monitorear fallas de resolución FortiGuard/FQDN objects
+	   - Certificados
+	     - certificados GUI/API/VPN no expirados
+	     - CA interna o pública según exposición
+	     - inventario de expiración
+	     - evitar certificados self-signed en portales expuestos
+
+	Política de firewall
+	   - Modelo de reglas
+	     - deny by default
+	     - reglas específicas antes que genéricas
+	     - evitar any-any
+	     - evitar services ALL salvo justificación
+	     - evitar source ALL salvo justificación
+	     - evitar destination ALL en salida crítica
+	     - logging habilitado en reglas relevantes
+	     - comentarios obligatorios:
+	       - ticket
+	       - owner
+	       - fecha
+	       - vencimiento si temporal
+	       - motivo/descripcion
+	   - Revisión de reglas
+	     - reglas sin hits
+	     - reglas shadowed
+	     - reglas redundantes
+	     - reglas temporales vencidas
+	     - objetos no usados
+	     - NAT/VIP expuestos
+	     - reglas con UTM deshabilitado
+	     - reglas con log deshabilitado
+	   - Orden lógico
+	     - bloqueos explícitos arriba
+	     - reglas de administración separadas
+	     - reglas de VPN separadas
+	     - reglas de servidores publicados separadas
+	     - reglas catch-all con logging
+	   - NAT / VIP
+	     - publicar solo puertos necesarios
+	     - evitar port-forward amplios
+	     - no exponer administración de appliances
+	     - restringir por source cuando sea posible
+	     - aplicar IPS/WAF/reverse proxy según servicio
+	     - logging obligatorio en servicios expuestos
+
+
+
+	AAA / identidad
+	   - Auth remota
+	     - RADIUS / TACACS+ / LDAP / SAML según caso
+	     - MFA para admins y VPN
+	     - grupos separados por rol:
+	       - firewall-admin-full
+	       - firewall-readonly
+	       - firewall-operator
+	       - firewall-api
+	       - vpn-users
+	       - vpn-privileged
+
+	   - Autorización
+	     - perfiles administrativos por función
+	     - separación entre operación, auditoría y seguridad
+	     - VDOM-level access si aplica
+	     - acceso API con token dedicado y mínimo privilegio
+
+	   - Accounting
+	     - registrar cambios de configuración
+	     - registrar comandos si la plataforma lo permite
+	     - integración con FortiAnalyzer/SIEM
+	     - alertas por cambios críticos:
+	       - policy allow any-any
+	       - disable logging
+	       - cambio de admin profile
+	       - cambio de trusted hosts
+	       - cambio de rutas
+	       - cambio de VIP/NAT
+	       - modificación de VPN
+
+
+	Segmentación / microsegmentation
+	   - Zonas de seguridad
+	     - Internet
+	     - DMZ
+	     - users
+	     - servers
+	     - management
+	     - backup
+	     - OT/IoT
+	     - voice
+	     - VPN
+	     - third parties
+	     - cloud/interconnect
+	 - ISFW
+	     - segmentar tráfico east-west
+	     - bloquear lateral movement
+	     - separar AD/DC, backup, hypervisors, EDR, SIEM
+	     - controlar RDP/SSH/WinRM/SMB/LDAP/Kerberos
+	     - permitir solo flujos necesarios app-to-app
+	     - visibilidad de inter-VLAN
+
+
+	UTM / security profiles
+	   - IPS
+	     - perfiles por exposición y criticidad
+	     - modo block para Internet-facing y exploits críticos
+	     - modo monitor solo donde haya riesgo operativo
+	     - activar firmas por tecnología real: Apache, NGINX, IIS, Fortinet, Cisco, PHP, Java, etc.
+	     - revisar falsos positivos
+	     - revisar firmas antiguas/no aplicables
+	     - logging de severidad alta/crítica
+
+	   - Application Control
+	     - bloquear evasive apps
+	     - bloquear proxy/anonymizer/Tor
+	     - controlar remote access tools
+	     - controlar file sharing no autorizado
+	     - permitir apps por necesidad real
+	     - alertar sobre herramientas administrativas no esperadas:
+	       - AnyDesk
+	       - TeamViewer
+	       - RMM desconocidos
+	       - Psiphon
+	       - UltraSurf
+	       - SSH tunnels
+
+	   - Web Filter
+	     - bloquear malware, phishing, newly registered domains, dynamic DNS, parked domains si aplica
+	     - perfiles distintos por usuarios, servidores y guests
+	     - excepciones con owner y vencimiento
+	     - inspección de categorías riesgosas
+	     - integración con FortiGuard rating
+
+	   - DNS Filter
+	     - bloquear malicious domains
+	     - bloquear botnet/C2
+	     - bloquear newly observed domains si el negocio lo tolera
+	     - logging de queries bloqueadas
+	     - detección de DGA, tunneling y resolución anómala
+	     - aplicar también a servidores, no solo usuarios
+
+	   - Antivirus
+	     - inspección HTTP/HTTPS/SMTP/IMAP/POP3/FTP según flujo
+	     - bloquear archivos maliciosos
+	     - sandboxing si hay FortiSandbox
+	     - cuarentena o alerting según criticidad
+	     - revisar límites de tamaño de archivo
+
+	   - SSL/DPI tuning
+	     - decidir entre certificate inspection y deep inspection por zona
+	     - deep inspection en usuarios de riesgo y tráfico web saliente
+	     - excepciones para banking/health/legal si corresponde
+	     - cuidado con pinning/cert apps
+	     - excluir por categoría solo con justificación
+	     - validar impacto en performance
+	     - distribuir CA interna correctamente
+
+
+	Traffic shaping / QoS
+	   - Priorizar tráfico crítico:
+	     - VPN
+	     - VoIP
+	     - aplicaciones core
+	     - replicación
+	     - backups en ventanas permitidas
+
+	   - Limitar tráfico riesgoso:
+	     - streaming
+	     - updates masivos
+	     - file sharing
+	     - redes guest
+	     - apps no productivas
+
+	   - Seguridad
+	     - evitar que exfiltration consuma ancho de banda sin control
+	     - alertar subidas anómalas
+	     - controlar sesiones largas con alto volumen
+
+
+	VPN / acceso remoto
+	   - MFA obligatorio
+	   - grupos por perfil de acceso
+	   - split tunnel solo si está justificado
+	   - posture/ZTNA si disponible
+	   - restricción por país si aplica
+	   - lockout por brute force
+	   - portales por grupo
+	   - logs de login/logout/tunnel-up/tunnel-down
+	   - alertas:
+	     - login desde país anómalo
+	     - múltiples fallos
+	     - login fuera de horario
+	     - usuario privilegiado por VPN
+	     - duración excesiva
+	     - transferencia excesiva
+
+	Threat Intelligence
+	   - FortiGuard
+	     - validar contrato/licencia activa
+	     - validar actualización de IPS/AV/App/Web/DNS
+	     - alertar si FortiGuard queda unreachable
+	     - revisar rating override
+
+	   - Threat feeds externos
+	     - IP blocklist
+	     - domain blocklist
+	     - URL blocklist
+	     - allowlist crítica
+	     - feeds regionales/sectoriales
+	     - feeds propios derivados de incidentes
+
+	   - Operationalización
+	     - no bloquear feeds sin control de calidad
+	     - score/confidence por fuente
+	     - TTL para IOCs temporales
+	     - proceso de falso positivo
+	     - trazabilidad: fuente, fecha, motivo, expiración
+	     - usar en policies específicas, no como reemplazo de controles behavior-based
+
+
+	FortiAnalyzer / logging / detección
+	   - Integración obligatoria
+	     - enviar logs de traffic
+	     - enviar logs de UTM/security
+	     - enviar event/system logs
+	     - enviar VPN logs
+	     - enviar admin/config logs
+	     - confirmar reliable logging si aplica
+
+	   - Retención
+	     - hot retention operativa
+	     - archive retention regulatoria
+	     - dimensionamiento por EPS/log volume
+	     - separación por ADOM
+	     - backup/export de logs críticos
+
+	   - Calidad de logs
+	     - hostname consistente
+	     - device ID correcto
+	     - timezone correcto
+	     - user/IP mapping
+	     - FSSO/identity logs
+	     - NAT original source/destination visible cuando sea posible
+	     - logging en reglas críticas
+
+	   - Alertas recomendadas
+	     - config changed
+	     - admin login failed/success from unusual source
+	     - policy disabled
+	     - logging disabled
+	     - HA failover
+	     - FortiGuard update failed
+	     - IPS critical blocked
+	     - malware detected
+	     - DNS C2 blocked
+	     - botnet IP blocked
+	     - SSL-VPN brute force
+	     - VPN login from unusual geo
+	     - excessive denied traffic
+	     - port scan
+	     - new VIP exposed
+	     - DoS threshold triggered
+
+	   - Reports
+	     - reglas más usadas
+	     - reglas sin uso
+	     - top denied
+	     - top threats
+	     - top infected hosts
+	     - top C2/DNS blocks
+	     - top VPN users by duration/bytes
+	     - cambios administrativos
+	     - exposición de servicios publicados
+	     - cumplimiento de logging por policy
+
+	   - SIEM/SOAR
+	     - forward de eventos críticos
+	     - normalización de campos
+	     - correlación con EDR/AD/DNS/Proxy
+	     - casos automáticos para:
+	       - malware outbound
+	       - C2 DNS
+	       - VPN impossible travel
+	       - admin login anómalo
+	       - policy change crítico
+
+
+	Egress filtering
+	   - Usuarios
+	     - permitir navegación vía proxy o policies controladas
+	     - bloquear salida directa innecesaria
+	     - bloquear puertos raros hacia Internet
+	     - controlar DoH/DoT no autorizado
+	     - bloquear Tor/anonymizers
+
+	   - Servidores
+	     - permitir solo destinos necesarios
+	     - updates/repositorios explícitos
+	     - DNS solo a resolvers internos
+	     - NTP solo a fuentes autorizadas
+	     - SMTP solo desde mail relay
+	     - bloquear navegación general desde servidores
+
+	   - Detección
+	     - servidor hablando con IP externa no conocida
+	     - alto volumen outbound
+	     - conexión periódica tipo beacon
+	     - JA3/SSL anomalies si hay visibilidad
+	     - DNS hacia resolvers externos
+
+
+	Inbound exposure
+	   - Servicios publicados
+	     - inventario de VIPs
+	     - owner por publicación
+	     - justificación
+	     - criticidad
+	     - backend real
+	     - puertos publicados
+	     - restricciones por source/country
+	     - IPS/WAF/reverse proxy
+	     - certificados
+	     - logs activados
+
+	   - Revisión periódica
+	     - servicios legacy
+	     - TLS débil
+	     - paneles administrativos expuestos
+	     - RDP/SSH expuesto
+	     - appliances publicados
+	     - reglas temporales olvidadas
+
+
+	Integraciones de identidad
+	   - FSSO / AD
+	     - validar collectors
+	     - validar DC polling/agents
+	     - grupos correctos
+	     - stale sessions
+	     - usuarios compartidos
+	     - fallback cuando no hay identidad
+	     - logs de autenticación
+
+	   - FortiAuthenticator si aplica
+	     - RADIUS accounting
+	     - MFA
+	     - SAML
+	     - grupos
+	     - certificados
+	     - logs hacia FAZ/SIEM
+
+	Hardening de routing/control plane
+	   - Dynamic routing
+	     - autenticar vecinos BGP/OSPF si aplica
+	     - filtrar prefijos entrantes/salientes
+	     - route-maps explícitos
+	     - max-prefix
+	     - evitar redistribución amplia
+	     - logging de neighbor down/up
+
+	   - SD-WAN
+	     - health checks monitoreados
+	     - reglas por criticidad
+	     - SLA realista
+	     - evitar failover inseguro
+	     - logs de cambio de enlace
+	     - pruebas de caída controladas
+
+
+	Métricas de salud y efectividad
+	   - Configuración
+	     - % reglas con logging
+	     - % reglas con owner
+	     - % reglas any-any
+	     - % reglas sin uso
+	     - cantidad de VIPs expuestas
+	     - cantidad de excepciones vencidas
+
+	   - Seguridad
+	     - amenazas bloqueadas por severidad
+	     - C2/DNS blocks
+	     - malware detections
+	     - IPS critical hits
+	     - top infected hosts
+	     - top risky apps
+	     - VPN anomalies
+
+	   - Operación
+	     - CPU/mem/session table
+	     - conserve mode
+	     - HA status
+	     - FortiGuard status
+	     - log rate
+	     - packet drops
+	     - interface errors
+	     - latency SD-WAN
