@@ -52,10 +52,18 @@ def _svc(db: AsyncSession) -> AssessmentService:
 
 
 def _detail(run, targets, device_count: Optional[int] = None) -> AssessmentDetail:
-    detail = AssessmentDetail.model_validate(run)
-    detail.targets = [TargetResponse.model_validate(t) for t in targets]
-    detail.device_count = device_count if device_count is not None else len(detail.targets)
-    return detail
+    # Never model_validate AssessmentDetail from the ORM object: its `targets`
+    # field would trigger an async lazy-load of the relationship outside the
+    # session (MissingGreenlet). Targets are queried explicitly by the service.
+    base = AssessmentListItem.model_validate(run)
+    data = base.model_dump()
+    data["device_count"] = device_count if device_count is not None else len(targets)
+    return AssessmentDetail(
+        **data,
+        params=run.params or {},
+        error=run.error,
+        targets=[TargetResponse.model_validate(t) for t in targets],
+    )
 
 
 # --- Definitions ---
