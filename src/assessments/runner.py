@@ -313,7 +313,7 @@ class AssessmentRunner:
     async def execute(self) -> None:
         """Full run: queued -> collecting -> evaluating -> terminal."""
         from src.assessments.collector import CollectionEngine
-        from src.core.task_registry import task_registry
+        from src.core import task_registry
 
         try:
             run, targets, definition, content = await self._load_run_bundle()
@@ -351,7 +351,7 @@ class AssessmentRunner:
 
     async def reevaluate(self) -> None:
         """Re-run evaluation over existing evidence (completed* -> evaluating)."""
-        from src.core.task_registry import task_registry
+        from src.core import task_registry
         try:
             await self.transition("evaluating")
             run, targets, definition, content = await self._load_run_bundle()

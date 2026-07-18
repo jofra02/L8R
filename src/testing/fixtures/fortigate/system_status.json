@@ -1,0 +1,12 @@
+{
+  "results": {
+    "model_name": "FortiGate",
+    "model_number": "100F",
+    "hostname": "fw-lab-01"
+  },
+  "vdom": "root",
+  "status": "success",
+  "version": "v7.4.5",
+  "build": 2662,
+  "serial": "FG100F0000000000"
+}

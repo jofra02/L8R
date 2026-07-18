@@ -67,6 +67,11 @@ graph TD
 |---|---|
 | [Engineer](agents/engineer.md) | ReAct agent: meta-tools, skills system, reasoning loop |
 
+### Modules
+| Doc | Description |
+|---|---|
+| [Device Assessments](assessments.md) | Deterministic definition-driven assessments: collection, evaluation, scoring, reporting |
+
 ### Integrations
 | Doc | Description |
 |---|---|

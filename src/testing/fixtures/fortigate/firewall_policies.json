@@ -1,0 +1,44 @@
+{
+  "results": [
+    {
+      "policyid": 1,
+      "status": "enable",
+      "action": "accept",
+      "srcaddr": [{"name": "all"}],
+      "dstaddr": [{"name": "all"}],
+      "service": [{"name": "ALL"}],
+      "logtraffic": "disable",
+      "av-profile": "",
+      "webfilter-profile": "",
+      "dnsfilter-profile": "",
+      "ips-sensor": "",
+      "application-list": ""
+    },
+    {
+      "policyid": 2,
+      "status": "enable",
+      "action": "accept",
+      "srcaddr": [{"name": "internal-net"}],
+      "dstaddr": [{"name": "dmz-servers"}],
+      "service": [{"name": "HTTPS"}],
+      "logtraffic": "all",
+      "av-profile": "default",
+      "webfilter-profile": "",
+      "dnsfilter-profile": "",
+      "ips-sensor": "default",
+      "application-list": ""
+    },
+    {
+      "policyid": 3,
+      "status": "disable",
+      "action": "accept",
+      "srcaddr": [{"name": "all"}],
+      "dstaddr": [{"name": "all"}],
+      "service": [{"name": "ALL"}],
+      "logtraffic": "disable"
+    }
+  ],
+  "vdom": "root",
+  "status": "success",
+  "version": "v7.4.5"
+}

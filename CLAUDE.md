@@ -4,6 +4,8 @@
 
 Single-agent L1/L2 technical support framework. Receives IT support tickets (incidents/changes), runs a single Engineer ReAct agent that autonomously investigates using 6 meta-tools, then produces structured findings — without executing any write actions on external systems. Domain-agnostic: works across networking, infrastructure, cloud, application, database, security, and any IT domain.
 
+Second product module: **Device Assessments** (`src/assessments/`) — deterministic, definition-driven security assessments over managed devices (first: FortiGate). Versioned YAML definitions pin collection steps and controls; the LLM never chooses tools (it only assists `hybrid`/`llm` controls over pre-collected evidence, schema-validated + citation-verified). See `docs/assessments.md`.
+
 - **Architecture**: Single Engineer ReAct agent (`PIPELINE_MODE=engineer`)
 - **Orchestration**: LangGraph (StateGraph, single node → END)
 - **Tool access**: MCP client (read-only enforcement), 6 meta-tools
@@ -20,7 +22,8 @@ src/
     engineer_prompts.py   # System prompt + embedded base skill
     engineer_tools.py     # 6 meta-tools factory (query_client_db, load_domain_skill, search_tool_catalog, search_knowledge_base, execute_tool, submit_findings)
     skills/               # Investigation methodology skills (base, networking, tool_catalog, etc.)
-  core/           # Models, interfaces, audit, context/evidence stores, LLM factory
+  assessments/    # Device Assessment module (definitions YAML, collector, evaluation, scoring, reporting, runner)
+  core/           # Models, interfaces, audit, context/evidence stores, LLM factory, mcp_executor (shared MCP call helper)
   api/            # Platform API (FastAPI) — serves frontend + programmatic clients
   ingestion/      # Webhook ingestion + background execution service
   mcp/            # MCP client wrapper
@@ -74,6 +77,7 @@ Completed:
 - **Multi-tenant gateway routing**: the gateway routes `(tenant, device)` per request via injected `tenant`/`device` header params (name-freeze safe). `tenant` is framework-injected by the app from the run `customer_id` (`engineer_tools.py:execute_tool`), never LLM-supplied; `TenantRegistries` (gateway `config.py`) lazily builds a per-tenant `DeviceRegistry`. No `ACTIVE_CUSTOMER_ID` — replaced by optional `DEFAULT_TENANT` fallback. Many tenants routable concurrently in one process
 - Documentation overhaul (ops runbooks in `docs/operations/`, components guide, legacy docs archived)
 - **Inventory sync app↔gateway**: gateway admin REST API (`/admin/*`, `X-Admin-Token`/`GATEWAY_ADMIN_TOKEN`, writes `devices/managed.yaml`, hot reload via `DeviceRegistry.reload()`); `InventoryService` propagates Component CRUD with `mcp_connection` via `gateway_admin_client.py` (token write-only, never persisted app-side; sync status in `Component.metadata["mcp"]`); frontend "MCP managed device" toggle in `ComponentModal`
+- **Device Assessment module** (`src/assessments/`, branch feature/device-assessment): versioned YAML definitions → immutable DB snapshots (hash-guarded); deterministic CollectionEngine over `src/core/mcp_executor.py::execute_mcp_tool` (extracted from engineer_tools; strict read-only allowlist); evaluation rules→parsers→LLM (hybrid, citation-validated, injection-fenced); coverage-aware scoring; report model; state machine draft→queued→collecting→evaluating→completed|completed_with_errors|failed|cancelled; 12 API endpoints + `assessments:read/write` permissions (migration `e6f7a8b9c0d1`); frontend section (list/wizard/progress/results, first polling usage). Docs: `docs/assessments.md`
 
 ## Design Principles
 
@@ -105,6 +109,9 @@ Completed:
 | `src/agents/skills/` | Investigation methodology skills |
 | `src/agent_graph_v2.py` | LangGraph graph (Engineer → END) |
 | `src/core/models.py` | `Ticket`, `ClientContext`, `GlobalState`, `Hypothesis`, `Fact`, `Plan`, `CaseStatus`, etc. |
+| `src/core/mcp_executor.py` | Shared MCP call helper (safety → governance → tenant injection → execution → error classification; `enforce_read_only` allowlist) |
+| `src/assessments/runner.py` | Assessment state machine + background job entry point |
+| `src/assessments/definitions/` | Versioned assessment definitions (YAML, immutable per version) |
 | `src/core/llm.py` | `LLMFactory` |
 | `src/core/evidence_store.py` | Content-addressable evidence (disk + Qdrant + PostgreSQL) |
 | `src/core/langfuse_integration.py` | Langfuse v2/v4 observability |
