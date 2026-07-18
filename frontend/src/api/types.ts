@@ -510,3 +510,142 @@ export interface HealthResponse {
   status: string;
   app: string;
 }
+
+// --- Assessments ---
+export interface AssessmentDefinitionItem {
+  id: string;
+  definition_id: string;
+  version: string;
+  vendor: string;
+  product: string;
+  name: string;
+  description: string | null;
+  created_at: string | null;
+}
+
+export interface AssessmentDefinitionDetail extends AssessmentDefinitionItem {
+  step_count: number;
+  control_count: number;
+  categories: string[];
+  collection_steps: Record<string, unknown>[];
+  controls: Record<string, unknown>[];
+}
+
+export interface AssessmentTarget {
+  id: string;
+  component_id: string;
+  device_name: string;
+  status: string;
+  error: string | null;
+}
+
+export interface AssessmentScore {
+  scoring_version?: string;
+  overall: number | null;
+  coverage: number | null;
+  evaluated?: number;
+  total?: number;
+  by_category?: Record<string, { score: number | null; coverage: number | null; evaluated: number; total: number }>;
+  by_target?: Record<string, { score: number | null; coverage: number | null; evaluated: number; total: number }>;
+}
+
+export interface AssessmentStats {
+  by_status?: Record<string, number>;
+  findings_by_severity?: Record<string, number>;
+  findings_total?: number;
+  critical_findings?: number;
+}
+
+export interface AssessmentProgress {
+  phase?: string;
+  steps_total?: number;
+  steps_done?: number;
+  steps_failed?: number;
+  controls_total?: number;
+  controls_done?: number;
+}
+
+export interface AssessmentListItem {
+  id: string;
+  name: string;
+  definition_id: string;
+  definition_version: string;
+  status: string;
+  progress: AssessmentProgress;
+  score: AssessmentScore | null;
+  stats: AssessmentStats | null;
+  requested_by: string | null;
+  created_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  device_count: number;
+}
+
+export interface AssessmentDetail extends AssessmentListItem {
+  params: Record<string, unknown>;
+  error: string | null;
+  targets: AssessmentTarget[];
+}
+
+export interface AssessmentCreate {
+  name: string;
+  definition_id: string;
+  definition_version: string;
+  component_ids: string[];
+  params?: Record<string, unknown>;
+}
+
+export interface AssessmentCreateResponse {
+  run: AssessmentDetail;
+  warnings: string[];
+}
+
+export interface AssessmentExecution {
+  id: string;
+  target_id: string;
+  step_id: string;
+  tool_name: string;
+  status: string;
+  attempt: number;
+  error_type: string | null;
+  error: string | null;
+  truncated: boolean;
+  raw_size_bytes: number | null;
+  duration_ms: number | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface AssessmentControlResult {
+  id: string;
+  target_id: string;
+  control_id: string;
+  title: string;
+  category: string;
+  severity: string;
+  status: string;
+  method: string;
+  confidence: number | null;
+  explanation: string | null;
+  recommendation: string | null;
+  references: string[] | null;
+  evidence_refs: { step_id: string }[] | null;
+  created_at: string | null;
+}
+
+export interface AssessmentEvidence {
+  execution_id: string;
+  step_id: string;
+  tool_name: string;
+  raw: unknown;
+  normalized: Record<string, unknown> | null;
+  truncated: boolean;
+  raw_size_bytes: number | null;
+}
+
+export interface AssessmentReport {
+  run_id: string;
+  format_version: string;
+  generated_at: string | null;
+  model: Record<string, unknown>;
+}
