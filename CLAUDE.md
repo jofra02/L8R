@@ -58,7 +58,7 @@ The Engineer agent replaces the previous 13-agent supervisor pipeline with a sin
 
 **Mandatory sequence:** `query_client_db → load_domain_skill → search_tool_catalog → execute_tool (1+) → submit_findings`
 
-**Skills system:** Base investigation methodology always embedded in system prompt. Domain skills loaded on-demand via `load_domain_skill`. 18 keyword mappings in `DOMAIN_SKILL_MAP`; skill files on disk: `base_investigation.md`, `networking.md`, `tool_catalog.md`.
+**Skills system:** Base skill (`base_investigation.md`, "Logical Investigation Method" — causal process steps + attribution/exoneration rules + metacognitive Pre-Closure Check) always embedded in system prompt; the Output Contract lives in `engineer_prompts.py`, not in the skill. Domain skills loaded on-demand via `load_domain_skill`. 64 keyword mappings in `DOMAIN_SKILL_MAP`; domain skill files: `networking.md`, `tool_catalog.md`, `fortigate_licensing.md`, `fortigate_logs.md`, `flow_verification.md`, `lateral_thinking.md`. Authoring guide/template: `docs/agents/skill_authoring.md`.
 
 ## Current Implementation State
 

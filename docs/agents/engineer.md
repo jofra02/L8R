@@ -41,7 +41,9 @@ The agent is instructed to never produce a text-only response -- every response 
 
 ### Base Skill
 
-The base investigation methodology (`src/agents/skills/base_investigation.md`) is always embedded in the system prompt at module load time. It provides the core reasoning framework, output contract, and investigation methodology that applies to all domains.
+The base investigation methodology (`src/agents/skills/base_investigation.md`, "Logical Investigation Method") is always embedded in the system prompt at module load time. It is a concise, domain-agnostic causal reasoning method: numbered process steps (failure definition, dependency profiles, evidence ledger, diverse hypotheses with pre-registered predictions, attribution and exoneration rules, forward causal verification), a metacognitive Pre-Closure Check, funnel triggers for `lateral_thinking` and `logs`, and the reasoning format `Symptom → Model → Hypotheses → Predictions → Discriminating test → Evidence → Update → Causal chain → Calibrated conclusion`. The Output Contract (the `submit_findings` summary structure per request mode) lives directly in `ENGINEER_SYSTEM_PROMPT` (`src/agents/engineer_prompts.py`), not in the skill.
+
+The base skill is also the canonical style reference for authoring new skills — see `docs/agents/skill_authoring.md`.
 
 ### Domain Skills
 
@@ -51,12 +53,16 @@ Available domain skill files:
 
 - `networking.md` -- networking, routing, switching, interfaces, protocols
 - `tool_catalog.md` -- advanced tool catalog search techniques
+- `fortigate_licensing.md` -- FortiGate license/entitlement investigation (verified tool anchors)
+- `fortigate_logs.md` -- FortiGate log retrieval across storage backends (verified tool anchors)
+- `flow_verification.md` -- control-point flow verification: is the firewall affecting a specific application flow (verified tool anchors)
+- `lateral_thinking.md` -- investigation re-framing techniques for stalled cases
 
-New domains are added by dropping a `.md` file in `src/agents/skills/` and mapping its trigger keywords in `DOMAIN_SKILL_MAP` (`src/agents/engineer_tools.py`). Candidates like firewall/VPN/virtualization/storage skills are not yet written.
+New domains are added by dropping a `.md` file in `src/agents/skills/` and mapping its trigger keywords in `DOMAIN_SKILL_MAP` (`src/agents/engineer_tools.py`). See `docs/agents/skill_authoring.md` for the authoring format, tool anchor contract, and registration checklist.
 
 ### DOMAIN_SKILL_MAP
 
-The `DOMAIN_SKILL_MAP` dictionary maps 18 keywords to their corresponding skill files. This allows the agent to call `load_domain_skill("bgp")` and receive the networking skill.
+The `DOMAIN_SKILL_MAP` dictionary maps trigger keywords to their corresponding skill files. This allows the agent to call `load_domain_skill("bgp")` and receive the networking skill.
 
 If no mapping is found, the agent falls back to the base investigation methodology already in its system prompt. The tool returns the list of available domain skills so the agent can retry with a valid keyword.
 
