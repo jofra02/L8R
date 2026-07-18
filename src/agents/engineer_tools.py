@@ -403,8 +403,7 @@ def create_engineer_tools(
                          Include every required parameter shown in the catalog.
                          Example: '{"device": "fgt_casa", "vdom": "root"}'
         """
-        from src.core.registry import CapabilityRegistry
-        from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
+        from src.core.mcp_executor import execute_mcp_tool
         from src.core.evidence_store import EvidenceStore
 
         # Guardrail: max tool calls
@@ -420,20 +419,7 @@ def create_engineer_tools(
         if not isinstance(parsed_args, dict):
             return f"ERROR: tool_params must be a JSON object, got {type(parsed_args).__name__}"
 
-        # Safety check
-        if not is_safe_tool(tool_name, parsed_args):
-            return f"ERROR: Tool '{tool_name}' blocked by safety policy. This tool or its arguments contain blocked keywords."
-
-        # Tenant governance
-        if not await is_tool_allowed_for_tenant(tool_name, customer_id):
-            return f"ERROR: Tool '{tool_name}' is not allowed for this tenant."
-
-        # Resolve tool from registry
-        tool_obj = CapabilityRegistry.get_tool(tool_name)
-        if not tool_obj:
-            return f"ERROR: Tool '{tool_name}' not found in registry. Search the tool catalog to find available tools."
-
-        # Dedup check
+        # Dedup check — signature over the LLM's own arguments (pre-injection)
         sig_input = f"{tool_name}::{json.dumps(parsed_args, sort_keys=True)}"
         sig_hash = hashlib.sha256(sig_input.encode()).hexdigest()[:16]
         signature = f"{tool_name}::{sig_hash}"
@@ -441,26 +427,29 @@ def create_engineer_tools(
         if signature in state.executed_signatures:
             return f"SKIPPED: Tool '{tool_name}' with these exact arguments was already executed. Use different arguments or a different tool."
 
-        # Tenant routing: framework-inject the tenant selector so the gateway
-        # routes against this tenant's inventory. Never LLM-supplied (overrides
-        # any value the model produced); mirrors how 'device' travels as a
-        # gateway routing header, but authoritative from the run context. Set
-        # after the dedup signature so it stays about the LLM's own arguments.
+        # Shared guardrail pipeline: safety filter -> tenant governance ->
+        # registry resolution -> framework-side tenant injection -> execution.
         llm_args = dict(parsed_args)  # what the LLM asked for, pre-injection
-        parsed_args["tenant"] = customer_id
-
-        # Direct execution — agent handles errors via its own reasoning
         started_at = datetime.utcnow()
-        try:
-            result = await tool_obj.run(**parsed_args)
-        except Exception as e:
+        exec_result = await execute_mcp_tool(tool_name, parsed_args, customer_id)
+
+        if not exec_result.ok:
+            if exec_result.error_type == "safety":
+                return f"ERROR: Tool '{tool_name}' blocked by safety policy. This tool or its arguments contain blocked keywords."
+            if exec_result.preflight_failure and exec_result.error_type == "authorization":
+                return f"ERROR: Tool '{tool_name}' is not allowed for this tenant."
+            if exec_result.error_type == "not_found":
+                return f"ERROR: Tool '{tool_name}' not found in registry. Search the tool catalog to find available tools."
+            # Execution failure — agent handles errors via its own reasoning
             state.tool_call_count += 1
             await _audit_tool_call(
                 run_id, customer_id, tool_name, llm_args,
-                status="error", error=str(e), started_at=started_at,
+                status="error", error=exec_result.error, started_at=started_at,
             )
-            return f"ERROR executing {tool_name}: {e}"
+            return f"ERROR executing {tool_name}: {exec_result.error}"
 
+        result = exec_result.content
+        parsed_args = exec_result.final_args  # args as dispatched (tenant injected)
         state.tool_call_count += 1
         state.executed_signatures.append(signature)
 
