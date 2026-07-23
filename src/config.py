@@ -170,6 +170,16 @@ class Settings(BaseSettings):
         "drop database", "truncate", "format", "destroy", "purge", "kill ",
         "deploy", "push", "publish", "migrate", "alter ", "grant ", "revoke "
     ]
+    # Mutating-verb keywords blocked in TOOL NAMES only. Kept separate from
+    # SAFETY_BLOCKED_KEYWORDS because that list is also scanned against string
+    # argument values, where substrings like "createdBy"/"lastUpdateTime" are
+    # legitimate. Mirrored in mcp_gateway/scripts/convert_fortiedr_specs.py
+    # (BLOCKED_NAME_KEYWORDS) — keep in sync.
+    SAFETY_BLOCKED_NAME_KEYWORDS: List[str] = [
+        "update", "create", "upload", "upgrade", "isolate", "uninstall",
+        "remediate", "terminate", "set_", "reset", "assign", "clone",
+        "transfer", "import", "toggle", "release", "move", "stop",
+    ]
 
     # Langfuse Observability
     LANGFUSE_ENABLED: bool = False

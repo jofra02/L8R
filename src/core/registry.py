@@ -18,7 +18,7 @@ _WRITE_METHODS = frozenset({
 })
 
 _VENDOR_PATTERNS = {
-    "fortinet": ["fortigate", "fortinet", "forti", "fgt"],
+    "fortinet": ["fortigate", "fortinet", "forti", "fgt", "fedr"],
     "cisco": ["cisco", "ios", "nxos", "asa", "meraki"],
     "paloalto": ["paloalto", "pan", "panorama"],
     "aws": ["aws", "ec2", "s3", "lambda", "cloudwatch", "iam"],
@@ -116,7 +116,8 @@ class CapabilityRegistry:
     @classmethod
     def _is_safe(cls, tool_name: str) -> bool:
         """Internal check against blocked keywords in config."""
-        for kw in settings.SAFETY_BLOCKED_KEYWORDS:
+        blocked = settings.SAFETY_BLOCKED_KEYWORDS + settings.SAFETY_BLOCKED_NAME_KEYWORDS
+        for kw in blocked:
              if kw in tool_name.lower():
                  return False
         return True
