@@ -18,7 +18,7 @@ mcp_gateway/
 ├── main.py                 # Entry point — env-driven (SERVER_TRANSPORT: sse|stdio)
 ├── pyproject.toml          # Own uv project; fastmcp PINNED (see name-freeze)
 ├── Dockerfile              # compose service `mcp-gateway`
-├── baseline_tools.txt      # Frozen tool-name set (2546 names) — test fixture
+├── baseline_tools.txt      # Frozen tool-name set (2776 names) — test fixture
 ├── gateway/                # Vendor-agnostic engine
 │   ├── app.py              # build_gateway(): discovers packs, mounts, exposes /sse/
 │   ├── admin_api.py        # Inventory admin REST API (/admin/*, X-Admin-Token)
@@ -26,20 +26,24 @@ mcp_gateway/
 │   ├── spec_pipeline.py    # OpenAPI → FastMCP build pipeline (order is frozen)
 │   ├── schema_fixes.py     # Generic spec fixes + operationId sanitizer
 │   ├── routing_client.py   # Multi-device httpx client ('device' header routing)
-│   ├── auth.py             # AuthStrategy registry (bearer_header today)
+│   ├── auth.py             # AuthStrategy registry (bearer_header, basic_header)
 │   ├── config.py           # DEFAULT_TENANT, DeviceRegistry + TenantRegistries (lazy per-tenant, reload(), primary flag)
 │   ├── middleware.py       # Tracing + optional Prometheus histogram
 │   ├── inventory/          # Tenant/device YAML registry + Fernet secrets + managed.yaml store
-│   └── tests/              # test_name_freeze.py, test_admin_api.py, test_routing_reload.py
+│   └── tests/              # test_name_freeze.py, test_admin_api.py, test_routing_reload.py, test_fortiedr_pack.py
 ├── vendors/                # vendors/<vendor>/<appliance>/ — one pack per product
 │   └── fortinet/           # Vendor (manufacturer)
-│       └── fortigate/      # Appliance pack (fortianalyzer, fortimanager... go next to it)
-│           ├── manifest.yaml   # prefix fgt, auth, glob, name rules
-│           ├── hooks.py        # SD-WAN monolith split + filter syntax help
-│           └── specs/{cmdb,monitor,log}/  # 62 FortiOS OpenAPI specs (~25 MB)
+│       ├── fortigate/      # Appliance pack (fortianalyzer, fortimanager... go next to it)
+│       │   ├── manifest.yaml   # prefix fgt, auth bearer_header, glob, name rules
+│       │   ├── hooks.py        # SD-WAN monolith split + filter syntax help
+│       │   └── specs/{cmdb,monitor,log}/  # 62 FortiOS OpenAPI specs (~25 MB)
+│       └── fortiedr/       # FortiEDR pack (generated — see FortiEDR/ + converter)
+│           ├── manifest.yaml   # prefix fedr, auth basic_header, device_type fortiedr
+│           └── specs/mgmt/     # 26 OpenAPI 3.0.3 specs (229 operations)
+├── FortiEDR/swagger/v6.2/  # Raw FortiEDR Swagger 2.0 exports (converter source of truth)
 ├── inventory/              # GITIGNORED except *.example.yaml
 │   └── tenants/<customer_id>/devices/*.yaml
-└── scripts/                # dump_tools.py, encrypt_secret.py, rotate_master_key.py
+└── scripts/                # dump_tools.py, convert_fortiedr_specs.py, encrypt_secret.py, rotate_master_key.py
 ```
 
 ## Appliance pack contract
@@ -69,9 +73,13 @@ device_param_description: "Optional: target device name. Defaults to primary."
 4. Add devices of that `device_type` to `inventory/tenants/<customer_id>/devices/` (see `firewalls.example.yaml`).
 5. If the vendor slug isn't recognized by `src/core/registry.py:_VENDOR_PATTERNS`, tag the server with `vendor:` in `data/mcp/servers.yaml`.
 
-Each pack mounts at its own `prefix`, so prefixes must be unique across packs (e.g. `fgt` for FortiGate, `faz` for a future FortiAnalyzer pack).
+Each pack mounts at its own `prefix`, so prefixes must be unique across packs (e.g. `fgt` for FortiGate, `fedr` for FortiEDR, `faz` for a future FortiAnalyzer pack).
 
 Tool names follow the mount chain: `{prefix}_{group}_{spec_mount_name}_{operationId}`.
+
+### FortiEDR pack (second reference implementation)
+
+`vendors/fortinet/fortiedr/` serves FortiEDR 6.2 management servers (`device_type: fortiedr`, prefix `fedr`, HTTP Basic auth via the `basic_header` strategy — the device `connection.token` holds `api_user@organization:password`, Fernet-encrypted like any token). Its specs are **generated**: the raw Springfox Swagger 2.0 exports live in `FortiEDR/swagger/v6.2/` and `scripts/convert_fortiedr_specs.py` converts them to OpenAPI 3.0.3 into `specs/mgmt/` — edit the converter, never the generated specs (`--check` verifies drift). The converter also rewrites operationIds deterministically from `(method, path)` with two safety invariants: every GET name carries a `_get` token (read-only marker used by `src/core/mcp_executor.py`), and every mutating operation's name contains a blocked safety keyword so the app-side name filter hides it — except five reviewed read-only POSTs (`READ_EXEMPT`: threat-hunting search/counts/facets, dashboard/incidents generate-report). Contract pinned by `gateway/tests/test_fortiedr_pack.py`.
 
 ## Name-freeze contract (IMPORTANT)
 
@@ -81,7 +89,7 @@ The Qdrant `tool_catalog` collection indexes tools **by name** and enriches them
 2. **The pipeline order in `spec_pipeline.py` is frozen**: fixes → sanitize → basePath → device-header injection → param doc appends → `from_openapi` → mount.
 3. **The sanitizer's 64-char budget quirk is intentional**: `sanitize_operation_ids` computes the budget against the spec-level mount name only, not the full chain, so ~470 final names exceed 64 chars. Do not "fix" this — it renames every hash-truncated tool.
 
-Guard: `gateway/tests/test_name_freeze.py` builds the gateway offline and asserts the name set equals `baseline_tools.txt` (2546 names captured from the original server).
+Guard: `gateway/tests/test_name_freeze.py` builds the gateway offline and asserts the name set equals `baseline_tools.txt` (2776 names: 2546 `fgt_*` captured from the original server + 230 `fedr_*` added with the FortiEDR pack).
 
 **If you intentionally change names** (new specs, fastmcp upgrade): run the test, regenerate the baseline with `scripts/dump_tools.py --out baseline_tools.txt`, then re-index in support_ai_agent (delete/recreate the `tool_catalog` collection and restart the app so `CapabilityRegistry.index_tools()` re-runs, including the LLM classification batches).
 
@@ -90,7 +98,7 @@ Guard: `gateway/tests/test_name_freeze.py` builds the gateway offline and assert
 - The gateway is **multi-tenant**: routing resolves `(tenant, device)` per request. Tenant ids match the `customer_id` used across support_ai_agent — the device ids in `mcp_gateway/inventory/tenants/<cid>/devices/` are the same ones `query_client_db` returns from that tenant's `context.yaml`.
 - Every generated tool has optional `tenant` and `device` header parameters. `RoutingClient.send()` resolves the tenant first (header, else the optional `DEFAULT_TENANT` fallback) into that tenant's lazily-built, **live** `DeviceRegistry`, then the device within it (header id, else the tenant's **primary**: `primary: true` in YAML, else the first device loaded), rewrites the URL host/port and swaps the auth headers per the pack's `AuthStrategy`. The `tenant` header is **framework-injected by the app** from the run's `customer_id` (never LLM-supplied); the LLM still supplies `device`. Because resolution is per-request, admin-API hot reloads — including a primary change — take effect without a restart; the constructor's base_url only remains as the no-route fallback. Multiple tenants are routable concurrently in one process — there is no active-tenant setting.
 - `TenantRegistries` (one per device_type) is a lazy cache of per-tenant `DeviceRegistry` objects; device ids stay unique only within a tenant, so each tenant keeps its own flat registry.
-- `fgt_get_inventory_tree` lists valid device ids for the agent.
+- `fgt_get_inventory_tree` / `fedr_get_inventory_tree` list valid device ids for the agent (per device_type).
 - The inventory root defaults to `mcp_gateway/inventory` and can be overridden with `INVENTORY_ROOT` (compose sets `/app/inventory`; the volume is mounted read-write so the admin API can persist).
 
 ## Inventory admin API

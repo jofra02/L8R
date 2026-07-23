@@ -54,7 +54,7 @@ The Engineer agent replaces the previous 13-agent supervisor pipeline with a sin
 |---|---|
 | `query_client_db` | Load tenant context (devices, topology, baselines, recent changes) |
 | `load_domain_skill` | Load domain-specific investigation methodology on-demand |
-| `search_tool_catalog` | Semantic search over the indexed MCP tool catalog (2182 safety-filtered of 2546 gateway-exposed) |
+| `search_tool_catalog` | Semantic search over the indexed MCP tool catalog (2220 safety-filtered of 2776 gateway-exposed) |
 | `search_knowledge_base` | Search vendor docs, runbooks, known issues |
 | `execute_tool` | Execute MCP tools against live devices (read-only, direct — no AdaptiveExecutor) |
 | `submit_findings` | Submit structured output (summary, hypotheses, facts, plan, case_status) |
@@ -73,7 +73,7 @@ Completed:
 - Langfuse v4 observability fix (import, API, callback propagation)
 - AdaptiveExecutor bypass in engineer mode (direct tool execution)
 - submit_findings tool (structured output within reasoning chain, no post-hoc extraction)
-- **MCP Gateway merge**: former `fortinet_ai_suite` repo absorbed as `mcp_gateway/` — generic OpenAPI→MCP gateway, appliance packs at `vendors/<vendor>/<appliance>/` (first: fortinet/fortigate, 62 FortiOS specs). Gateway exposes 2546 tools; the registry safety-filters to 2182 indexed in Qdrant `tool_catalog`. Tool names are frozen (fastmcp pinned + `baseline_tools.txt` + name-freeze test)
+- **MCP Gateway merge**: former `fortinet_ai_suite` repo absorbed as `mcp_gateway/` — generic OpenAPI→MCP gateway, appliance packs at `vendors/<vendor>/<appliance>/` (fortinet/fortigate: 62 FortiOS specs; fortinet/fortiedr: 26 generated OpenAPI 3 specs). Gateway exposes 2776 tools; the registry safety-filters to 2220 indexed in Qdrant `tool_catalog`. Tool names are frozen (fastmcp pinned + `baseline_tools.txt` + name-freeze test)
 - **Multi-tenant gateway routing**: the gateway routes `(tenant, device)` per request via injected `tenant`/`device` header params (name-freeze safe). `tenant` is framework-injected by the app from the run `customer_id` (`engineer_tools.py:execute_tool`), never LLM-supplied; `TenantRegistries` (gateway `config.py`) lazily builds a per-tenant `DeviceRegistry`. No `ACTIVE_CUSTOMER_ID` — replaced by optional `DEFAULT_TENANT` fallback. Many tenants routable concurrently in one process
 - Documentation overhaul (ops runbooks in `docs/operations/`, components guide, legacy docs archived)
 - **Inventory sync app↔gateway**: gateway admin REST API (`/admin/*`, `X-Admin-Token`/`GATEWAY_ADMIN_TOKEN`, writes `devices/managed.yaml`, hot reload via `DeviceRegistry.reload()`); `InventoryService` propagates Component CRUD with `mcp_connection` via `gateway_admin_client.py` (token write-only, never persisted app-side; sync status in `Component.metadata["mcp"]`); frontend "MCP managed device" toggle in `ComponentModal`

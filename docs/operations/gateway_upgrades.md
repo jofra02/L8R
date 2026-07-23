@@ -1,6 +1,6 @@
 # Gateway Upgrades
 
-> Add an appliance pack; upgrade fastmcp without silently renaming the 2546 frozen tools.
+> Add an appliance pack; upgrade fastmcp without silently renaming the 2776 frozen tools.
 
 Both procedures end at the same gate: the **name-freeze check**. Tool names are the contract with the agent's Qdrant `tool_catalog`; any change forces a catalog re-index ([Tool Catalog](tool_catalog.md)).
 

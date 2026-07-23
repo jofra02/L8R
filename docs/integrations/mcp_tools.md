@@ -6,7 +6,7 @@
 
 The system uses the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) to connect to external tool servers. Tools are auto-discovered at startup via `CapabilityRegistry` and indexed in Qdrant for semantic search. All tool execution is read-only — write actions are only proposed in the Engineer's plan.
 
-The bundled [MCP Gateway](../architecture/mcp_gateway.md) (`mcp_gateway/`) is the primary server: it generates **2546** tools from vendor OpenAPI specs, which the registry safety-filters to **2182** registered and indexed tools.
+The bundled [MCP Gateway](../architecture/mcp_gateway.md) (`mcp_gateway/`) is the primary server: it generates **2776** tools from vendor OpenAPI specs, which the registry safety-filters to **2182** registered and indexed tools.
 
 Two transport modes are supported: **stdio** (local processes) and **SSE** (remote HTTP servers).
 
@@ -16,7 +16,7 @@ Two transport modes are supported: **stdio** (local processes) and **SSE** (remo
 graph TD
     START["App Startup"] --> BP["Load Builtin Packs\n(src/capabilities/)"]
     BP --> EXT["Load External MCP Tools\n(data/mcp/servers.yaml)"]
-    EXT --> SAFE["Safety filter\n(2546 -> 2182)"]
+    EXT --> SAFE["Safety filter\n(2776 -> 2220)"]
     SAFE --> IDX["Index tool descriptions\nin Qdrant tool_catalog\n(diff-based, skipped when up to date)"]
     IDX --> READY["Tools ready for\nsemantic search"]
 

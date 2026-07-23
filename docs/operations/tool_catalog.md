@@ -6,10 +6,10 @@
 
 At API startup, `CapabilityRegistry` ([src/core/registry.py](../../src/core/registry.py)):
 
-1. Discovers tools from every server in `data/mcp/servers.yaml` (the MCP Gateway exposes **2546**).
-2. Safety-filters them (`_is_safe`, keyword blocklist) → **2182** registered.
+1. Discovers tools from every server in `data/mcp/servers.yaml` (the MCP Gateway exposes **2776**).
+2. Safety-filters them (`_is_safe`, keyword blocklist) → **2220** registered.
 3. **Diff-based indexing** into Qdrant `tool_catalog` (global collection, `customer_id="__global__"`): the diff compares tool **names and descriptions** against the indexed payload. Missing names are indexed as NEW; tools whose description changed (e.g. a gateway pack enriched a summary) are re-embedded and re-classified as CHANGED via an in-place upsert on the same deterministic point id — no manual deletion needed. When nothing changed the log shows:
-   `tool_catalog up to date (2182 tools, descriptions unchanged). Skipping indexing.`
+   `tool_catalog up to date (2220 tools, descriptions unchanged). Skipping indexing.`
 4. New and changed tools go through an **LLM classification pass** (IT-domain categories, discovery tier, identifiers) in batches of 15 — this is the expensive part. `TOOL_CATALOG_REINDEX_CAP` (default 200, env-overridable) bounds how many CHANGED tools are re-indexed per startup; any excess is deferred to the next startup (alphabetical order, logged as a WARNING).
 5. Stale entries (indexed but no longer registered) are logged, **not** deleted.
 
@@ -39,16 +39,16 @@ uv run python -m src.utils.clean_qdrant    # ⚠️ deletes knowledge_base, evid
 uv run python -m src.utils.init_qdrant
 ```
 
-> **Cost warning**: a full re-index embeds and LLM-classifies ~2182 tools (batches of 15) — expect several minutes and real OpenAI spend.
+> **Cost warning**: a full re-index embeds and LLM-classifies ~2220 tools (batches of 15) — expect several minutes and real OpenAI spend.
 
 ## Verification
 
-- Startup log ends with `tool_catalog up to date (2182 tools)` on the **second** boot after re-indexing.
-- `uv run python scripts/dump_tool_catalog.py --customer-id fake_client` → count matches 2182.
+- Startup log ends with `tool_catalog up to date (2220 tools)` on the **second** boot after re-indexing.
+- `uv run python scripts/dump_tool_catalog.py --customer-id fake_client` → count matches 2220.
 - A ticket run's `search_tool_catalog` calls return relevant tools.
 
 ## Gotchas
 
 - The catalog is **global** (shared across tenants); per-tenant restriction happens at execution time via capability scopes, not at search time.
 - Re-indexing requires the gateway to be up — an empty registry re-indexes nothing.
-- The 2546→2182 delta is the safety filter, not an error.
+- The 2776→2220 delta is the safety filter, not an error.

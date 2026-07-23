@@ -6,7 +6,7 @@
 
 The system enforces a multi-layer safety model to prevent unauthorized or dangerous tool execution. All tools accessed via MCP are read-only by design. Write actions (configuration changes, deployments, etc.) are never executed autonomously — the Engineer's `submit_findings` output *proposes* remediation steps in its plan; executing them is up to a human. (An in-band human-in-the-loop approval gate is planned, not yet implemented.)
 
-Safety is enforced at two active levels: keyword blocklist and per-tenant capability scopes. The blocklist applies twice — at tool registration (unsafe tools are never registered/indexed: 2546 gateway-exposed tools are filtered to 2182) and again at execution time inside `execute_tool`.
+Safety is enforced at two active levels: keyword blocklist and per-tenant capability scopes. The blocklist applies twice — at tool registration (unsafe tools are never registered/indexed: 2776 gateway-exposed tools are filtered to 2220) and again at execution time inside `execute_tool`. The blocklist has two config lists: `SAFETY_BLOCKED_KEYWORDS` is matched against tool names **and** string argument values; `SAFETY_BLOCKED_NAME_KEYWORDS` (mutating verbs: `update`, `create`, `upload`, `upgrade`, `isolate`, `reset`, ...) is matched against tool names only, because argument values legitimately contain substrings like `createdBy` or `lastUpdateTime`.
 
 ## Safety Layers
 

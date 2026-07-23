@@ -26,7 +26,7 @@ uv run python scripts/dump_tools.py --url http://localhost:8001/sse/ --out live.
 
 ## Verify the name-freeze
 
-Tool names must stay byte-identical to `mcp_gateway/baseline_tools.txt` (2546 names) or the agent's Qdrant catalog is invalidated:
+Tool names must stay byte-identical to `mcp_gateway/baseline_tools.txt` (2776 names) or the agent's Qdrant catalog is invalidated:
 
 ```bash
 cd mcp_gateway

@@ -299,6 +299,8 @@ Source: `src/api/routers/inventory.py`, schemas in `src/api/schemas/inventory.py
 }
 ```
 
+Valid `device_type` values come from the loaded gateway packs (`GET /admin/packs`): `fortios` (FortiGate, `token` = REST API key) and `fortiedr` (FortiEDR management server, `token` = `api_user@organization:password` for HTTP Basic auth).
+
 - The component is saved locally first; the gateway outcome comes back as `gateway_sync` (`status`: `synced` | `error` | `skipped`) and is persisted in `metadata.mcp.sync`. The token is never stored or returned by the Platform API.
 - `PATCH` with `"mcp_managed": false` detaches the device from the gateway.
 - Requires `MCP_GATEWAY_ADMIN_URL` + `MCP_GATEWAY_ADMIN_TOKEN` in the app environment (otherwise `gateway_sync.status = "skipped"`).

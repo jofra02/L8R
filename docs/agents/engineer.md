@@ -16,7 +16,7 @@ Activated when `PIPELINE_MODE=engineer` (the default).
 |---|---|---|
 | 1 | `query_client_db` | Load tenant context: devices, topology, baselines, recent changes |
 | 2 | `load_domain_skill` | Load domain-specific investigation methodology |
-| 3 | `search_tool_catalog` | Semantic search over the Qdrant tool catalog (2182 safety-filtered tools of the 2546 the gateway exposes) |
+| 3 | `search_tool_catalog` | Semantic search over the Qdrant tool catalog (2220 safety-filtered tools of the 2776 the gateway exposes) |
 | 4 | `search_knowledge_base` | Search vendor docs, runbooks, known issues |
 | 5 | `execute_tool` | Execute MCP tools against live devices (read-only) |
 | 6 | `submit_findings` | Submit structured output: summary, hypotheses, facts, plan, case_status |
