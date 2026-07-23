@@ -1,0 +1,588 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Policies",
+      "description": "Policies API"
+    }
+  ],
+  "paths": {
+    "/management-rest/policies/assign-collector-group": {
+      "put": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "assign-collector-group",
+        "description": "Assign collector group to policy",
+        "operationId": "assign-collector-group_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "collectorsGroupName",
+            "in": "query",
+            "description": "Specifies the list of collector group names",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "forceAssign",
+            "in": "query",
+            "description": "Indicates whether to force the assignment even if the group is assigned to similar policies",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "policyName",
+            "in": "query",
+            "description": "Specifies security policy name",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/AssignCollectorsToPolicyResponse"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/policies/clone": {
+      "post": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "clone",
+        "description": "clone policy",
+        "operationId": "clone_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "newPolicyName",
+            "in": "query",
+            "description": "Specifies security policy target name.",
+            "required": true,
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "sourcePolicyName",
+            "in": "query",
+            "description": "Specifies security policy source name",
+            "required": true,
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/policies/list-policies": {
+      "get": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "list-policies",
+        "description": "List policies",
+        "operationId": "list-policies_1",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/GetPoliciesResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/policies/scan-files": {
+      "post": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "scan-files",
+        "description": "Scan Files",
+        "operationId": "scan-files",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "applyRecursiveScan",
+            "in": "query",
+            "description": "Specifies if execution includes recursive scan",
+            "required": true,
+            "type": "boolean"
+          },
+          {
+            "name": "executableFilesOnly",
+            "in": "query",
+            "description": "Specifies if execution includes only files",
+            "required": true,
+            "type": "boolean"
+          },
+          {
+            "name": "filePaths",
+            "in": "query",
+            "description": "Specifies file path",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "origin",
+            "in": "query",
+            "description": "Specifies scan origin",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "PeriodicScan",
+              "AdHocScan"
+            ]
+          },
+          {
+            "name": "scanBy",
+            "in": "query",
+            "description": "Specifies scan by choice",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "All",
+              "Collector",
+              "CollectorGroup"
+            ]
+          },
+          {
+            "name": "scanSelection",
+            "in": "query",
+            "description": "Specifies scan selection",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/policies/set-mode": {
+      "put": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "set-mode",
+        "description": "Set policy to simulation/prevention",
+        "operationId": "set-mode_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "description": "Operation mode",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "Simulation",
+              "Prevention"
+            ]
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "policyName",
+            "in": "query",
+            "description": "Specifies security policy name",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/policies/set-policy-rule-action": {
+      "put": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "set-policy-rule-action",
+        "description": "Set rule in policy to block/log",
+        "operationId": "set-policy-rule-action",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Specifies the policy action",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "Log",
+              "Block"
+            ]
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "policyName",
+            "in": "query",
+            "description": "Specifies security policy name",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "ruleName",
+            "in": "query",
+            "description": "Specifies rule name",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/policies/set-policy-rule-state": {
+      "put": {
+        "tags": [
+          "Policies"
+        ],
+        "summary": "set-policy-rule-state",
+        "description": "Set rule in policy to enable/disable",
+        "operationId": "set-policy-rule-state",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "policyName",
+            "in": "query",
+            "description": "Specifies security policy name",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "ruleName",
+            "in": "query",
+            "description": "Specifies rule name",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Policy rule state",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "Enabled",
+              "Disabled"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "AssignCollectorsToPolicyResponse": {
+      "type": "object",
+      "properties": {
+        "ignoredCollectorGroupNames": {
+          "type": "array",
+          "description": "Specifies the list of collector groups that were already assigned to the policy",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "AssignCollectorsToPolicyResponse"
+    },
+    "GetPoliciesResponse": {
+      "type": "object",
+      "properties": {
+        "agentGroups": {
+          "type": "array",
+          "description": "List of agent group names that the policy apply to",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The policy Id"
+        },
+        "name": {
+          "type": "string",
+          "description": "The policy name"
+        },
+        "operationMode": {
+          "type": "string",
+          "description": "The policy mode",
+          "enum": [
+            "Simulation",
+            "Prevention"
+          ]
+        },
+        "organization": {
+          "type": "string",
+          "description": "The organization of the policy"
+        },
+        "rules": {
+          "type": "array",
+          "description": "list of rules included in the policy",
+          "items": {
+            "$ref": "#/definitions/SecurityRuleResponse"
+          }
+        }
+      },
+      "title": "GetPoliciesResponse"
+    },
+    "SecurityRuleResponse": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "string",
+          "description": "Is this rule enabled",
+          "enum": [
+            "true",
+            "false"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "Rule name"
+        },
+        "securityAction": {
+          "type": "string",
+          "description": "The rule security action to apply",
+          "enum": [
+            "Log",
+            "Block",
+            "SimulationBlock",
+            "Ignore",
+            "Accept"
+          ]
+        },
+        "shortName": {
+          "type": "string",
+          "description": "Rule short name"
+        }
+      },
+      "title": "SecurityRuleResponse"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+# FortiEDR appliance pack — vendor: fortinet.
+#
+# Specs are generated from the raw Swagger 2.0 exports in FortiEDR/swagger/v6.2
+# by scripts/convert_fortiedr_specs.py — edit the converter, not the specs.
+#
+# NAME-FREEZE: prefix, name_strips and the converter's operationId algorithm
+# define the frozen fedr_* tool names in baseline_tools.txt.
+vendor: fortinet
+name: fortiedr
+display_name: FortiEDR Suite
+prefix: fedr
+device_type: fortiedr
+auth: basic_header
+
+spec_glob: "fortiedr_*.json"
+name_strips:
+  - "fortiedr_"
+
+# Empty on purpose: converter-generated operationIds contain no filler, and
+# stopwords would risk stripping safety-relevant verb tokens.
+sanitizer_stopwords: []
+
+inventory_tool: true
+
+device_param_description: "Optional: Name of the target FortiEDR management server in inventory. Defaults to primary."

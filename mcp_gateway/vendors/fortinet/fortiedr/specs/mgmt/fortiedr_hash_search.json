@@ -1,0 +1,308 @@
+{
+  "components": {
+    "schemas": {
+      "GetApplicationsResponse": {
+        "properties": {
+          "collectors": {
+            "description": "Specifies the list of collectors that reported the product, in JSON format. Each collector holds the following parameters: \n• device: Specifies the device name. \n• ip: Specifies the device IP address. \n• os: Specifies the device operating system. \n• lastSeen: Specifies the date when the collector was last seen.",
+            "items": {
+              "$ref": "#/components/schemas/MapOfstringAndobject"
+            },
+            "type": "array"
+          },
+          "collectorsGroup": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Specifies the name of the collector group to which the collector belongs.",
+            "type": "object"
+          },
+          "cves": {
+            "description": "Specifies the CVE's",
+            "items": {
+              "$ref": "#/components/schemas/GetCveData"
+            },
+            "type": "array"
+          },
+          "decisions": {
+            "description": "Specifies the list communication control policies and their decisions for this specific product.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "decisionv2": {
+            "description": "Specifies the list communication control policies and their decisions and mode for this specific product.",
+            "items": {
+              "$ref": "#/components/schemas/GetDecisionResponse"
+            },
+            "type": "array"
+          },
+          "firstConnectionTime": {
+            "description": "Specifies the date when the product was first seen communicating. Date Format: yyyy-MM-dd HH:mm:ss.",
+            "type": "string"
+          },
+          "handled": {
+            "description": "A true/false parameter indicating whether events were handled/unhandled.",
+            "type": "boolean"
+          },
+          "lastConnectionTime": {
+            "description": "Specifies the date when the product was last seen communicating. Date Format: yyyy-MM-dd HH:mm:ss.",
+            "type": "string"
+          },
+          "organization": {
+            "description": "The organization of the application",
+            "type": "string"
+          },
+          "processes": {
+            "description": "Specifies the list of process names running alongside the products.",
+            "items": {
+              "$ref": "#/components/schemas/Map"
+            },
+            "type": "array"
+          },
+          "product": {
+            "description": "Specifies the name of the product.",
+            "type": "string"
+          },
+          "recommendation": {
+            "description": "Specifies the recommendation of the application: Unknown, Known bad, Assumed bad, Contradiction, Assumed good or Known good.",
+            "type": "string"
+          },
+          "seen": {
+            "description": "A true/false parameter indicating whether events were read/unread by the user operating the API.",
+            "type": "boolean"
+          },
+          "severity": {
+            "description": "Specifies severity of product [UNKNOWN, LOW, MEDIUM, HIGH, CRITICAL]",
+            "type": "string"
+          },
+          "statistics": {
+            "description": "Specifies the statistics",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "vendor": {
+            "description": "Specifies the name of the vendor.",
+            "type": "string"
+          },
+          "version": {
+            "description": "Specifies the name of the version.",
+            "type": "string"
+          }
+        },
+        "title": "GetApplicationsResponse",
+        "type": "object"
+      },
+      "GetCveData": {
+        "description": "Specifies the CVEs for communication control",
+        "properties": {
+          "aggregatedImpactScore": {
+            "description": "Specifies the Aggregated Impact Score of CVE ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "cveIdentifier": {
+            "description": "Specifies the CVE Identifier",
+            "type": "string"
+          },
+          "description": {
+            "description": "Specifies the CVE description",
+            "type": "string"
+          },
+          "impact": {
+            "description": "Specifies the Impact of CVE ",
+            "type": "string"
+          },
+          "lastEcsUpdated": {
+            "description": "Specifies the CVE last modification time",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lastModified": {
+            "description": "Specifies the CVE modification time",
+            "format": "int64",
+            "type": "integer"
+          },
+          "published": {
+            "description": "Specifies the CVE publish date",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "title": "GetCveData",
+        "type": "object"
+      },
+      "GetDecisionResponse": {
+        "description": "Specifies the policy of communication control",
+        "properties": {
+          "decision": {
+            "description": "Indicates the action",
+            "type": "string"
+          },
+          "policyMode": {
+            "description": "Specifies policy mode",
+            "type": "string"
+          },
+          "policyName": {
+            "description": "Specifies policy name",
+            "type": "string"
+          }
+        },
+        "title": "GetDecisionResponse",
+        "type": "object"
+      },
+      "Map": {
+        "additionalProperties": {
+          "type": "object"
+        },
+        "title": "Map",
+        "type": "object"
+      },
+      "MapOfstringAndobject": {
+        "additionalProperties": {
+          "type": "object"
+        },
+        "title": "MapOfstringAndobject",
+        "type": "object"
+      },
+      "SearchHashResponse": {
+        "properties": {
+          "applications": {
+            "description": "List of application",
+            "items": {
+              "$ref": "#/components/schemas/GetApplicationsResponse"
+            },
+            "type": "array"
+          },
+          "eventIds": {
+            "description": "Events ids",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "threatsHunting": {
+            "description": "List of 'Threat Hunting'",
+            "items": {
+              "$ref": "#/components/schemas/ThreatHuntingResponse"
+            },
+            "type": "array"
+          }
+        },
+        "title": "SearchHashResponse",
+        "type": "object"
+      },
+      "ThreatHuntingResponse": {
+        "properties": {
+          "deviceName": {
+            "description": "Device name",
+            "type": "string"
+          },
+          "fileName": {
+            "description": "File name",
+            "type": "string"
+          },
+          "path": {
+            "description": "Path",
+            "type": "string"
+          }
+        },
+        "title": "ThreatHuntingResponse",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/hash/search": {
+      "get": {
+        "deprecated": false,
+        "description": "This API enables the user to search a file hash among the current events, threat hunting repository and communicating applications that exist in the system",
+        "operationId": "get_hash_search",
+        "parameters": [
+          {
+            "description": "Specifies the list of files hashes",
+            "explode": true,
+            "in": "query",
+            "name": "fileHashes",
+            "required": true,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/SearchHashResponse"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "search",
+        "tags": [
+          "Hash Search"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "The Hash Search API",
+      "name": "Hash Search"
+    }
+  ]
+}

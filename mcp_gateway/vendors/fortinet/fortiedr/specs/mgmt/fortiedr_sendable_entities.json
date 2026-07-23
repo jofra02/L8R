@@ -1,0 +1,297 @@
+{
+  "components": {
+    "schemas": {
+      "CreateSyslogRequest": {
+        "properties": {
+          "certificateBlob": {
+            "description": "Specifies client certificate in Base64",
+            "type": "string"
+          },
+          "fazDevId": {
+            "description": "Specifies the syslog FAZ dev-id",
+            "type": "string"
+          },
+          "host": {
+            "description": "Specifies the syslog host",
+            "type": "string"
+          },
+          "name": {
+            "description": "Specifies the syslog name",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          },
+          "port": {
+            "description": "Specifies the syslog port",
+            "format": "int32",
+            "type": "integer"
+          },
+          "privateKeyFile": {
+            "description": "Specifies client private key in Base64",
+            "type": "string"
+          },
+          "privateKeyPassword": {
+            "description": "Specifies client private key password",
+            "type": "string"
+          },
+          "protocol": {
+            "description": "Specifies syslog protocol type",
+            "enum": [
+              "TCP",
+              "UDP"
+            ],
+            "type": "string"
+          },
+          "syslogFormat": {
+            "description": "Specifies syslog format type",
+            "enum": [
+              "SEMICOLON_CSV",
+              "FAZ",
+              "CEF",
+              "LEEF"
+            ],
+            "type": "string"
+          },
+          "syslogRFCFormat": {
+            "description": "Specifies syslog RFC format type",
+            "enum": [
+              "RFC_5424",
+              "RFC_3164"
+            ],
+            "type": "string"
+          },
+          "useClientCertificate": {
+            "description": "Specifies whether use client certificate. False by default",
+            "type": "boolean"
+          },
+          "useSSL": {
+            "description": "Specifies whether to use SSL. False by default",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "host",
+          "name",
+          "port",
+          "protocol",
+          "syslogFormat",
+          "syslogRFCFormat"
+        ],
+        "title": "CreateSyslogRequest",
+        "type": "object"
+      },
+      "GetSyslogResponse": {
+        "properties": {
+          "certificateBlob": {
+            "description": "Specifies client certificate in Base64",
+            "type": "string"
+          },
+          "fazDevId": {
+            "description": "Specifies the syslog FAZ dev-id",
+            "type": "string"
+          },
+          "host": {
+            "description": "Specifies the syslog host",
+            "type": "string"
+          },
+          "name": {
+            "description": "Specifies the syslog name",
+            "type": "string"
+          },
+          "port": {
+            "description": "Specifies the syslog port",
+            "format": "int32",
+            "type": "integer"
+          },
+          "privateKeyFile": {
+            "description": "Specifies client private key in Base64",
+            "type": "string"
+          },
+          "privateKeyPassword": {
+            "description": "Specifies client private key password",
+            "type": "string"
+          },
+          "protocol": {
+            "description": "Specifies syslog protocol type",
+            "enum": [
+              "TCP",
+              "UDP"
+            ],
+            "type": "string"
+          },
+          "syslogFormat": {
+            "description": "Specifies syslog format type",
+            "enum": [
+              "SEMICOLON_CSV",
+              "FAZ",
+              "CEF",
+              "LEEF"
+            ],
+            "type": "string"
+          },
+          "syslogRFCFormat": {
+            "description": "Specifies syslog RFC format type",
+            "enum": [
+              "RFC_5424",
+              "RFC_3164"
+            ],
+            "type": "string"
+          },
+          "useClientCertificate": {
+            "description": "Specifies whether use client certificate. False by default",
+            "type": "boolean"
+          },
+          "useSSL": {
+            "description": "Specifies whether to use SSL. False by default",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "GetSyslogResponse",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/sendable-entities/set-mail-format": {
+      "put": {
+        "deprecated": false,
+        "description": "set mail format",
+        "operationId": "sendable_entities_set_mail_format",
+        "parameters": [
+          {
+            "description": "Specifies email format type",
+            "in": "query",
+            "name": "format",
+            "required": true,
+            "schema": {
+              "enum": [
+                "HTML",
+                "TEXT"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "set-mail-format",
+        "tags": [
+          "Sendable Entities"
+        ]
+      }
+    },
+    "/management-rest/sendable-entities/syslog": {
+      "post": {
+        "deprecated": false,
+        "description": "This API creates syslog",
+        "operationId": "create_sendable_entities_syslog",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSyslogRequest"
+              }
+            }
+          },
+          "description": "syslogRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetSyslogResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "syslog",
+        "tags": [
+          "Sendable Entities"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "API to create and test sendable entities",
+      "name": "Sendable Entities"
+    }
+  ]
+}

@@ -1,0 +1,1233 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Communication Control",
+      "description": "Fortinet Endpoint Protection and Response Platform’s Communication Control module is responsible for monitoring and handling non-disguised security events. The module uses a set of policies that contain recommendations about whether an application should be approved or denied from communicating outside your organization."
+    }
+  ],
+  "paths": {
+    "/management-rest/comm-control/assign-collector-group": {
+      "put": {
+        "tags": [
+          "Communication Control"
+        ],
+        "summary": "assign-collector-group",
+        "description": "Assign collector group to application policy",
+        "operationId": "assign-collector-group_2",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": " Specifies the collector groups whose collector reported the events",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "forceAssign",
+            "in": "query",
+            "description": "Indicates whether to force the assignment even if the group is assigned to similar policies",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "policyName",
+            "in": "query",
+            "description": "Specifies the list of policies",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/comm-control/clone-policy": {
+      "post": {
+        "tags": [
+          "Communication Control"
+        ],
+        "summary": "clone-policy",
+        "description": "application clone policy",
+        "operationId": "clone-policy",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "newPolicyName",
+            "in": "query",
+            "description": "Specifies security policy target name.",
+            "required": true,
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "sourcePolicyName",
+            "in": "query",
+            "description": "Specifies security policy source name",
+            "required": true,
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/comm-control/list-policies": {
+      "get": {
+        "tags": [
+          "Communication Control"
+        ],
+        "summary": "list-policies",
+        "description": "This API call outputs a list of all the communication control policies in the system, and information about each of them",
+        "operationId": "list-policies_2",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "decisions",
+            "in": "query",
+            "description": "Indicates the action",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Allow",
+              "Deny"
+            ]
+          },
+          {
+            "name": "itemsPerPage",
+            "in": "query",
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "An integer used for paging that indicates the required page number",
+            "required": false,
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "policies",
+            "in": "query",
+            "description": "Specifies the list of policy names",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "rules",
+            "in": "query",
+            "description": "Specifies the list of rules",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "description": "Specifies who created the policy",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Fortinet",
+              "User"
+            ]
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Policy rule state",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Enabled",
+              "Disabled"
+            ]
+          },
+          {
+            "name": "strictMode",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ApplicationPoliciesResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/comm-control/list-products": {
+      "get": {
+        "tags": [
+          "Communication Control"
+        ],
+        "summary": "list-products",
+        "description": "This API call outputs a list of all the communicating applications in the system, and information about each of them",
+        "operationId": "list-products",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "description": "Indicates the action: Allow/Deny. This parameter is irrelevant without policies parameter",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the list of collector groups where the products were seen",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "cveIdentifier",
+            "in": "query",
+            "description": "Specifies the CVE identifier",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "destinationIp",
+            "in": "query",
+            "description": "Destination IPs",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "devices",
+            "in": "query",
+            "description": "Specifies the list of device names where the products were seen",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "firstConnectionTimeEnd",
+            "in": "query",
+            "description": " Retrieves products whose first connection time is less than the value assigned to this date",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstConnectionTimeStart",
+            "in": "query",
+            "description": " Retrieves products whose first connection time is greater than the value assigned to this date",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "handled",
+            "in": "query",
+            "description": "A true/false parameter indicating whether events were handled/unhandled",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "includeStatistics",
+            "in": "query",
+            "description": "A true/false parameter indicating including statistics data",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "ips",
+            "in": "query",
+            "description": "Specifies the list of IPs where the products were seen",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "itemsPerPage",
+            "in": "query",
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "lastConnectionTimeEnd",
+            "in": "query",
+            "description": " Retrieves products whose last connection time is less than the value assigned to this date",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastConnectionTimeStart",
+            "in": "query",
+            "description": " Retrieves products whose last connection time is greater than the value assigned to this date",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "os",
+            "in": "query",
+            "description": "Specifies the list of operating system families where the products were seen",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Windows",
+              "Windows Server",
+              "Linux Server and OS X"
+            ]
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "An integer used for paging that indicates the required page number",
+            "required": false,
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "policies",
+            "in": "query",
+            "description": "Specifies the list of policy names whose products have a specific decision, as specified in the action parameter",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "processHash",
+            "in": "query",
+            "description": "Specifies the process hash name",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "processes",
+            "in": "query",
+            "description": "Specifies the list of process names running alongside the products",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "product",
+            "in": "query",
+            "description": "Specifies a single value for the product name. By default, strictMode is false",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "products",
+            "in": "query",
+            "description": "Specifies the list of product names. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "reputation",
+            "in": "query",
+            "description": "Specifies the recommendation of the application: Unknown, Known bad, Assumed bad, Contradiction, Assumed good or Known good",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "rule",
+            "in": "query",
+            "description": "Indicates the rule. This parameter is irrelevant without rulePolicy parameter",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rulePolicy",
+            "in": "query",
+            "description": "Specifies the policy name whose products have a specific rule, as specified in the rule parameter",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "seen",
+            "in": "query",
+            "description": "A true/false parameter indicating whether events were read/unread by the user operating the API",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "strictMode",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "vendor",
+            "in": "query",
+            "description": "Specifies a single value for the vendor name. By default, strictMode is false",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "vendors",
+            "in": "query",
+            "description": "Specifies the list of vendor names. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "Specifies a single value for the version name. By default, strictMode is false",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "versions",
+            "in": "query",
+            "description": "Specifies the list of versions. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "vulnerabilities",
+            "in": "query",
+            "description": "Specifies the list of vulnerabilities where the products were seen",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Critical",
+              "High",
+              "Medium",
+              "Low and None"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/GetApplicationsResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/comm-control/resolve-applications": {
+      "put": {
+        "tags": [
+          "Communication Control"
+        ],
+        "summary": "resolve-applications",
+        "description": "Enable resolving/unresolving applications",
+        "operationId": "resolve-applications",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "applyNested",
+            "in": "query",
+            "description": "A true/false parameter indicating updating inherited",
+            "required": false,
+            "type": "boolean",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          {
+            "name": "comment",
+            "in": "query",
+            "description": "Specifies a user-defined string to attach to the policy",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "products",
+            "in": "query",
+            "description": "Specifies the list of product names. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "resolve",
+            "in": "query",
+            "description": "A true/false parameter indicating update the application resolve/unresolve",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "signed",
+            "in": "query",
+            "description": "A true/false parameter indicating if the policy is signed",
+            "required": false,
+            "type": "boolean",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          {
+            "name": "vendors",
+            "in": "query",
+            "description": "Specifies the list of vendor names. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "versions",
+            "in": "query",
+            "description": "Specifies the list of versions. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/comm-control/set-policy-mode": {
+      "put": {
+        "tags": [
+          "Communication Control"
+        ],
+        "summary": "set-policy-mode",
+        "description": "Set policy to simulation/prevention",
+        "operationId": "set-policy-mode",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "description": "Operation mode",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "Simulation",
+              "Prevention"
+            ]
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "policyNames",
+            "in": "query",
+            "description": "Specifies the list of policies",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/comm-control/set-policy-permission": {
+      "put": {
+        "tags": [
+          "Communication Control"
+        ],
+        "summary": "set-policy-permission",
+        "description": "Set the application allow/deny",
+        "operationId": "set-policy-permission",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "applyNested",
+            "in": "query",
+            "description": "A true/false parameter indicating updating inherited",
+            "required": false,
+            "type": "boolean",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          {
+            "name": "decision",
+            "in": "query",
+            "description": "Indicates the action",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "Allow",
+              "Deny"
+            ]
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "policies",
+            "in": "query",
+            "description": "Specifies the list of policies names",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "products",
+            "in": "query",
+            "description": "Specifies the list of product names. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "signed",
+            "in": "query",
+            "description": "A true/false parameter indicating if the policy is signed",
+            "required": false,
+            "type": "boolean",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          {
+            "name": "vendors",
+            "in": "query",
+            "description": "Specifies the list of vendor names. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "versions",
+            "in": "query",
+            "description": "Specifies the list of versions. Names must match exactly (strictMode is always true)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/comm-control/set-policy-rule-state": {
+      "put": {
+        "tags": [
+          "Communication Control"
+        ],
+        "summary": "set-policy-rule-state",
+        "description": "Set rule in policy to enable/disable",
+        "operationId": "set-policy-rule-state_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "policyName",
+            "in": "query",
+            "description": "Specifies policy name",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "ruleName",
+            "in": "query",
+            "description": "Specifies rule name",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "Vulnerability rule",
+              "Reputation rule"
+            ]
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Policy rule state",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "Enabled",
+              "Disabled"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "ApplicationPoliciesResponse": {
+      "type": "object",
+      "properties": {
+        "agentGroups": {
+          "type": "array",
+          "description": "List of agent group names that the policy apply to",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The policy Id"
+        },
+        "name": {
+          "type": "string",
+          "description": "The policy name"
+        },
+        "operationMode": {
+          "type": "string",
+          "description": "The policy mode",
+          "enum": [
+            "Simulation",
+            "Prevention"
+          ]
+        },
+        "organization": {
+          "type": "string",
+          "description": "The organization of the policy"
+        },
+        "rules": {
+          "type": "array",
+          "description": "list of rules included in the policy",
+          "items": {
+            "$ref": "#/definitions/ApplicationRuleResponse"
+          }
+        }
+      },
+      "title": "ApplicationPoliciesResponse"
+    },
+    "ApplicationRuleResponse": {
+      "type": "object",
+      "properties": {
+        "appRuleType": {
+          "type": "string",
+          "description": "Specifies the rule type"
+        },
+        "defaultDecision": {
+          "type": "string",
+          "description": "Specifies the default decision beaver of the policy. For other rules, the decision beaver is opposite from the policy decision"
+        },
+        "enabled": {
+          "type": "string",
+          "description": "Is this rule enabled",
+          "enum": [
+            "true",
+            "false"
+          ]
+        },
+        "limitValue": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the limit value of the rule"
+        },
+        "name": {
+          "type": "string",
+          "description": "Rule name"
+        },
+        "shortName": {
+          "type": "string",
+          "description": "Rule short name"
+        }
+      },
+      "title": "ApplicationRuleResponse"
+    },
+    "GetApplicationsResponse": {
+      "type": "object",
+      "properties": {
+        "collectors": {
+          "type": "array",
+          "description": "Specifies the list of collectors that reported the product, in JSON format. Each collector holds the following parameters: \n• device: Specifies the device name. \n• ip: Specifies the device IP address. \n• os: Specifies the device operating system. \n• lastSeen: Specifies the date when the collector was last seen.",
+          "items": {
+            "$ref": "#/definitions/MapOfstringAndobject"
+          }
+        },
+        "collectorsGroup": {
+          "type": "object",
+          "description": "Specifies the name of the collector group to which the collector belongs.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "cves": {
+          "type": "array",
+          "description": "Specifies the CVE's",
+          "items": {
+            "$ref": "#/definitions/GetCveData"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Specifies the list communication control policies and their decisions for this specific product.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "decisionv2": {
+          "type": "array",
+          "description": "Specifies the list communication control policies and their decisions and mode for this specific product.",
+          "items": {
+            "$ref": "#/definitions/GetDecisionResponse"
+          }
+        },
+        "firstConnectionTime": {
+          "type": "string",
+          "description": "Specifies the date when the product was first seen communicating. Date Format: yyyy-MM-dd HH:mm:ss."
+        },
+        "handled": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether events were handled/unhandled."
+        },
+        "lastConnectionTime": {
+          "type": "string",
+          "description": "Specifies the date when the product was last seen communicating. Date Format: yyyy-MM-dd HH:mm:ss."
+        },
+        "organization": {
+          "type": "string",
+          "description": "The organization of the application"
+        },
+        "processes": {
+          "type": "array",
+          "description": "Specifies the list of process names running alongside the products.",
+          "items": {
+            "$ref": "#/definitions/Map"
+          }
+        },
+        "product": {
+          "type": "string",
+          "description": "Specifies the name of the product."
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Specifies the recommendation of the application: Unknown, Known bad, Assumed bad, Contradiction, Assumed good or Known good."
+        },
+        "seen": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether events were read/unread by the user operating the API."
+        },
+        "severity": {
+          "type": "string",
+          "description": "Specifies severity of product [UNKNOWN, LOW, MEDIUM, HIGH, CRITICAL]"
+        },
+        "statistics": {
+          "type": "array",
+          "description": "Specifies the statistics",
+          "items": {
+            "type": "string"
+          }
+        },
+        "vendor": {
+          "type": "string",
+          "description": "Specifies the name of the vendor."
+        },
+        "version": {
+          "type": "string",
+          "description": "Specifies the name of the version."
+        }
+      },
+      "title": "GetApplicationsResponse"
+    },
+    "GetCveData": {
+      "type": "object",
+      "properties": {
+        "aggregatedImpactScore": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the Aggregated Impact Score of CVE "
+        },
+        "cveIdentifier": {
+          "type": "string",
+          "description": "Specifies the CVE Identifier"
+        },
+        "description": {
+          "type": "string",
+          "description": "Specifies the CVE description"
+        },
+        "impact": {
+          "type": "string",
+          "description": "Specifies the Impact of CVE "
+        },
+        "lastEcsUpdated": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the CVE last modification time"
+        },
+        "lastModified": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the CVE modification time"
+        },
+        "published": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the CVE publish date"
+        }
+      },
+      "title": "GetCveData",
+      "description": "Specifies the CVEs for communication control"
+    },
+    "GetDecisionResponse": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "type": "string",
+          "description": "Indicates the action"
+        },
+        "policyMode": {
+          "type": "string",
+          "description": "Specifies policy mode"
+        },
+        "policyName": {
+          "type": "string",
+          "description": "Specifies policy name"
+        }
+      },
+      "title": "GetDecisionResponse",
+      "description": "Specifies the policy of communication control"
+    },
+    "Map": {
+      "type": "object",
+      "title": "Map",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "MapOfstringAndobject": {
+      "type": "object",
+      "title": "MapOfstringAndobject",
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  }
+}

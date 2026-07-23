@@ -1,0 +1,683 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Application Control",
+      "description": "Application Control Rest Api Controller"
+    }
+  ],
+  "paths": {
+    "/api/application-control/applications": {
+      "get": {
+        "tags": [
+          "Application Control"
+        ],
+        "summary": "applications",
+        "description": "Get application controls",
+        "operationId": "applications_2",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "attributes.fileName",
+            "in": "query",
+            "description": "Specifies the file name, if contains special characters - encode to HTML URL Encoding",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "attributes.path",
+            "in": "query",
+            "description": "Specifies the path, if contains special characters - encode to HTML URL Encoding",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "attributes.signer",
+            "in": "query",
+            "description": "Specifies the value, if contains special characters - encode to HTML URL Encoding",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "currentPage",
+            "in": "query",
+            "description": "Specifies the current page",
+            "required": true,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "enabled",
+            "in": "query",
+            "description": "Specifies the state of the application control",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "groupIds",
+            "in": "query",
+            "description": "Specifies the IDs of the relevant groups for application control",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "hash",
+            "in": "query",
+            "description": "Specifies the hash of the application control",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "operatingSystem",
+            "in": "query",
+            "description": "Specifies the operating system of the application control",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "policyIds",
+            "in": "query",
+            "description": "Specifies the IDs of the relevant policies for application control",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "description": "Specifies the tag related to application control",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/SearchResultOfApplicationControlResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      },
+      "post": {
+        "tags": [
+          "Application Control"
+        ],
+        "summary": "applications",
+        "description": "Saves new application controls and returns a list of them",
+        "operationId": "applications_3",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "applicationControlSaveRequest",
+            "description": "applicationControlSaveRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ApplicationControlSaveRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ApplicationControlResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      },
+      "put": {
+        "tags": [
+          "Application Control"
+        ],
+        "summary": "applications",
+        "description": "Edits existing application control and returns the affected ones",
+        "operationId": "applications_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "appIds",
+            "in": "query",
+            "description": "The relevant application IDs to edit",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "in": "body",
+            "name": "modifiedFields",
+            "description": "modifiedFields",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ApplicationControlEditRequestModifiedFields"
+            }
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ApplicationControlResponse"
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      },
+      "delete": {
+        "tags": [
+          "Application Control"
+        ],
+        "summary": "applications",
+        "description": "Deletes application controls",
+        "operationId": "applications",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "applicationIds",
+            "in": "query",
+            "description": "The IDs of the applications to be deleted",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/application-control/force-update-ootb-application-controls": {
+      "post": {
+        "tags": [
+          "Application Control"
+        ],
+        "summary": "force-update-ootb-application-controls",
+        "description": "Trigger OOTB application control update",
+        "operationId": "update-ootb",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/application-control/tags": {
+      "post": {
+        "tags": [
+          "Application Control"
+        ],
+        "summary": "tags",
+        "description": "Create an application control tags",
+        "operationId": "tags",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "applicationControlTagCreateRequest",
+            "description": "applicationControlTagCreateRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ApplicationControlTagCreateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/TagRestItem"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "ApplicationControlEditRequestModifiedFields": {
+      "type": "object",
+      "required": [
+        "groupIds"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Specifies the state of the application"
+        },
+        "groupIds": {
+          "type": "array",
+          "description": "Specifies the IDs of the groups to assign the application",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "isOverridePolicies": {
+          "type": "boolean",
+          "description": "Set true to override all current policies, if false or not specified they will be added to the current policies"
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the name of the application"
+        },
+        "policyIds": {
+          "type": "array",
+          "description": "Specifies the IDs of the policies to assign the application",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "tagId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the new tag ID of the application"
+        }
+      },
+      "title": "ApplicationControlEditRequestModifiedFields"
+    },
+    "ApplicationControlResponse": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the account ID of the application control"
+        },
+        "attributes": {
+          "type": "array",
+          "description": "Specifies the attributes of the application control",
+          "items": {
+            "$ref": "#/definitions/BaseAttributeDisplayItem"
+          }
+        },
+        "comment": {
+          "type": "string",
+          "description": "Specifies the comment of the application control"
+        },
+        "createdAt": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the creation time of the application control"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Specifies the user created the application control"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Specifies the state of the application control"
+        },
+        "groupId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the group ID of the application control"
+        },
+        "hashes": {
+          "type": "array",
+          "description": "Specifies the hash of the application control",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the ID of the application control"
+        },
+        "lastUpdated": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the last update time of the application control"
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the name of the application control"
+        },
+        "os": {
+          "type": "array",
+          "description": "Specifies the operating system of the application control",
+          "items": {
+            "type": "string"
+          }
+        },
+        "policies": {
+          "type": "array",
+          "description": "Specifies the relevant policies for application control",
+          "items": {
+            "$ref": "#/definitions/IdAndNameRestItem"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "Specifies the tags related to application control",
+          "items": {
+            "$ref": "#/definitions/TagRestItem"
+          }
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "Specifies the user updated the application control"
+        }
+      },
+      "title": "ApplicationControlResponse"
+    },
+    "ApplicationControlSaveRequest": {
+      "type": "object",
+      "required": [
+        "applicationControls",
+        "organization"
+      ],
+      "properties": {
+        "applicationControls": {
+          "type": "array",
+          "description": "Specifies the list of applications to add",
+          "items": {
+            "$ref": "#/definitions/ApplicationControlSaveRequestItem"
+          }
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the name of a specific organization. The value that you specify here must match exactly"
+        }
+      },
+      "title": "ApplicationControlSaveRequest"
+    },
+    "ApplicationControlSaveRequestItem": {
+      "type": "object",
+      "required": [
+        "name",
+        "os",
+        "policyIds"
+      ],
+      "properties": {
+        "attributes": {
+          "description": "Specifies the attributes of the application control",
+          "$ref": "#/definitions/BaseAttributeDisplayItem"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Specifies the state of the application control"
+        },
+        "hash": {
+          "type": "string",
+          "description": "Specifies the hash of the application control"
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the name of the application control"
+        },
+        "os": {
+          "type": "string",
+          "description": "Specifies the operating system of the application control",
+          "enum": [
+            "Windows",
+            "OSX"
+          ]
+        },
+        "policyIds": {
+          "type": "array",
+          "description": "Specifies the IDs of the relevant policies for application control",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "tagId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the tag related to application control"
+        }
+      },
+      "title": "ApplicationControlSaveRequestItem"
+    },
+    "ApplicationControlTagCreateRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "organization"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Specifies the name of the application control tag"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the name of a specific organization. The value that you specify here must match exactly"
+        }
+      },
+      "title": "ApplicationControlTagCreateRequest"
+    },
+    "BaseAttribute": {
+      "type": "object",
+      "properties": {
+        "extraData": {
+          "type": "object",
+          "description": "Specifies JSON of the extraData: mandatory field 'signerInputType' of possible values: [Thumbprint, SignerName, CertificateThumbprint]. For CertificateThumbprint please specify also 'certificateFileName' and 'issuer'."
+        },
+        "value": {
+          "type": "string",
+          "description": "Specifies the value, if contains special characters - encode to HTML URL Encoding"
+        }
+      },
+      "title": "BaseAttribute"
+    },
+    "BaseAttributeDisplayItem": {
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "description": "Specifies the file name, if contains special characters - encode to HTML URL Encoding."
+        },
+        "path": {
+          "type": "string",
+          "description": "Specifies the path, if contains special characters - encode to HTML URL Encoding"
+        },
+        "signer": {
+          "description": "Specifies the signer",
+          "$ref": "#/definitions/BaseAttribute"
+        }
+      },
+      "title": "BaseAttributeDisplayItem"
+    },
+    "IdAndNameRestItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the ID of the rest item"
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the name of the rest item"
+        }
+      },
+      "title": "IdAndNameRestItem"
+    },
+    "SearchResultOfApplicationControlResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ApplicationControlResponse"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "SearchResultOfApplicationControlResponse"
+    },
+    "TagRestItem": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The accountId of the tag"
+        },
+        "accountName": {
+          "type": "string",
+          "description": "The account name of the tag"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The id of the tag"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the tag"
+        }
+      },
+      "title": "TagRestItem"
+    }
+  }
+}

@@ -1,0 +1,2500 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Events",
+      "description": "This API call outputs all the events in the system that match the condition(s) you specify in the call. An AND relationship exists when specifying multiple input parameters. When no input parameters are matched, an empty result set is returned"
+    }
+  ],
+  "paths": {
+    "/management-rest/events": {
+      "put": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "events",
+        "description": "This API call updates the handled/unhandled state of an event. The output of this call is a message indicating whether the update succeeded or failed",
+        "operationId": "events_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "actions",
+            "in": "query",
+            "description": "Specifies the action of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Block",
+              "SimulationBlock",
+              "Log"
+            ]
+          },
+          {
+            "name": "applicationControl",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only application control events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only archived events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "classifications",
+            "in": "query",
+            "description": "Specifies the classification of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Malicious",
+              "Suspicious",
+              "Inconclusive",
+              "Likely Safe",
+              "PUP",
+              "Safe"
+            ]
+          },
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the collector groups whose collector reported the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "collectorIds",
+            "in": "query",
+            "description": "Specifies the collectorIds where the events occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "destinations",
+            "in": "query",
+            "description": "Specifies the connection destination(s) of the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "device",
+            "in": "query",
+            "description": "Specifies the device name where the events occurred",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "deviceControl",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only device control events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "deviceIps",
+            "in": "query",
+            "description": "Specifies the IPs of the devices where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventIds",
+            "in": "query",
+            "description": "Specifies the required event IDs",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventType",
+            "in": "query",
+            "description": "Specifies the type of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "SecurityEvent",
+              "ThreatHuntingEvent"
+            ]
+          },
+          {
+            "name": "expired",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only expired events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "fileHash",
+            "in": "query",
+            "description": "Specifies the hash signature of the main process of the event",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeen",
+            "in": "query",
+            "description": " Specifies the date when the event was first seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the event was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the event was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "handled",
+            "in": "query",
+            "description": " A true/false parameter indicating whether events were handled/unhandled",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "itemsPerPage",
+            "in": "query",
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "lastSeen",
+            "in": "query",
+            "description": " Specifies the date when the event was last seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the event was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the event was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "loggedUser",
+            "in": "query",
+            "description": "Specifies the logged user",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "macAddresses",
+            "in": "query",
+            "description": "Specifies the mac addresses where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "muted",
+            "in": "query",
+            "description": "A true/false parameter indicating if the event is muted",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "operatingSystems",
+            "in": "query",
+            "description": "Specifies the operating system of the devices where the events occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "An integer used for paging that indicates the required page number",
+            "required": false,
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "paths",
+            "in": "query",
+            "description": "Specifies the paths of the processes related to the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "process",
+            "in": "query",
+            "description": "Specifies the main process of the event",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rule",
+            "in": "query",
+            "description": "Specifies the short rule name of the rule that triggered the events",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "seen",
+            "in": "query",
+            "description": "A true/false parameter indicating whether events were read/unread by the user operating the API",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "severities",
+            "in": "query",
+            "description": "Specifies the severity of the event (Deprecated)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Critical",
+              "High",
+              "Medium"
+            ]
+          },
+          {
+            "name": "signed",
+            "in": "query",
+            "description": "A true/false parameter indicating if the event is signed",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "strictMode",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "in": "body",
+            "name": "updateEventsRequest",
+            "description": "updateEventsRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateEventsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      },
+      "delete": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "events",
+        "description": "This API call delete events",
+        "operationId": "events",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "actions",
+            "in": "query",
+            "description": "Specifies the action of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Block",
+              "SimulationBlock",
+              "Log"
+            ]
+          },
+          {
+            "name": "applicationControl",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only application control events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only archived events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "classifications",
+            "in": "query",
+            "description": "Specifies the classification of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Malicious",
+              "Suspicious",
+              "Inconclusive",
+              "Likely Safe",
+              "PUP",
+              "Safe"
+            ]
+          },
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the collector groups whose collector reported the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "collectorIds",
+            "in": "query",
+            "description": "Specifies the collectorIds where the events occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "deleteAll",
+            "in": "query",
+            "description": "A true/false parameter indicating if all events should be deleted",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "destinations",
+            "in": "query",
+            "description": "Specifies the connection destination(s) of the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "device",
+            "in": "query",
+            "description": "Specifies the device name where the events occurred",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "deviceControl",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only device control events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "deviceIps",
+            "in": "query",
+            "description": "Specifies the IPs of the devices where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventIds",
+            "in": "query",
+            "description": "Specifies the required event IDs",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventType",
+            "in": "query",
+            "description": "Specifies the type of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "SecurityEvent",
+              "ThreatHuntingEvent"
+            ]
+          },
+          {
+            "name": "expired",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only expired events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "fileHash",
+            "in": "query",
+            "description": "Specifies the hash signature of the main process of the event",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeen",
+            "in": "query",
+            "description": " Specifies the date when the event was first seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the event was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the event was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "handled",
+            "in": "query",
+            "description": " A true/false parameter indicating whether events were handled/unhandled",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "itemsPerPage",
+            "in": "query",
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "lastSeen",
+            "in": "query",
+            "description": " Specifies the date when the event was last seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the event was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the event was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "loggedUser",
+            "in": "query",
+            "description": "Specifies the logged user",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "macAddresses",
+            "in": "query",
+            "description": "Specifies the mac addresses where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "muted",
+            "in": "query",
+            "description": "A true/false parameter indicating if the event is muted",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "operatingSystems",
+            "in": "query",
+            "description": "Specifies the operating system of the devices where the events occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "An integer used for paging that indicates the required page number",
+            "required": false,
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "paths",
+            "in": "query",
+            "description": "Specifies the paths of the processes related to the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "process",
+            "in": "query",
+            "description": "Specifies the main process of the event",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rule",
+            "in": "query",
+            "description": "Specifies the short rule name of the rule that triggered the events",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "seen",
+            "in": "query",
+            "description": "A true/false parameter indicating whether events were read/unread by the user operating the API",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "severities",
+            "in": "query",
+            "description": "Specifies the severity of the event (Deprecated)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Critical",
+              "High",
+              "Medium"
+            ]
+          },
+          {
+            "name": "signed",
+            "in": "query",
+            "description": "A true/false parameter indicating if the event is signed",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "strictMode",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/events/count-events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "count-events",
+        "description": "Count Events",
+        "operationId": "count-events",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "actions",
+            "in": "query",
+            "description": "Specifies the action of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Block",
+              "SimulationBlock",
+              "Log"
+            ]
+          },
+          {
+            "name": "applicationControl",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only application control events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only archived events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "classifications",
+            "in": "query",
+            "description": "Specifies the classification of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Malicious",
+              "Suspicious",
+              "Inconclusive",
+              "Likely Safe",
+              "PUP",
+              "Safe"
+            ]
+          },
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the collector groups whose collector reported the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "collectorIds",
+            "in": "query",
+            "description": "Specifies the collectorIds where the events occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "destinations",
+            "in": "query",
+            "description": "Specifies the connection destination(s) of the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "device",
+            "in": "query",
+            "description": "Specifies the device name where the events occurred",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "deviceControl",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only device control events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "deviceIps",
+            "in": "query",
+            "description": "Specifies the IPs of the devices where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventIds",
+            "in": "query",
+            "description": "Specifies the required event IDs",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventType",
+            "in": "query",
+            "description": "Specifies the type of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "SecurityEvent",
+              "ThreatHuntingEvent"
+            ]
+          },
+          {
+            "name": "expired",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only expired events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "fileHash",
+            "in": "query",
+            "description": "Specifies the hash signature of the main process of the event",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeen",
+            "in": "query",
+            "description": " Specifies the date when the event was first seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the event was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the event was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "handled",
+            "in": "query",
+            "description": " A true/false parameter indicating whether events were handled/unhandled",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "itemsPerPage",
+            "in": "query",
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "lastSeen",
+            "in": "query",
+            "description": " Specifies the date when the event was last seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the event was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the event was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "loggedUser",
+            "in": "query",
+            "description": "Specifies the logged user",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "macAddresses",
+            "in": "query",
+            "description": "Specifies the mac addresses where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "muted",
+            "in": "query",
+            "description": "A true/false parameter indicating if the event is muted",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "operatingSystems",
+            "in": "query",
+            "description": "Specifies the operating system of the devices where the events occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "An integer used for paging that indicates the required page number",
+            "required": false,
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "paths",
+            "in": "query",
+            "description": "Specifies the paths of the processes related to the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "process",
+            "in": "query",
+            "description": "Specifies the main process of the event",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rule",
+            "in": "query",
+            "description": "Specifies the short rule name of the rule that triggered the events",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "seen",
+            "in": "query",
+            "description": "A true/false parameter indicating whether events were read/unread by the user operating the API",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "severities",
+            "in": "query",
+            "description": "Specifies the severity of the event (Deprecated)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Critical",
+              "High",
+              "Medium"
+            ]
+          },
+          {
+            "name": "signed",
+            "in": "query",
+            "description": "A true/false parameter indicating if the event is signed",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "strictMode",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/events/create-exception": {
+      "post": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "create-exception",
+        "description": "This API call adds an exception to a specific event. The output of this call is a message indicating whether the creation of the exception ",
+        "operationId": "create-exception",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "allCollectorGroups",
+            "in": "query",
+            "description": "A true/false parameter indicating whether the exception should be applied to all collector groups. When not used, all collector groups are selected",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "allDestinations",
+            "in": "query",
+            "description": "A true/false parameter indicating whether the exception should be applied to all destinations. When not used, all destinations are selected",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "allOrganizations",
+            "in": "query",
+            "description": "A true/false parameter indicating whether the exception should be applied to all the organizations (tenants). This parameter is only relevant in multi-tenancy environment. This parameter is only allowed for user with Hoster privilege (general admin)",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "allUsers",
+            "in": "query",
+            "description": "A true/false parameter indicating whether the exception should be applied to all users. When not used, all users are selected",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the list of all the collector groups to which the exception should be applied. When not used, all collector groups are selected",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "comment",
+            "in": "query",
+            "description": "Specifies a user-defined string to attach to the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "destinations",
+            "in": "query",
+            "description": "A list of IPs to which the exception applies and/or the value all internal destinations",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "description": "Specifies the event ID on which to create the exception",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "exceptionId",
+            "in": "query",
+            "description": "Specifies the exception ID to edit",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "in": "body",
+            "name": "exceptionRequest",
+            "description": "exceptionRequest",
+            "required": false,
+            "schema": {
+              "$ref": "#/definitions/UpdateExceptionRequest"
+            }
+          },
+          {
+            "name": "forceCreate",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to create the exception, even if there are already exceptions that cover this given event",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "isHidden",
+            "in": "query",
+            "description": "A true/false parameter indicating whether the event is hidden",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "users",
+            "in": "query",
+            "description": "A list of users to which the exception",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/events/export-raw-data-items-json": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "export-raw-data-items-json",
+        "description": "Get event as Json format",
+        "operationId": "export-raw-data-items-json",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rawItemIds",
+            "in": "query",
+            "description": "Specifies the raw data item event IDs",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "This operation results in a file stream (binary data), which is a .zip file",
+            "schema": {
+              "$ref": "#/definitions/InputStream"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/events/list-events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "list-events",
+        "description": "List Events",
+        "operationId": "list-events",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "actions",
+            "in": "query",
+            "description": "Specifies the action of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Block",
+              "SimulationBlock",
+              "Log"
+            ]
+          },
+          {
+            "name": "applicationControl",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only application control events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only archived events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "classifications",
+            "in": "query",
+            "description": "Specifies the classification of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Malicious",
+              "Suspicious",
+              "Inconclusive",
+              "Likely Safe",
+              "PUP",
+              "Safe"
+            ]
+          },
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the collector groups whose collector reported the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "collectorIds",
+            "in": "query",
+            "description": "Specifies the collectorIds where the events occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "destinations",
+            "in": "query",
+            "description": "Specifies the connection destination(s) of the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "device",
+            "in": "query",
+            "description": "Specifies the device name where the events occurred",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "deviceControl",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only device control events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "deviceIps",
+            "in": "query",
+            "description": "Specifies the IPs of the devices where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventIds",
+            "in": "query",
+            "description": "Specifies the required event IDs",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventType",
+            "in": "query",
+            "description": "Specifies the type of the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "SecurityEvent",
+              "ThreatHuntingEvent"
+            ]
+          },
+          {
+            "name": "expired",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include only expired events",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "fileHash",
+            "in": "query",
+            "description": "Specifies the hash signature of the main process of the event",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeen",
+            "in": "query",
+            "description": " Specifies the date when the event was first seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the event was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the event was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "handled",
+            "in": "query",
+            "description": " A true/false parameter indicating whether events were handled/unhandled",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "itemsPerPage",
+            "in": "query",
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "lastSeen",
+            "in": "query",
+            "description": " Specifies the date when the event was last seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the event was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the event was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "loggedUser",
+            "in": "query",
+            "description": "Specifies the logged user",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "macAddresses",
+            "in": "query",
+            "description": "Specifies the mac addresses where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "muted",
+            "in": "query",
+            "description": "A true/false parameter indicating if the event is muted",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "operatingSystems",
+            "in": "query",
+            "description": "Specifies the operating system of the devices where the events occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "An integer used for paging that indicates the required page number",
+            "required": false,
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "paths",
+            "in": "query",
+            "description": "Specifies the paths of the processes related to the event",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "process",
+            "in": "query",
+            "description": "Specifies the main process of the event",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rule",
+            "in": "query",
+            "description": "Specifies the short rule name of the rule that triggered the events",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "seen",
+            "in": "query",
+            "description": "A true/false parameter indicating whether events were read/unread by the user operating the API",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "severities",
+            "in": "query",
+            "description": "Specifies the severity of the event (Deprecated)",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "Critical",
+              "High",
+              "Medium"
+            ]
+          },
+          {
+            "name": "signed",
+            "in": "query",
+            "description": "A true/false parameter indicating if the event is signed",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "strictMode",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/GetEventsResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/events/list-raw-data-items": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "list-raw-data-items",
+        "description": "List raw data items",
+        "operationId": "list-raw-data-items",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the collector groups whose collector reported the raw events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "destinations",
+            "in": "query",
+            "description": "Specifies the connection destination(s) of the events",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "device",
+            "in": "query",
+            "description": "Specifies the name of the device where the raw event occurred",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "deviceIps",
+            "in": "query",
+            "description": "Specifies the IPs of the devices where the event occurred",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "description": "Specifies the ID of the event that holds the raw data items",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "firstSeen",
+            "in": "query",
+            "description": "Specifies the date when the raw data item was first seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the raw data item was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "firstSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the raw data item was first seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "fullDataRequested",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to include the event internal information",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "itemsPerPage",
+            "in": "query",
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "lastSeen",
+            "in": "query",
+            "description": "Specifies the date when the raw data item was last seen (Deprecated)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenFrom",
+            "in": "query",
+            "description": "Specifies the from date when the raw data item was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "lastSeenTo",
+            "in": "query",
+            "description": "Specifies the to date when the raw data item was last seen",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "loggedUser",
+            "in": "query",
+            "description": "Specifies the logged user",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "An integer used for paging that indicates the required page number",
+            "required": false,
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "rawEventIds",
+            "in": "query",
+            "description": "Specifies the list of raw data item event IDs",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "sorting",
+            "in": "query",
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "strictMode",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/GetRawEventsResponseInterface"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "ClassificationDetailsRestItem": {
+      "type": "object",
+      "properties": {
+        "classification": {
+          "type": "string",
+          "description": "Specifies the classification"
+        },
+        "hash": {
+          "type": "string",
+          "description": "Specifies the hash"
+        },
+        "history": {
+          "type": "array",
+          "description": "Specifies the history",
+          "items": {
+            "$ref": "#/definitions/ClassificationHistoryRestItem"
+          }
+        },
+        "ips": {
+          "type": "array",
+          "description": "Specifies the ips",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isOriginClassification": {
+          "type": "boolean",
+          "description": "Specifies is origin classification"
+        },
+        "policies": {
+          "type": "array",
+          "description": "Specifies the policies",
+          "items": {
+            "$ref": "#/definitions/PolicyAndRuleRestItem"
+          }
+        },
+        "threatFamily": {
+          "type": "string",
+          "description": "Specifies the threat family"
+        },
+        "threatName": {
+          "type": "string",
+          "description": "Specifies the threat name"
+        },
+        "threatType": {
+          "type": "string",
+          "description": "Specifies the threat type"
+        }
+      },
+      "title": "ClassificationDetailsRestItem"
+    },
+    "ClassificationHistoryRestItem": {
+      "type": "object",
+      "properties": {
+        "classification": {
+          "type": "string",
+          "description": "Specifies the classification"
+        },
+        "date": {
+          "type": "string",
+          "description": "Specifies the date"
+        },
+        "operationHistories": {
+          "type": "array",
+          "description": "Specifies the operation histories",
+          "items": {
+            "$ref": "#/definitions/OperationHistoryRestItem"
+          }
+        },
+        "username": {
+          "type": "string",
+          "description": "Specifies the user name"
+        }
+      },
+      "title": "ClassificationHistoryRestItem",
+      "description": "Specifies the classification history"
+    },
+    "EventsRuleRestItem": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "Specifies the action"
+        },
+        "description": {
+          "type": "string",
+          "description": "Specifies the description"
+        },
+        "forensicsRecommendations": {
+          "type": "string",
+          "description": "Specifies the forensics recommendations"
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the name"
+        },
+        "shortName": {
+          "type": "string",
+          "description": "Specifies the short name"
+        }
+      },
+      "title": "EventsRuleRestItem",
+      "description": "Specifies the event rule"
+    },
+    "GetEventsExtendedResponse": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "A string with one of the following values",
+          "enum": [
+            "Block",
+            "SimulationBlock",
+            "Log"
+          ]
+        },
+        "archived": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whetether include archived events"
+        },
+        "certified": {
+          "type": "boolean",
+          "description": "Indicates whether the main process is signed"
+        },
+        "classification": {
+          "type": "string",
+          "description": "Classification",
+          "enum": [
+            "Malicious",
+            "Suspicious",
+            "Inconclusive",
+            "Likely Safe",
+            "PUP",
+            "Safe"
+          ]
+        },
+        "classificationDetails": {
+          "description": "Specifies the event classification details",
+          "$ref": "#/definitions/ClassificationDetailsRestItem"
+        },
+        "classificationOrder": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the classification order number"
+        },
+        "collectors": {
+          "type": "array",
+          "description": "Specifies the list of the collectors that reported this event with the following fields:\ndevice: Specifies the device name\ncollectorGroup: Specifies the name of the collector group to which the collector belongs\ndeviceIp: Specifies the IP of the device\nos: Specifies the operating system of the device\ncollectorLastSeen: Specifies the date when the collector was last seen",
+          "items": {
+            "$ref": "#/definitions/Map"
+          }
+        },
+        "comment": {
+          "type": "string",
+          "description": "Specifies a user-defined string to attach to the exception"
+        },
+        "destinations": {
+          "type": "array",
+          "description": "Specifies the list of all the communication destination(s) (IP format) that are relevant for this event",
+          "items": {
+            "type": "string"
+          }
+        },
+        "eventId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the ID of the event"
+        },
+        "exceptionsIds": {
+          "type": "array",
+          "description": "Specifies exceptions ids covering the event",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "firstSeen": {
+          "type": "string",
+          "description": "Specifies the date when this event was first seen"
+        },
+        "handlingState": {
+          "type": "string",
+          "description": "Indicates the handling status",
+          "enum": [
+            "Handled",
+            "Unhandled",
+            "InProgress"
+          ]
+        },
+        "lastSeen": {
+          "type": "string",
+          "description": "Specifies the date when this event was last seen"
+        },
+        "loggedUsers": {
+          "type": "array",
+          "description": "Specifies list of logged users",
+          "items": {
+            "type": "string"
+          }
+        },
+        "muteEndTime": {
+          "type": "string",
+          "description": "Indicates the mute end time"
+        },
+        "muted": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether the event is muted"
+        },
+        "organization": {
+          "type": "string",
+          "description": "The organization of the event"
+        },
+        "process": {
+          "type": "string",
+          "description": "Specifies the name of the main process of the event"
+        },
+        "processOwner": {
+          "type": "string",
+          "description": "Indicates the process owner"
+        },
+        "processPath": {
+          "type": "string",
+          "description": "Specifies the path of the main process"
+        },
+        "processType": {
+          "type": "string",
+          "description": "Specifies the process type, which can be 32 bit or 64 bit"
+        },
+        "rules": {
+          "type": "array",
+          "description": "Specifies list of the short rule name of the rules that triggered the events",
+          "items": {
+            "type": "string"
+          }
+        },
+        "seen": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether events were read/unread by the user operating the API"
+        },
+        "severity": {
+          "type": "string",
+          "description": "Indicates the severity (Deprecated)",
+          "enum": [
+            "Critical",
+            "High",
+            "Medium"
+          ]
+        },
+        "threatDetails": {
+          "type": "object",
+          "description": "Indicates the event threat details"
+        }
+      },
+      "title": "GetEventsExtendedResponse"
+    },
+    "GetEventsResponse": {
+      "title": "GetEventsResponse",
+      "allOf": [
+        {
+          "$ref": "#/definitions/GetEventsExtendedResponse"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "A string with one of the following values",
+              "enum": [
+                "Block",
+                "SimulationBlock",
+                "Log"
+              ]
+            },
+            "archived": {
+              "type": "boolean",
+              "description": "A true/false parameter indicating whetether include archived events"
+            },
+            "certified": {
+              "type": "boolean",
+              "description": "Indicates whether the main process is signed"
+            },
+            "classification": {
+              "type": "string",
+              "description": "Classification",
+              "enum": [
+                "Malicious",
+                "Suspicious",
+                "Inconclusive",
+                "Likely Safe",
+                "PUP",
+                "Safe"
+              ]
+            },
+            "collectors": {
+              "type": "array",
+              "description": "Specifies the list of the collectors that reported this event with the following fields:\ndevice: Specifies the device name\ncollectorGroup: Specifies the name of the collector group to which the collector belongs\ndeviceIp: Specifies the IP of the device\nos: Specifies the operating system of the device\ncollectorLastSeen: Specifies the date when the collector was last seen",
+              "items": {
+                "$ref": "#/definitions/Map"
+              }
+            },
+            "comment": {
+              "type": "string",
+              "description": "Specifies a user-defined string to attach to the exception"
+            },
+            "destinations": {
+              "type": "array",
+              "description": "Specifies the list of all the communication destination(s) (IP format) that are relevant for this event",
+              "items": {
+                "type": "string"
+              }
+            },
+            "eventId": {
+              "type": "integer",
+              "format": "int32",
+              "description": "Specifies the ID of the event"
+            },
+            "firstSeen": {
+              "type": "string",
+              "description": "Specifies the date when this event was first seen"
+            },
+            "handlingState": {
+              "type": "string",
+              "description": "Indicates the handling status",
+              "enum": [
+                "Handled",
+                "Unhandled",
+                "InProgress"
+              ]
+            },
+            "lastSeen": {
+              "type": "string",
+              "description": "Specifies the date when this event was last seen"
+            },
+            "loggedUsers": {
+              "type": "array",
+              "description": "Specifies list of logged users",
+              "items": {
+                "type": "string"
+              }
+            },
+            "muteEndTime": {
+              "type": "string",
+              "description": "Indicates the mute end time"
+            },
+            "muted": {
+              "type": "boolean",
+              "description": "A true/false parameter indicating whether the event is muted"
+            },
+            "organization": {
+              "type": "string",
+              "description": "The organization of the event"
+            },
+            "process": {
+              "type": "string",
+              "description": "Specifies the name of the main process of the event"
+            },
+            "processOwner": {
+              "type": "string",
+              "description": "Indicates the process owner"
+            },
+            "processPath": {
+              "type": "string",
+              "description": "Specifies the path of the main process"
+            },
+            "processType": {
+              "type": "string",
+              "description": "Specifies the process type, which can be 32 bit or 64 bit"
+            },
+            "rules": {
+              "type": "array",
+              "description": "Specifies list of the short rule name of the rules that triggered the events",
+              "items": {
+                "type": "string"
+              }
+            },
+            "seen": {
+              "type": "boolean",
+              "description": "A true/false parameter indicating whether events were read/unread by the user operating the API"
+            },
+            "severity": {
+              "type": "string",
+              "description": "Indicates the severity (Deprecated)",
+              "enum": [
+                "Critical",
+                "High",
+                "Medium"
+              ]
+            },
+            "threatDetails": {
+              "type": "object",
+              "description": "Indicates the event threat details"
+            }
+          },
+          "title": "GetEventsResponse"
+        }
+      ]
+    },
+    "GetRawEventsResponseInterface": {
+      "type": "object",
+      "title": "GetRawEventsResponseInterface"
+    },
+    "InputStream": {
+      "type": "object",
+      "title": "InputStream"
+    },
+    "Map": {
+      "type": "object",
+      "title": "Map",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "OperationHistoryRestItem": {
+      "type": "object",
+      "properties": {
+        "actionType": {
+          "type": "string",
+          "description": "Specifies the action type",
+          "enum": [
+            "SendMailNotification",
+            "SendSyslogNotification",
+            "OpenTicket",
+            "IsolateDevice",
+            "NacIsolateDevice",
+            "MoveToGroup",
+            "DisableUserAccount",
+            "TagDevice",
+            "TerminateProcess",
+            "DeleteFile",
+            "CleanPersistenceData",
+            "BlockAddressOnFirewall",
+            "ResetUserPassword",
+            "SendSoarCommand",
+            "CustomSoarAction"
+          ]
+        },
+        "devices": {
+          "type": "array",
+          "description": "Specifies the devices",
+          "items": {
+            "type": "string"
+          }
+        },
+        "occurrences": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the occurrences"
+        },
+        "simulation": {
+          "type": "boolean",
+          "description": "Specifies is simulation mode"
+        },
+        "statisticsHtmlMessage": {
+          "type": "string",
+          "description": "Specifies the statistics html message"
+        },
+        "statisticsMessage": {
+          "type": "string",
+          "description": "Specifies the statistics message"
+        },
+        "uniqueMessageParameters": {
+          "type": "array",
+          "description": "Specifies the unique message parameters",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "OperationHistoryRestItem",
+      "description": "Specifies the operation history"
+    },
+    "PolicyAndRuleRestItem": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Specifies the name"
+        },
+        "policyType": {
+          "type": "string",
+          "description": "Specifies the policy type"
+        },
+        "rules": {
+          "type": "array",
+          "description": "Specifies the rules",
+          "items": {
+            "$ref": "#/definitions/EventsRuleRestItem"
+          }
+        }
+      },
+      "title": "PolicyAndRuleRestItem",
+      "description": "Specifies the policy and rules"
+    },
+    "UpdateEventsRequest": {
+      "type": "object",
+      "properties": {
+        "archive": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether to update archived events"
+        },
+        "classification": {
+          "type": "string",
+          "description": "Specifies the event classification",
+          "enum": [
+            "Malicious",
+            "Suspicious",
+            "Inconclusive",
+            "Likely Safe",
+            "PUP",
+            "Safe"
+          ]
+        },
+        "comment": {
+          "type": "string",
+          "description": "Specifies a user-defined string attached to the event"
+        },
+        "familyName": {
+          "type": "string",
+          "description": "Specifies the event family name"
+        },
+        "forceUnmute": {
+          "type": "boolean",
+          "description": "Indicates whether to force archive even if the event is muted"
+        },
+        "handle": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating update the events handled/unhandled"
+        },
+        "malwareType": {
+          "type": "string",
+          "description": "Specifies the event malware type"
+        },
+        "mute": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether to mute events"
+        },
+        "muteDuration": {
+          "type": "string",
+          "description": "Specifies the mute duration time",
+          "enum": [
+            "Week",
+            "Month",
+            "Year",
+            "Permanently"
+          ]
+        },
+        "read": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether the events are read/unread by the user\noperating the API"
+        },
+        "threatName": {
+          "type": "string",
+          "description": "Specifies the event threat name"
+        }
+      },
+      "title": "UpdateEventsRequest"
+    },
+    "UpdateExceptionRequest": {
+      "type": "object",
+      "properties": {
+        "useAnyPath": {
+          "type": "object",
+          "description": "For each relevant process in each relevant rule, the user must indicate true/false to set an exception on the path that was seen in the event or for any path",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          }
+        },
+        "useCommandLine": {
+          "type": "object",
+          "description": "For each relevant process in each relevant rule filename, set 'exactMatch' (true/false) and 'commandLine'",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "useInException": {
+          "type": "object",
+          "description": "For each relevant process in each relevant rule, the user must indicate true/false in order to include it in the exception",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          }
+        },
+        "wildcardFiles": {
+          "type": "object",
+          "description": "For each relevant process in each relevant rule filename, check if pattern matches the file value, and according to action (true/false) attach/remove the exception wildcard field",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          }
+        },
+        "wildcardPaths": {
+          "type": "object",
+          "description": "For each relevant process in each relevant rule path name, check if pattern matches the file value, and according to action (true/false) attach/remove the exception wildcard field",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "title": "UpdateExceptionRequest"
+    }
+  }
+}

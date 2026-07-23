@@ -1,0 +1,3632 @@
+{
+  "components": {
+    "schemas": {
+      "BaseIncidentsRequest": {
+        "properties": {
+          "advancedFilters": {
+            "description": "Specifies advanced filters",
+            "type": "string"
+          },
+          "allSelectedEventsParentIds": {
+            "description": "Meaning all those incidents' events under the filters/search criteria are selected. Specifies the events parent incidents ids",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "endDate": {
+            "description": "Specifies the time filter end date",
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventIds": {
+            "description": "Specifies the IDs of the events",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "freeTextFilters": {
+            "description": "Specifies the free text search filter",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "freeTextSearch": {
+            "description": "Specifies the free text search",
+            "type": "string"
+          },
+          "incidentIds": {
+            "description": "Specifies the id's of the incidents",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "isAllIncidents": {
+            "description": "Specifies the all incidents under the filters/search criteria are selected",
+            "type": "boolean"
+          },
+          "offset": {
+            "description": "Specifies the page offset",
+            "format": "int32",
+            "type": "integer"
+          },
+          "organizationId": {
+            "description": "Specifies the organization id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "pageSize": {
+            "description": "Specifies the page size",
+            "format": "int32",
+            "type": "integer"
+          },
+          "sorting": {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "type": "string"
+          },
+          "startDate": {
+            "description": "Specifies the time filter start date",
+            "format": "int64",
+            "type": "integer"
+          },
+          "statusFilter": {
+            "description": "Specifies the incidents status filter",
+            "enum": [
+              "All",
+              "Handled",
+              "InProgress",
+              "Unhandled"
+            ],
+            "type": "string"
+          },
+          "timeFilter": {
+            "description": "Specifies the incidents time filter",
+            "enum": [
+              "Last7days",
+              "Last30days",
+              "Last90days",
+              "All"
+            ],
+            "type": "string"
+          },
+          "typeFilter": {
+            "description": "Specifies the incidents type filter",
+            "enum": [
+              "All",
+              "SecurityEvents",
+              "DeviceControl",
+              "ApplicationControl",
+              "ThreatHunting"
+            ],
+            "type": "string"
+          }
+        },
+        "title": "BaseIncidentsRequest",
+        "type": "object"
+      },
+      "EventsScreenRuleDisplayItem": {
+        "properties": {
+          "action": {
+            "description": "The ",
+            "type": "string"
+          },
+          "description": {
+            "description": "The ",
+            "type": "string"
+          },
+          "forensicsRecommendations": {
+            "description": "The ",
+            "type": "string"
+          },
+          "id": {
+            "description": "The ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "mitreTags": {
+            "description": "The ",
+            "items": {
+              "$ref": "#/components/schemas/MitreTagDisplayItem"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "The ",
+            "type": "string"
+          },
+          "savedQueryTags": {
+            "description": "The ",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "shortName": {
+            "description": "The ",
+            "type": "string"
+          }
+        },
+        "title": "EventsScreenRuleDisplayItem",
+        "type": "object"
+      },
+      "GetUserResponse": {
+        "properties": {
+          "customScript": {
+            "description": "Is user can upload custom scripts",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "Specifies the email of the user",
+            "type": "string"
+          },
+          "firstName": {
+            "description": "Specifies the first name of the user",
+            "type": "string"
+          },
+          "id": {
+            "description": "Specifies the ID of the user",
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastName": {
+            "description": "Specifies the last name of the user",
+            "type": "string"
+          },
+          "organization": {
+            "description": "The organization of the user",
+            "type": "string"
+          },
+          "rbacRole": {
+            "description": "specific rbac role of the user",
+            "type": "string"
+          },
+          "remoteShell": {
+            "description": "Is user can use remote shell",
+            "type": "boolean"
+          },
+          "restApi": {
+            "description": "Is user can access by rest to the api",
+            "type": "boolean"
+          },
+          "role": {
+            "description": "Specifies the role of the user",
+            "enum": [
+              "Admin",
+              "Senior Analyst",
+              "Read-Only",
+              "Analyst",
+              "IT"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "description": "Specifies the title of the user",
+            "type": "string"
+          },
+          "username": {
+            "description": "Specifies the login username of the user",
+            "type": "string"
+          }
+        },
+        "title": "GetUserResponse",
+        "type": "object"
+      },
+      "HandleEventsRequest": {
+        "properties": {
+          "classification": {
+            "description": "Handle event classification",
+            "enum": [
+              "ClassificationMalicious",
+              "ClassificationProbablyMalicious",
+              "ClassificationPup",
+              "ClassificationInconclusive",
+              "ClassificationProbablyGood",
+              "ClassificationGood"
+            ],
+            "type": "string"
+          },
+          "comment": {
+            "description": "Handle event comment",
+            "type": "string"
+          },
+          "eventIds": {
+            "description": "Handle event event ids to hanle",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "handlingState": {
+            "description": "Handle event state",
+            "enum": [
+              "Handled",
+              "Unhandled",
+              "InProgress"
+            ],
+            "type": "string"
+          },
+          "muteDurationTime": {
+            "description": "Handle event mute duration time",
+            "type": "string"
+          },
+          "muteEnabled": {
+            "description": "Handle event mute enabled",
+            "type": "boolean"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization"
+        ],
+        "title": "HandleEventsRequest",
+        "type": "object"
+      },
+      "HandleIncidentRequest": {
+        "properties": {
+          "classification": {
+            "description": "Specifies handle incident classification",
+            "enum": [
+              "ClassificationMalicious",
+              "ClassificationProbablyMalicious",
+              "ClassificationPup",
+              "ClassificationInconclusive",
+              "ClassificationProbablyGood",
+              "ClassificationGood"
+            ],
+            "type": "string"
+          },
+          "comment": {
+            "description": "Specifies handle incident comment",
+            "type": "string"
+          },
+          "eventIds": {
+            "description": "Specifies incident events ids",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "handlingState": {
+            "description": "Specifies handle incident state",
+            "enum": [
+              "Handled",
+              "Unhandled",
+              "InProgress"
+            ],
+            "type": "string"
+          },
+          "incidentId": {
+            "description": "Specifies handle incident id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          },
+          "userId": {
+            "description": "Specifies handle incident user id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "userName": {
+            "description": "Specifies user name to assign",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization"
+        ],
+        "title": "HandleIncidentRequest",
+        "type": "object"
+      },
+      "IncidentAgentDisplayItem": {
+        "properties": {
+          "id": {
+            "description": "Agent id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Agent name",
+            "type": "string"
+          },
+          "operatingSystem": {
+            "description": "Agent operating system",
+            "type": "string"
+          },
+          "osFamily": {
+            "description": "Agent operating system family",
+            "type": "string"
+          }
+        },
+        "title": "IncidentAgentDisplayItem",
+        "type": "object"
+      },
+      "IncidentAggregation": {
+        "properties": {
+          "accountId": {
+            "description": "incident aggregation",
+            "format": "int32",
+            "type": "integer"
+          },
+          "action": {
+            "description": "incident aggregation",
+            "enum": [
+              "Log",
+              "Block",
+              "SimulationBlock",
+              "Ignore",
+              "Accept"
+            ],
+            "type": "string"
+          },
+          "agentIsolatedForMailUsage": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "aggregationExceptionCoveringType": {
+            "description": "incident aggregation",
+            "enum": [
+              "FULL",
+              "PARTIAL",
+              "NONE"
+            ],
+            "type": "string"
+          },
+          "aggregationName": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "aggregationType": {
+            "description": "incident aggregation",
+            "enum": [
+              "process",
+              "device"
+            ],
+            "type": "string"
+          },
+          "airActionsWrappers": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "type": "object"
+            },
+            "description": "incident aggregation",
+            "type": "object"
+          },
+          "alerts": {
+            "description": "incident aggregation",
+            "items": {
+              "$ref": "#/components/schemas/IncidentAlert"
+            },
+            "type": "array"
+          },
+          "allDevices": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "incident aggregation",
+            "type": "object"
+          },
+          "certificateStatus": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "classification": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "collectorGroups": {
+            "description": "incident aggregation",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "countriesToRemoteIPs": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "incident aggregation",
+            "type": "object"
+          },
+          "destinations": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "destinationsCount": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "device": {
+            "description": "Specifies the device the incident aggregation",
+            "type": "string"
+          },
+          "deviceId": {
+            "description": "Specifies the device id of the incident aggregation",
+            "format": "int32",
+            "type": "integer"
+          },
+          "edrAffectedDevicesCount": {
+            "description": "incident aggregation",
+            "format": "int32",
+            "type": "integer"
+          },
+          "edrEventData": {
+            "$ref": "#/components/schemas/IncidentEDREvent",
+            "description": "incident aggregation"
+          },
+          "edrMaxDeviceEvent": {
+            "description": "incident aggregation",
+            "format": "int32",
+            "type": "integer"
+          },
+          "eventCount": {
+            "description": "incident aggregation",
+            "format": "int32",
+            "type": "integer"
+          },
+          "firstSeen": {
+            "description": "Specifies the first seen of the incident aggregation",
+            "type": "string"
+          },
+          "firstSeenEpoch": {
+            "description": "incident aggregation",
+            "format": "int64",
+            "type": "integer"
+          },
+          "handleComment": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "handled": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "handlingTooltipInfo": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "hash": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "hidden": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "hostState": {
+            "description": "Specifies the host state of the incident aggregation",
+            "type": "string"
+          },
+          "id": {
+            "description": "Specifies the id of the incident aggregation",
+            "format": "int32",
+            "type": "integer"
+          },
+          "inForensics": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "isApplicationControlEvent": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "isXdrEvent": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "isolated": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "lastSeen": {
+            "description": "Specifies the last seen of the incident aggregation",
+            "type": "string"
+          },
+          "lastSeenEpoch": {
+            "description": "incident aggregation",
+            "format": "int64",
+            "type": "integer"
+          },
+          "loggedUsers": {
+            "description": "incident aggregation",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "macAddresses": {
+            "description": "incident aggregation",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "multipleDevices": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "muteEndTime": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "muted": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "organization": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "os": {
+            "description": "Specifies the os of the incident aggregation",
+            "type": "string"
+          },
+          "osFamily": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "process": {
+            "description": "Specifies the process the incident aggregation",
+            "type": "string"
+          },
+          "processId": {
+            "description": "incident aggregation",
+            "format": "int32",
+            "type": "integer"
+          },
+          "processOwner": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "processPath": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "processPathUnformated": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "processScriptModule": {
+            "description": "Specifies the process script module the incident aggregation",
+            "type": "string"
+          },
+          "processScriptModulePath": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "processType": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "rawEvent": {
+            "$ref": "#/components/schemas/IncidentEvent",
+            "description": "incident aggregation"
+          },
+          "rawEventsTotalCount": {
+            "description": "incident aggregation",
+            "format": "int32",
+            "type": "integer"
+          },
+          "read": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "remoteIPsToGeoInfo": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "incident aggregation",
+            "type": "object"
+          },
+          "severity": {
+            "description": "Specifies the severity of the incident aggregation",
+            "enum": [
+              "Critical",
+              "High",
+              "Medium",
+              "Low",
+              "Info",
+              "Debug",
+              "Internal"
+            ],
+            "type": "string"
+          },
+          "showExceptionIndication": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          },
+          "threatFamily": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "threatName": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "threatType": {
+            "description": "incident aggregation",
+            "type": "string"
+          },
+          "viewAllRawItems": {
+            "description": "incident aggregation",
+            "type": "boolean"
+          }
+        },
+        "title": "IncidentAggregation",
+        "type": "object"
+      },
+      "IncidentAlert": {
+        "properties": {
+          "classification": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "displayData": {
+            "$ref": "#/components/schemas/IncidentAlertCalculatedData",
+            "description": "Incident alert"
+          },
+          "enabled": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "hasKeyScript": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Incident alert",
+            "format": "int32",
+            "type": "integer"
+          },
+          "isKeyBinary": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "isKeySigned": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "isProcessSigned": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "key": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "keyCommandLine": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "keyCommandLineExactMatch": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "keyLogicalPath": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "keyPath": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "keyScript": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "keyScriptPath": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "keyVendor": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "originalKey": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "originalKeyCommandLine": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "originalKeyPath": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "originalKeyScript": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "originalKeyScriptPath": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "os": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "parentProcesses": {
+            "description": "Incident alert",
+            "items": {
+              "$ref": "#/components/schemas/IncidentAlertProcess"
+            },
+            "type": "array"
+          },
+          "processVendor": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "ruleName": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "ruleShortName": {
+            "description": "Incident alert",
+            "type": "string"
+          },
+          "selectedAlertProcessUniqueId": {
+            "description": "Incident alert",
+            "format": "int32",
+            "type": "integer"
+          },
+          "severity": {
+            "description": "Incident alert",
+            "enum": [
+              "Critical",
+              "High",
+              "Medium",
+              "Low",
+              "Info",
+              "Debug",
+              "Internal"
+            ],
+            "type": "string"
+          },
+          "stackNums": {
+            "description": "Incident alert",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "useAnyKeyPath": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "useAnyProcessPath": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "useBoth": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "useKey": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "useKeyCommandLine": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "useKeyScript": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "useProcess": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "useProcessCommandLine": {
+            "description": "Incident alert",
+            "type": "boolean"
+          },
+          "useProcessScript": {
+            "description": "Incident alert",
+            "type": "boolean"
+          }
+        },
+        "title": "IncidentAlert",
+        "type": "object"
+      },
+      "IncidentAlertCalculatedData": {
+        "properties": {
+          "executedWith": {
+            "description": "Incident alert calculated data",
+            "type": "string"
+          },
+          "executedWithInUse": {
+            "description": "Incident alert calculated data",
+            "type": "boolean"
+          },
+          "executedWithPath": {
+            "description": "Incident alert calculated data",
+            "type": "string"
+          },
+          "executedWithScript": {
+            "description": "Incident alert calculated data",
+            "type": "string"
+          },
+          "executedWithScriptInUse": {
+            "description": "Incident alert calculated data",
+            "type": "boolean"
+          },
+          "hasKeyScript": {
+            "description": "Incident alert calculated data",
+            "type": "boolean"
+          },
+          "hasProcessScript": {
+            "description": "Incident alert calculated data",
+            "type": "boolean"
+          },
+          "process": {
+            "description": "Incident alert calculated data",
+            "type": "string"
+          },
+          "processCommandLine": {
+            "description": "Incident alert calculated data",
+            "type": "string"
+          },
+          "processCommandLineExactMatch": {
+            "description": "Incident alert calculated data",
+            "type": "boolean"
+          },
+          "processInUse": {
+            "description": "Incident alert calculated data",
+            "type": "boolean"
+          },
+          "processPath": {
+            "description": "Incident alert calculated data",
+            "type": "string"
+          },
+          "processScript": {
+            "description": "Incident alert calculated data",
+            "type": "string"
+          },
+          "processScriptInUse": {
+            "description": "Incident alert calculated data",
+            "type": "boolean"
+          }
+        },
+        "title": "IncidentAlertCalculatedData",
+        "type": "object"
+      },
+      "IncidentAlertProcess": {
+        "properties": {
+          "hasProcessScript": {
+            "description": "Incident alert process",
+            "type": "boolean"
+          },
+          "hasWildcard": {
+            "description": "Incident alert process",
+            "type": "boolean"
+          },
+          "isDefaultProcess": {
+            "description": "Incident alert process",
+            "type": "boolean"
+          },
+          "isDownStreamProcess": {
+            "description": "Incident alert process",
+            "type": "boolean"
+          },
+          "isProcessSigned": {
+            "description": "Incident alert process",
+            "type": "boolean"
+          },
+          "originalProcess": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "originalProcessCommandLine": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "originalProcessPath": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "originalProcessScript": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "originalProcessScriptPath": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "process": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "processCommandLine": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "processCommandLineExactMatch": {
+            "description": "Incident alert process",
+            "type": "boolean"
+          },
+          "processLogicalPath": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "processPath": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "processScript": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "processScriptPath": {
+            "description": "Incident alert process",
+            "type": "string"
+          },
+          "processUniqueId": {
+            "description": "Incident alert process",
+            "format": "int32",
+            "type": "integer"
+          },
+          "processVendor": {
+            "description": "Incident alert process",
+            "type": "string"
+          }
+        },
+        "title": "IncidentAlertProcess",
+        "type": "object"
+      },
+      "IncidentAssignUserRequest": {
+        "properties": {
+          "advancedFilters": {
+            "description": "Specifies advanced filters",
+            "type": "string"
+          },
+          "allSelectedEventsParentIds": {
+            "description": "Meaning all those incidents' events under the filters/search criteria are selected. Specifies the events parent incidents ids",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "endDate": {
+            "description": "Specifies the time filter end date",
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventIds": {
+            "description": "Specifies the IDs of the events",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "freeTextFilters": {
+            "description": "Specifies the free text search filter",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "freeTextSearch": {
+            "description": "Specifies the free text search",
+            "type": "string"
+          },
+          "incidentIds": {
+            "description": "Specifies the id's of the incidents",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "isAllIncidents": {
+            "description": "Specifies the all incidents under the filters/search criteria are selected",
+            "type": "boolean"
+          },
+          "offset": {
+            "description": "Specifies the page offset",
+            "format": "int32",
+            "type": "integer"
+          },
+          "organizationId": {
+            "description": "Specifies the organization id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "pageSize": {
+            "description": "Specifies the page size",
+            "format": "int32",
+            "type": "integer"
+          },
+          "sorting": {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "type": "string"
+          },
+          "startDate": {
+            "description": "Specifies the time filter start date",
+            "format": "int64",
+            "type": "integer"
+          },
+          "statusFilter": {
+            "description": "Specifies the incidents status filter",
+            "enum": [
+              "All",
+              "Handled",
+              "InProgress",
+              "Unhandled"
+            ],
+            "type": "string"
+          },
+          "timeFilter": {
+            "description": "Specifies the incidents time filter",
+            "enum": [
+              "Last7days",
+              "Last30days",
+              "Last90days",
+              "All"
+            ],
+            "type": "string"
+          },
+          "typeFilter": {
+            "description": "Specifies the incidents type filter",
+            "enum": [
+              "All",
+              "SecurityEvents",
+              "DeviceControl",
+              "ApplicationControl",
+              "ThreatHunting"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "description": "Specifies user id to assign",
+            "format": "int32",
+            "type": "integer"
+          },
+          "userName": {
+            "description": "Specifies user name to assign, need for mobile incident",
+            "type": "string"
+          }
+        },
+        "title": "IncidentAssignUserRequest",
+        "type": "object"
+      },
+      "IncidentDisplayItem": {
+        "properties": {
+          "accountId": {
+            "description": "Incident account id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "action": {
+            "description": "Incident action",
+            "enum": [
+              "Log",
+              "Block",
+              "SimulationBlock",
+              "Ignore",
+              "Accept"
+            ],
+            "type": "string"
+          },
+          "assignedUser": {
+            "$ref": "#/components/schemas/GetUserResponse",
+            "description": "Incident assigned user"
+          },
+          "classification": {
+            "description": "Incident classification",
+            "type": "string"
+          },
+          "classificationValue": {
+            "description": "Incident classification value",
+            "type": "string"
+          },
+          "devices": {
+            "description": "Incident devices list",
+            "items": {
+              "$ref": "#/components/schemas/IncidentAgentDisplayItem"
+            },
+            "type": "array"
+          },
+          "eventsNum": {
+            "description": "Incident events num",
+            "format": "int32",
+            "type": "integer"
+          },
+          "firstSeen": {
+            "description": "Incident fist seen",
+            "type": "string"
+          },
+          "hostState": {
+            "description": "Incident host state",
+            "type": "string"
+          },
+          "id": {
+            "description": "Incident id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "incidentAggregationType": {
+            "description": "Incident aggregation type",
+            "enum": [
+              "SecurityEvents",
+              "ApplicationControl",
+              "DeviceControl",
+              "ThreatHunting"
+            ],
+            "type": "string"
+          },
+          "incidentHandlingComment": {
+            "description": "Incident handling comment",
+            "type": "string"
+          },
+          "incidentHandlingState": {
+            "description": "Incident handling state",
+            "enum": [
+              "Handled",
+              "Unhandled",
+              "InProgress"
+            ],
+            "type": "string"
+          },
+          "isXdrEvent": {
+            "description": "Incident is xdr event",
+            "type": "boolean"
+          },
+          "isolated": {
+            "description": "Incident is isolated",
+            "type": "boolean"
+          },
+          "lastSeen": {
+            "description": "Incident last seen",
+            "type": "string"
+          },
+          "modificationStatus": {
+            "description": "Incident modification status",
+            "enum": [
+              "New",
+              "Updated",
+              "None"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "description": "Incident name",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Incident organization name",
+            "type": "string"
+          },
+          "scheduledQueryId": {
+            "description": "Incident scheduled query id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "tags": {
+            "description": "Incident tags list",
+            "items": {
+              "$ref": "#/components/schemas/IncidentTagDisplayItem"
+            },
+            "type": "array"
+          },
+          "type": {
+            "description": "Incident type",
+            "type": "string"
+          }
+        },
+        "title": "IncidentDisplayItem",
+        "type": "object"
+      },
+      "IncidentEDREvent": {
+        "properties": {
+          "affectedDevicesCount": {
+            "description": "Incident EDR event",
+            "format": "int32",
+            "type": "integer"
+          },
+          "categoriesCount": {
+            "description": "Incident EDR event",
+            "type": "object"
+          },
+          "category": {
+            "description": "Incident EDR event",
+            "type": "string"
+          },
+          "devices": {
+            "description": "Incident EDR event",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "fromTime": {
+            "description": "Incident EDR event",
+            "format": "int64",
+            "type": "integer"
+          },
+          "query": {
+            "description": "Incident EDR event",
+            "type": "string"
+          },
+          "queryId": {
+            "description": "Incident EDR event",
+            "format": "int32",
+            "type": "integer"
+          },
+          "toTime": {
+            "description": "Incident EDR event",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "title": "IncidentEDREvent",
+        "type": "object"
+      },
+      "IncidentEvent": {
+        "properties": {
+          "accountId": {
+            "description": "Incident event",
+            "format": "int32",
+            "type": "integer"
+          },
+          "agentExists": {
+            "description": "Incident event",
+            "type": "boolean"
+          },
+          "agentId": {
+            "description": "Incident event",
+            "format": "int32",
+            "type": "integer"
+          },
+          "agentIsolated": {
+            "description": "Incident event",
+            "type": "boolean"
+          },
+          "agentIsolationTime": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "agentVersion": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "aggregation": {
+            "$ref": "#/components/schemas/IncidentAggregation",
+            "description": "Incident event"
+          },
+          "asn": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "automationData": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "certificateStatus": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "collectorGroup": {
+            "description": "Collector group",
+            "type": "string"
+          },
+          "collectorType": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "country": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "countryCode": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "covered": {
+            "description": "Incident event",
+            "type": "boolean"
+          },
+          "destination": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "eventCount": {
+            "description": "Incident event",
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventId": {
+            "description": "Incident event",
+            "format": "int64",
+            "type": "integer"
+          },
+          "firstSeen": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "firstSeenEpoch": {
+            "description": "Incident event",
+            "format": "int64",
+            "type": "integer"
+          },
+          "host": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "hostState": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "id": {
+            "description": "Incident event",
+            "format": "int32",
+            "type": "integer"
+          },
+          "inForensics": {
+            "description": "Incident event",
+            "type": "boolean"
+          },
+          "lastSeen": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "lastSeenEpoch": {
+            "description": "Incident event",
+            "format": "int64",
+            "type": "integer"
+          },
+          "localIP": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "localPort": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "loggedUsers": {
+            "description": "Incident event",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "os": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "osFamily": {
+            "description": "Collector os family",
+            "type": "string"
+          },
+          "persistenceRemediationSupported": {
+            "description": "Incident event",
+            "type": "boolean"
+          },
+          "process": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "processHash": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "processOwner": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "processPath": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "processScriptModule": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "processScriptModulePath": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "processType": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "protocol": {
+            "description": "Incident event",
+            "format": "int32",
+            "type": "integer"
+          },
+          "remediateDevice": {
+            "description": "Incident event",
+            "type": "object"
+          },
+          "remoteIP": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "remoteUrl": {
+            "description": "Incident event",
+            "type": "string"
+          },
+          "stacks": {
+            "description": "Incident event",
+            "items": {
+              "$ref": "#/components/schemas/IncidentStack"
+            },
+            "type": "array"
+          },
+          "xdrData": {
+            "description": "Incident event",
+            "type": "string"
+          }
+        },
+        "title": "IncidentEvent",
+        "type": "object"
+      },
+      "IncidentEventHistoryDisplayItem": {
+        "properties": {
+          "classification": {
+            "description": "Specifies a handle event classification.",
+            "enum": [
+              "ClassificationMalicious",
+              "ClassificationProbablyMalicious",
+              "ClassificationPup",
+              "ClassificationInconclusive",
+              "ClassificationProbablyGood",
+              "ClassificationGood"
+            ],
+            "type": "string"
+          },
+          "comment": {
+            "description": "Specifies a handle event comment.",
+            "type": "string"
+          },
+          "entityHistoryType": {
+            "description": "Specifies entity history type - event / incident",
+            "enum": [
+              "Incident",
+              "Event"
+            ],
+            "type": "string"
+          },
+          "entityId": {
+            "description": "Specifies event / incident id - depend on entity history type",
+            "format": "int32",
+            "type": "integer"
+          },
+          "handleStatus": {
+            "description": "Specifies a handle event state.",
+            "enum": [
+              "Handled",
+              "Unhandled",
+              "InProgress"
+            ],
+            "type": "string"
+          },
+          "handledAt": {
+            "description": "Specifies a handle event time.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "handledBy": {
+            "description": "Specifies a user which handled the event.",
+            "type": "string"
+          },
+          "operations": {
+            "description": "Specifies a classification operations.",
+            "items": {
+              "$ref": "#/components/schemas/OperationHistoryDisplayItem"
+            },
+            "type": "array"
+          }
+        },
+        "title": "IncidentEventHistoryDisplayItem",
+        "type": "object"
+      },
+      "IncidentModificationStatusRequest": {
+        "properties": {
+          "incidentId": {
+            "description": "Specifies incident id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "modificationStatus": {
+            "description": "Specifies the incident modification status to update",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization"
+        ],
+        "title": "IncidentModificationStatusRequest",
+        "type": "object"
+      },
+      "IncidentPersistenceData": {
+        "properties": {
+          "key": {
+            "description": "Incident Persistence Data",
+            "type": "string"
+          },
+          "valueName": {
+            "description": "Incident Persistence Data",
+            "type": "string"
+          },
+          "valueNewContent": {
+            "description": "Incident Persistence Data",
+            "type": "string"
+          },
+          "valueNewType": {
+            "description": "Incident Persistence Data",
+            "type": "object"
+          },
+          "valueOrgContent": {
+            "description": "Incident Persistence Data",
+            "type": "string"
+          },
+          "valueOrgType": {
+            "description": "Incident Persistence Data",
+            "type": "object"
+          }
+        },
+        "title": "IncidentPersistenceData",
+        "type": "object"
+      },
+      "IncidentProcessDisplayItem": {
+        "properties": {
+          "process": {
+            "description": "Incident process name",
+            "type": "string"
+          },
+          "shortProcessName": {
+            "description": "Incident short process name",
+            "type": "string"
+          },
+          "signingStatus": {
+            "description": "Incident process signing status",
+            "type": "string"
+          }
+        },
+        "title": "IncidentProcessDisplayItem",
+        "type": "object"
+      },
+      "IncidentStack": {
+        "properties": {
+          "auxProcessId": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "auxProcessName": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "auxSessionId": {
+            "description": "Incident stack",
+            "type": "integer"
+          },
+          "auxThreadId": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "certificateStatus": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "commandLine": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "comments": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "company": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "description": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "destinationProcessPath": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "executableHash": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "highlighted": {
+            "description": "Incident stack",
+            "type": "boolean"
+          },
+          "injectedModule": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "is64Bit": {
+            "description": "Incident stack",
+            "type": "boolean"
+          },
+          "persistenceData": {
+            "$ref": "#/components/schemas/IncidentPersistenceData",
+            "description": "Incident stack"
+          },
+          "processId": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "product": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "sessionId": {
+            "description": "Incident stack",
+            "type": "integer"
+          },
+          "shortSourceProcessName": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "sourceProcessOwner": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "sourceProcessPath": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "stackEntries": {
+            "description": "Incident stack",
+            "items": {
+              "$ref": "#/components/schemas/IncidentStackEntry"
+            },
+            "type": "array"
+          },
+          "stackInfoFlags": {
+            "description": "Incident stack",
+            "type": "integer"
+          },
+          "stackNum": {
+            "description": "Incident stack",
+            "format": "int32",
+            "type": "integer"
+          },
+          "stageName": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "threadId": {
+            "description": "Incident stack",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "Incident stack",
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "description": "Incident stack",
+            "type": "string"
+          }
+        },
+        "title": "IncidentStack",
+        "type": "object"
+      },
+      "IncidentStackEntry": {
+        "properties": {
+          "baseAddress": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "certificateStatus": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "commonAdditionalInfo": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "dynamicFlags": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "endAddress": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "eventCount": {
+            "description": "Incident stack entry",
+            "format": "int64",
+            "type": "integer"
+          },
+          "hash": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "highlighted": {
+            "description": "Incident stack entry",
+            "type": "boolean"
+          },
+          "isWritable": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "lastModified": {
+            "description": "Incident stack entry",
+            "format": "int64",
+            "type": "integer"
+          },
+          "main": {
+            "description": "Incident stack entry",
+            "type": "boolean"
+          },
+          "moduleFlags": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "originModuleFlags": {
+            "description": "Incident stack entry",
+            "type": "integer"
+          },
+          "peErrorFlags": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "processPath": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "rulesNames": {
+            "description": "Incident stack entry",
+            "type": "string"
+          },
+          "shortProcessName": {
+            "description": "Incident stack entry",
+            "type": "string"
+          }
+        },
+        "title": "IncidentStackEntry",
+        "type": "object"
+      },
+      "IncidentTagDisplayItem": {
+        "properties": {
+          "accountId": {
+            "description": "Account id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Tag id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Tag name",
+            "type": "string"
+          }
+        },
+        "title": "IncidentTagDisplayItem",
+        "type": "object"
+      },
+      "IncidentTagRequest": {
+        "properties": {
+          "tagName": {
+            "description": "Tag name required data to save",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tagName"
+        ],
+        "title": "IncidentTagRequest",
+        "type": "object"
+      },
+      "MapOfstringAndobject": {
+        "additionalProperties": {
+          "type": "object"
+        },
+        "title": "MapOfstringAndobject",
+        "type": "object"
+      },
+      "MitreTagDisplayItem": {
+        "properties": {
+          "id": {
+            "description": "The ",
+            "type": "string"
+          },
+          "name": {
+            "description": "The ",
+            "type": "string"
+          },
+          "osfamily": {
+            "description": "The ",
+            "type": "string"
+          },
+          "url": {
+            "description": "The ",
+            "type": "string"
+          }
+        },
+        "title": "MitreTagDisplayItem",
+        "type": "object"
+      },
+      "OperationHistoryDisplayItem": {
+        "properties": {
+          "actionType": {
+            "description": "The ",
+            "enum": [
+              "SendMailNotification",
+              "SendSyslogNotification",
+              "OpenTicket",
+              "IsolateDevice",
+              "NacIsolateDevice",
+              "MoveToGroup",
+              "DisableUserAccount",
+              "TagDevice",
+              "TerminateProcess",
+              "DeleteFile",
+              "CleanPersistenceData",
+              "BlockAddressOnFirewall",
+              "ResetUserPassword",
+              "SendSoarCommand",
+              "CustomSoarAction"
+            ],
+            "type": "string"
+          },
+          "devices": {
+            "description": "The ",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "occurrencies": {
+            "description": "The ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "simulation": {
+            "description": "The ",
+            "type": "boolean"
+          },
+          "statisticsHtmlMessage": {
+            "description": "The ",
+            "type": "string"
+          },
+          "statisticsMessage": {
+            "description": "The ",
+            "type": "string"
+          },
+          "uniqueMessageParameters": {
+            "description": "The ",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "title": "OperationHistoryDisplayItem",
+        "type": "object"
+      },
+      "PolicyAndRuleDisplayItem": {
+        "properties": {
+          "id": {
+            "description": "The ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "The name",
+            "type": "string"
+          },
+          "policyType": {
+            "description": "The policy type",
+            "type": "string"
+          },
+          "rules": {
+            "description": "The events screen rule display item",
+            "items": {
+              "$ref": "#/components/schemas/EventsScreenRuleDisplayItem"
+            },
+            "type": "array"
+          }
+        },
+        "title": "PolicyAndRuleDisplayItem",
+        "type": "object"
+      },
+      "ProgressBarBean": {
+        "properties": {
+          "childrenProgressPrecentage": {
+            "description": "Specifies the children progress percentage",
+            "format": "double",
+            "type": "number"
+          },
+          "data": {
+            "description": "Specifies the data ",
+            "type": "object"
+          },
+          "errorsInfos": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/MapOfstringAndobject"
+              },
+              "type": "array"
+            },
+            "description": "Specifies the errors infos",
+            "type": "object"
+          },
+          "failedChildren": {
+            "description": "Specifies the number of failed children",
+            "format": "int32",
+            "type": "integer"
+          },
+          "finishedChildren": {
+            "description": "Specifies the number of finished children",
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Specifies the Progress Bar Bean ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastActivityTime": {
+            "description": "Specifies the last activity time",
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "description": "Specifies the message",
+            "type": "string"
+          },
+          "messageIsFinal": {
+            "description": "Specifies if the message is final ",
+            "type": "boolean"
+          },
+          "numberOfChildren": {
+            "description": "Specifies the number of children ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "optionalMessage": {
+            "description": "Specifies the optional message",
+            "type": "string"
+          },
+          "percentage": {
+            "description": "Specifies the Progress Bar Bean Percentage",
+            "format": "double",
+            "type": "number"
+          },
+          "status": {
+            "description": "Specifies the Progress Bar Bean ID",
+            "enum": [
+              "InProgress",
+              "FinishedSuccessfully",
+              "FinishedWithWarning",
+              "Failed",
+              "Cancelled"
+            ],
+            "type": "string"
+          },
+          "successChildren": {
+            "description": "Specifies the number of success children",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "title": "ProgressBarBean",
+        "type": "object"
+      },
+      "SearchResultOfIncidentDisplayItem": {
+        "properties": {
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentDisplayItem"
+            },
+            "type": "array"
+          },
+          "totalCount": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "title": "SearchResultOfIncidentDisplayItem",
+        "type": "object"
+      },
+      "SearchResultOfIncidentEvent": {
+        "properties": {
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentEvent"
+            },
+            "type": "array"
+          },
+          "totalCount": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "title": "SearchResultOfIncidentEvent",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/incidents": {
+      "delete": {
+        "deprecated": false,
+        "description": "Delete incidents",
+        "operationId": "delete_incidents",
+        "parameters": [
+          {
+            "description": "Specifies advanced filters",
+            "in": "query",
+            "name": "advancedFilters",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Meaning all those incidents' events under the filters/search criteria are selected. Specifies the events parent incidents ids",
+            "explode": true,
+            "in": "query",
+            "name": "allSelectedEventsParentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the time filter end date",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the IDs of the events",
+            "explode": true,
+            "in": "query",
+            "name": "eventIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the free text search filter",
+            "explode": true,
+            "in": "query",
+            "name": "freeTextFilters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the free text search",
+            "in": "query",
+            "name": "freeTextSearch",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the id's of the incidents",
+            "explode": true,
+            "in": "query",
+            "name": "incidentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the all incidents under the filters/search criteria are selected",
+            "in": "query",
+            "name": "isAllIncidents",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the page offset",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the organization id",
+            "in": "query",
+            "name": "organizationId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the page size",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the time filter start date",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the incidents status filter",
+            "in": "query",
+            "name": "statusFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "Handled",
+                "InProgress",
+                "Unhandled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the incidents time filter",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last7days",
+                "Last30days",
+                "Last90days",
+                "All"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the incidents type filter",
+            "in": "query",
+            "name": "typeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "SecurityEvents",
+                "DeviceControl",
+                "ApplicationControl",
+                "ThreatHunting"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "incidents",
+        "tags": [
+          "Incidents"
+        ]
+      },
+      "get": {
+        "deprecated": false,
+        "description": "Get incidents",
+        "operationId": "get_incidents",
+        "parameters": [
+          {
+            "description": "Specifies advanced filters",
+            "in": "query",
+            "name": "advancedFilters",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Meaning all those incidents' events under the filters/search criteria are selected. Specifies the events parent incidents ids",
+            "explode": true,
+            "in": "query",
+            "name": "allSelectedEventsParentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the time filter end date",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the IDs of the events",
+            "explode": true,
+            "in": "query",
+            "name": "eventIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the free text search filter",
+            "explode": true,
+            "in": "query",
+            "name": "freeTextFilters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the free text search",
+            "in": "query",
+            "name": "freeTextSearch",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the id's of the incidents",
+            "explode": true,
+            "in": "query",
+            "name": "incidentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the all incidents under the filters/search criteria are selected",
+            "in": "query",
+            "name": "isAllIncidents",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the page offset",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the organization id",
+            "in": "query",
+            "name": "organizationId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the page size",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the time filter start date",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the incidents status filter",
+            "in": "query",
+            "name": "statusFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "Handled",
+                "InProgress",
+                "Unhandled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the tags",
+            "explode": true,
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the tags ids",
+            "explode": true,
+            "in": "query",
+            "name": "tagsIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the incidents time filter",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last7days",
+                "Last30days",
+                "Last90days",
+                "All"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the incidents type filter",
+            "in": "query",
+            "name": "typeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "SecurityEvents",
+                "DeviceControl",
+                "ApplicationControl",
+                "ThreatHunting"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResultOfIncidentDisplayItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "incidents",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/assign-user": {
+      "post": {
+        "deprecated": false,
+        "description": "update modification status",
+        "operationId": "incidents_assign_user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncidentAssignUserRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update modification status",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/events/handle": {
+      "put": {
+        "deprecated": false,
+        "description": "Handle events",
+        "operationId": "update_incidents_events_handle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandleEventsRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "events-handle",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/events/{eventId}": {
+      "get": {
+        "deprecated": false,
+        "description": "Get event by id",
+        "operationId": "get_incidents_events_event_id",
+        "parameters": [
+          {
+            "description": "eventId",
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get event by id",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/events/{eventId}/raw-events": {
+      "get": {
+        "deprecated": false,
+        "description": "Get raw events",
+        "operationId": "get_incidents_events_event_id_raw_events",
+        "parameters": [
+          {
+            "description": "advancedFilters",
+            "in": "query",
+            "name": "advancedFilters",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "eventId",
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "freeTextFilters",
+            "explode": true,
+            "in": "query",
+            "name": "freeTextFilters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "freeTextSearch",
+            "in": "query",
+            "name": "freeTextSearch",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "offset",
+            "in": "query",
+            "name": "offset",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "organizationId",
+            "in": "query",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "pageSize",
+            "in": "query",
+            "name": "pageSize",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "sorting",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "statusFilter",
+            "in": "query",
+            "name": "statusFilter",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "timeFilter",
+            "in": "query",
+            "name": "timeFilter",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "typeFilter",
+            "in": "query",
+            "name": "typeFilter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResultOfIncidentEvent"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "raw-events",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/generate-report": {
+      "post": {
+        "deprecated": false,
+        "description": "exports incidents",
+        "operationId": "incidents_generate_report",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaseIncidentsRequest"
+              }
+            }
+          },
+          "description": "reportRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressBarBean"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "incidents",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/incident-handle": {
+      "put": {
+        "deprecated": false,
+        "description": "Handle incidents",
+        "operationId": "update_incidents_incident_handle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandleIncidentRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "incident-handle",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/modification-status": {
+      "post": {
+        "deprecated": false,
+        "description": "update modification status",
+        "operationId": "create_incidents_modification_status",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncidentModificationStatusRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update modification status",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/search-info": {
+      "get": {
+        "deprecated": false,
+        "description": "Get incidents search info",
+        "operationId": "get_incidents_search_info",
+        "parameters": [
+          {
+            "description": "organization",
+            "in": "query",
+            "name": "organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "search info",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/tags": {
+      "delete": {
+        "deprecated": false,
+        "description": "Deletes incident tags",
+        "operationId": "delete_incidents_tags",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "organizationId"
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "tags",
+        "tags": [
+          "Incidents"
+        ]
+      },
+      "get": {
+        "deprecated": false,
+        "description": "Return incident tags by organization",
+        "operationId": "get_incidents_tags",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "organizationId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentTagDisplayItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get tags",
+        "tags": [
+          "Incidents"
+        ]
+      },
+      "post": {
+        "deprecated": false,
+        "description": "Create incidents tag",
+        "operationId": "create_incidents_tags",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "organizationId"
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentTagDisplayItem"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "tag",
+        "tags": [
+          "Incidents"
+        ]
+      },
+      "put": {
+        "deprecated": false,
+        "description": "Update incidents tag name",
+        "operationId": "update_incidents_tags",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncidentTagRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentTagDisplayItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "tag",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/{incidentId}": {
+      "get": {
+        "deprecated": false,
+        "description": "Get incident by id",
+        "operationId": "get_incidents_incident_id",
+        "parameters": [
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDisplayItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get incident by id",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/{incidentId}/audit-history": {
+      "get": {
+        "deprecated": false,
+        "description": "get incident audit history",
+        "operationId": "get_incidents_incident_id_audit_history",
+        "parameters": [
+          {
+            "description": "events",
+            "explode": true,
+            "in": "query",
+            "name": "events",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentEventHistoryDisplayItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get incident audit history",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/{incidentId}/events": {
+      "get": {
+        "deprecated": false,
+        "description": "Get events",
+        "operationId": "get_incidents_incident_id_events",
+        "parameters": [
+          {
+            "description": "advancedFilters",
+            "in": "query",
+            "name": "advancedFilters",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "freeTextFilters",
+            "explode": true,
+            "in": "query",
+            "name": "freeTextFilters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "freeTextSearch",
+            "in": "query",
+            "name": "freeTextSearch",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "offset",
+            "in": "query",
+            "name": "offset",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "organizationId",
+            "in": "query",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "pageSize",
+            "in": "query",
+            "name": "pageSize",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "sorting",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "statusFilter",
+            "in": "query",
+            "name": "statusFilter",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "timeFilter",
+            "in": "query",
+            "name": "timeFilter",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "typeFilter",
+            "in": "query",
+            "name": "typeFilter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "events",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/{incidentId}/policies": {
+      "get": {
+        "deprecated": false,
+        "description": "get incident related policies",
+        "operationId": "get_incidents_incident_id_policies",
+        "parameters": [
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PolicyAndRuleDisplayItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get incident related policies",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/{incidentId}/processes": {
+      "get": {
+        "deprecated": false,
+        "description": "get incident related processes",
+        "operationId": "get_incidents_incident_id_processes",
+        "parameters": [
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentProcessDisplayItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get incident related processes",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    },
+    "/api/incidents/{incidentId}/tags": {
+      "get": {
+        "deprecated": false,
+        "description": "Return incident's tags",
+        "operationId": "get_incidents_incident_id_tags",
+        "parameters": [
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentTagDisplayItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get tags",
+        "tags": [
+          "Incidents"
+        ]
+      },
+      "post": {
+        "deprecated": false,
+        "description": "Return incident's tags",
+        "operationId": "create_incidents_incident_id_tags",
+        "parameters": [
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "tagsIds",
+            "explode": true,
+            "in": "query",
+            "name": "tagsIds",
+            "required": true,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get tags",
+        "tags": [
+          "Incidents"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Incidents Rest Api Controller",
+      "name": "Incidents"
+    }
+  ]
+}

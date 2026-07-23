@@ -1,0 +1,3056 @@
+{
+  "components": {
+    "schemas": {
+      "BaseCollectorsResponse": {
+        "properties": {
+          "accountName": {
+            "description": "Organization name (Deprecated)",
+            "type": "string"
+          },
+          "cloudAccount": {
+            "description": "Cloud account",
+            "type": "string"
+          },
+          "cloudProvider": {
+            "description": "Cloud provider",
+            "type": "string"
+          },
+          "cluster": {
+            "description": "Cluster",
+            "type": "string"
+          },
+          "collectorGroupName": {
+            "description": "Device group name",
+            "type": "string"
+          },
+          "id": {
+            "description": "Device id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "ipAddress": {
+            "description": "IP address",
+            "type": "string"
+          },
+          "lastSeenTime": {
+            "description": "Last time device was enabled",
+            "type": "string"
+          },
+          "macAddresses": {
+            "description": "MAC addresses",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Device name",
+            "type": "string"
+          },
+          "operatingSystem": {
+            "description": "Operation system",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Organization name",
+            "type": "string"
+          },
+          "state": {
+            "description": "Device state",
+            "type": "string"
+          }
+        },
+        "title": "BaseCollectorsResponse",
+        "type": "object"
+      },
+      "CollectorInstallerResponse": {
+        "properties": {
+          "osFamily": {
+            "description": "OS",
+            "type": "string"
+          },
+          "version": {
+            "description": "version",
+            "type": "string"
+          }
+        },
+        "title": "CollectorInstallerResponse",
+        "type": "object"
+      },
+      "CreateCustomCollectorEMSResponse": {
+        "properties": {
+          "customInstallerID": {
+            "description": "The custom installer request id",
+            "type": "string"
+          }
+        },
+        "title": "CreateCustomCollectorEMSResponse",
+        "type": "object"
+      },
+      "CustomCollectorResponse": {
+        "properties": {
+          "customInstallerID": {
+            "description": "The custom installer request id",
+            "type": "string"
+          },
+          "error": {
+            "description": "Custom installer request error",
+            "type": "string"
+          },
+          "status": {
+            "description": "Custom installer request status",
+            "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "FAILURE",
+              "SUCCESS"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "description": "Custom installer url",
+            "type": "string"
+          }
+        },
+        "title": "CustomCollectorResponse",
+        "type": "object"
+      },
+      "GetAggregatorsResponse": {
+        "properties": {
+          "hostName": {
+            "description": "Aggregator host name",
+            "type": "string"
+          },
+          "id": {
+            "description": "Aggregator id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "ipAddress": {
+            "description": "Aggregator ip",
+            "type": "string"
+          },
+          "numOfAgents": {
+            "description": "Aggregator number of collectors",
+            "format": "int32",
+            "type": "integer"
+          },
+          "numOfDownAgents": {
+            "description": "Aggregator number of collectors down",
+            "format": "int32",
+            "type": "integer"
+          },
+          "organization": {
+            "description": "The organization of the aggregator",
+            "type": "string"
+          },
+          "state": {
+            "description": "Aggregator state",
+            "type": "string"
+          },
+          "version": {
+            "description": "Aggregator version",
+            "type": "string"
+          }
+        },
+        "title": "GetAggregatorsResponse",
+        "type": "object"
+      },
+      "GetCollectorGroupsResponse": {
+        "properties": {
+          "id": {
+            "description": "Collector group id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Collector group name",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Organization name",
+            "type": "string"
+          },
+          "targetVersions": {
+            "description": "Collector group target versions",
+            "items": {
+              "$ref": "#/components/schemas/CollectorInstallerResponse"
+            },
+            "type": "array"
+          }
+        },
+        "title": "GetCollectorGroupsResponse",
+        "type": "object"
+      },
+      "GetCollectorsResponse": {
+        "properties": {
+          "accountName": {
+            "description": "Organization name (Deprecated)",
+            "type": "string"
+          },
+          "cloudAccount": {
+            "description": "Cloud account",
+            "type": "string"
+          },
+          "cloudProvider": {
+            "description": "Cloud provider",
+            "type": "string"
+          },
+          "cluster": {
+            "description": "Cluster",
+            "type": "string"
+          },
+          "collectorGroupName": {
+            "description": "Device group name",
+            "type": "string"
+          },
+          "crashDumps": {
+            "description": "Crash dumps",
+            "type": "string"
+          },
+          "degradedReason": {
+            "description": "Degraded reason",
+            "type": "string"
+          },
+          "domainDnsName": {
+            "description": "Domain DNS Name",
+            "type": "string"
+          },
+          "domainSID": {
+            "description": "Domain SID",
+            "type": "string"
+          },
+          "id": {
+            "description": "Device id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "ipAddress": {
+            "description": "IP address",
+            "type": "string"
+          },
+          "isInDomain": {
+            "description": "Is In Domain",
+            "type": "boolean"
+          },
+          "lastSeenTime": {
+            "description": "Last time collector was enabled",
+            "type": "string"
+          },
+          "loggedUsers": {
+            "description": "Logged users",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "macAddresses": {
+            "description": "MAC addresses",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "machineSID": {
+            "description": "Machine SID",
+            "type": "string"
+          },
+          "name": {
+            "description": "Device name",
+            "type": "string"
+          },
+          "operatingSystem": {
+            "description": "Operation system",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Organization name",
+            "type": "string"
+          },
+          "osFamily": {
+            "description": "OS family",
+            "type": "string"
+          },
+          "state": {
+            "description": "Device state",
+            "type": "string"
+          },
+          "stateAdditionalInfo": {
+            "description": "More information as for the Collector state",
+            "type": "string"
+          },
+          "systemInformation": {
+            "description": "System Information",
+            "type": "string"
+          },
+          "version": {
+            "description": "Collector version",
+            "type": "string"
+          }
+        },
+        "title": "GetCollectorsResponse",
+        "type": "object"
+      },
+      "GetCoresResponse": {
+        "properties": {
+          "crashDumps": {
+            "description": "Crash dumps",
+            "type": "string"
+          },
+          "degradedReason": {
+            "description": "Degraded reason",
+            "type": "string"
+          },
+          "deploymentMode": {
+            "description": "Core deployment mode",
+            "type": "string"
+          },
+          "functionality": {
+            "description": "Functionality",
+            "type": "string"
+          },
+          "id": {
+            "description": "Core ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "ip": {
+            "description": "Core ip",
+            "type": "string"
+          },
+          "name": {
+            "description": "Core name",
+            "type": "string"
+          },
+          "organization": {
+            "description": "The organization of the Core",
+            "type": "string"
+          },
+          "status": {
+            "description": "Core status",
+            "type": "string"
+          },
+          "version": {
+            "description": "Core version",
+            "type": "string"
+          }
+        },
+        "title": "GetCoresResponse",
+        "type": "object"
+      },
+      "GetEdrsResponse": {
+        "properties": {
+          "ipAddress": {
+            "description": "IP address",
+            "type": "string"
+          },
+          "status": {
+            "description": "Repository status",
+            "type": "string"
+          }
+        },
+        "title": "GetEdrsResponse",
+        "type": "object"
+      },
+      "InputStream": {
+        "title": "InputStream",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/inventory/aggregator-logs": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call retrieves a aggregator logs",
+        "operationId": "get_inventory_aggregator_logs",
+        "parameters": [
+          {
+            "description": "Specifies the name of the device",
+            "in": "query",
+            "name": "device",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the ID of the device",
+            "in": "query",
+            "name": "deviceId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputStream"
+                }
+              }
+            },
+            "description": "This operation results in a file stream (binary data), which is a .zip file"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "aggregator-logs",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/check-custom-installer": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call for checking the results for an custom installer request and getting the installer url",
+        "operationId": "get_inventory_check_custom_installer",
+        "parameters": [
+          {
+            "description": "customInstallerID",
+            "in": "query",
+            "name": "customInstallerID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomCollectorResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "check-custom-installer",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/collector-logs": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call retrieves a collector logs",
+        "operationId": "get_inventory_collector_logs",
+        "parameters": [
+          {
+            "description": "Specifies the name of the device",
+            "in": "query",
+            "name": "device",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the ID of the device",
+            "in": "query",
+            "name": "deviceId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputStream"
+                }
+              }
+            },
+            "description": "This operation results in a file stream (binary data), which is a .zip file"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "collector-logs",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/core-logs": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call retrieves a core logs",
+        "operationId": "get_inventory_core_logs",
+        "parameters": [
+          {
+            "description": "Specifies the name of the device",
+            "in": "query",
+            "name": "device",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the ID of the device",
+            "in": "query",
+            "name": "deviceId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputStream"
+                }
+              }
+            },
+            "description": "This operation results in a file stream (binary data), which is a .zip file"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "core-logs",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/create-collector-group": {
+      "post": {
+        "deprecated": false,
+        "description": "This API call create collector group",
+        "operationId": "inventory_create_collector_group",
+        "parameters": [
+          {
+            "description": "Collector group name",
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "create-collector-group",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/create-ems-custom-installer": {
+      "post": {
+        "deprecated": false,
+        "description": "This API call sends request for creating custom-installer for EMS integration",
+        "operationId": "inventory_create_ems_custom_installer",
+        "parameters": [
+          {
+            "description": "Specifies the aggregator ip or dns address",
+            "in": "query",
+            "name": "aggregatorAddress",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the aggregator port",
+            "in": "query",
+            "name": "aggregatorPort",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies whether the collector installed with citrix in pvs mode",
+            "in": "query",
+            "name": "citrixPVS",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the requested collector group",
+            "in": "query",
+            "name": "collectorGroup",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the requested collector version",
+            "in": "query",
+            "name": "collectorVersion",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the Linux distribution. For example: CentOS_6, CentOS_7, CentOS_8, CentOS_9, Amazon, Oracle_6, Oracle_7, Oracle_8, SLES_12, SLES_15, Ubuntu_16.04, Ubuntu_18.04, Ubuntu_20.04, Ubuntu_22.04",
+            "in": "query",
+            "name": "distro",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the Windows os bit version",
+            "in": "query",
+            "name": "is64bit",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the requested organization",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the operating system type",
+            "in": "query",
+            "name": "osType",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Windows",
+                "macOs",
+                "Linux"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the system proxy settings (Only applies to Collector versions 3.1 and above)",
+            "in": "query",
+            "name": "proxy",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the VDI (Virtual Desktop Infrastructure) installation",
+            "in": "query",
+            "name": "vdi",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCustomCollectorEMSResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "create-ems-custom-installer",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/delete-collectors": {
+      "delete": {
+        "deprecated": false,
+        "description": "This API call deletes a Collector(s)",
+        "operationId": "inventory_delete_collectors",
+        "parameters": [
+          {
+            "description": "Specifies the list cloud account names",
+            "explode": true,
+            "in": "query",
+            "name": "cloudAccounts",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of cloud providers: AWS, Azure, GCP",
+            "explode": true,
+            "in": "query",
+            "name": "cloudProviders",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of cluster",
+            "explode": true,
+            "in": "query",
+            "name": "clusters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of collector group names and retrieves collectors under the\ngiven groups",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroups",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of collector group Ids and retrieves collectors under the\ngiven groups",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroupsIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the group types of the collectors. Types: All, Collector, Workloads. All by default",
+            "in": "query",
+            "name": "collectorType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A true/false parameter indicating if to detach/delete relevant exceptions from Collector groups about to be deleted",
+            "in": "query",
+            "name": "confirmDeletion",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "A true/false parameter indicating if all collectors should be deleted",
+            "in": "query",
+            "name": "deleteAll",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of device names",
+            "explode": true,
+            "in": "query",
+            "name": "devices",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of device ids",
+            "explode": true,
+            "in": "query",
+            "name": "devicesIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Retrieves collectors that were first seen after the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "firstSeen",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retrieves collectors that have crash dumps",
+            "in": "query",
+            "name": "hasCrashDumps",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of IP values",
+            "explode": true,
+            "in": "query",
+            "name": "ips",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "in": "query",
+            "name": "itemsPerPage",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were last seen before the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "lastSeenEnd",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were last seen after the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "lastSeenStart",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the user that was logged when the event occurred",
+            "in": "query",
+            "name": "loggedUser",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of specific operating systems. For example, Windows 7 Pro",
+            "explode": true,
+            "in": "query",
+            "name": "operatingSystems",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.\n",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of operating system families: Windows, Windows Server or OS X",
+            "explode": true,
+            "in": "query",
+            "name": "osFamilies",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "An integer used for paging that indicates the required page number",
+            "in": "query",
+            "name": "pageNumber",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies whether to include collectors which have been disconnected for more than 30 days (sequentially) and are marked as Expired",
+            "in": "query",
+            "name": "showExpired",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of collector states: Running, Disconnected, Disabled, Degraded, \nPending Reboot, Isolated, Expired, Migrated or Pending Migration",
+            "explode": true,
+            "in": "query",
+            "name": "states",
+            "required": false,
+            "schema": {
+              "enum": [
+                "New",
+                "Selected",
+                "Running",
+                "Disabled",
+                "Degraded",
+                "Disconnected",
+                "Registered",
+                "Uninstalling",
+                "Unmanaged",
+                "Isolated",
+                "Expired",
+                "RebootPending",
+                "PendingMigration",
+                "Migrated"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "in": "query",
+            "name": "strictMode",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of collector versions",
+            "explode": true,
+            "in": "query",
+            "name": "versions",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "delete-collectors",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/ems-move-collectors": {
+      "put": {
+        "deprecated": false,
+        "description": "This API call move collector between groups for EMS integration",
+        "operationId": "inventory_ems_move_collectors",
+        "parameters": [
+          {
+            "description": "value = Array of collectors Ids. To move collectors from one organization to another",
+            "explode": true,
+            "in": "query",
+            "name": "collectorIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "value = Array of collectors SIDS. To move collectors from one organization to another",
+            "explode": true,
+            "in": "query",
+            "name": "collectorSIDs",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Array of collectors names. To move collectors from one organization to another, for each collector please add the organization name before the collector name (<organization-name>//<collector-name>)",
+            "explode": true,
+            "in": "query",
+            "name": "collectors",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Indicates whether to force the assignment even if the organization of the target Collector group is under migration",
+            "in": "query",
+            "name": "forceAssign",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Collector group. To move collectors from one organization to another, please add the organization name before the target collector group (<organization-name>//<collector-group-name>)",
+            "in": "query",
+            "name": "targetCollectorGroup",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "ems-move-collectors",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/isolate-collectors": {
+      "put": {
+        "deprecated": false,
+        "description": "This API call isolate collector functionality",
+        "operationId": "inventory_isolate_collectors",
+        "parameters": [
+          {
+            "description": "Specifies the list of device names",
+            "explode": true,
+            "in": "query",
+            "name": "devices",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of device ids",
+            "explode": true,
+            "in": "query",
+            "name": "devicesIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "isolate-collectors",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/list-aggregators": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call output the list of aggregators",
+        "operationId": "get_inventory_list_aggregators",
+        "parameters": [
+          {
+            "description": "IP",
+            "in": "query",
+            "name": "ip",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "List of aggregators names",
+            "explode": true,
+            "in": "query",
+            "name": "names",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "List of aggregators versions",
+            "explode": true,
+            "in": "query",
+            "name": "versions",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetAggregatorsResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-aggregators",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/list-collector-groups": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call output the collectors groups",
+        "operationId": "get_inventory_list_collector_groups",
+        "parameters": [
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetCollectorGroupsResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-collector-groups",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/list-collectors": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call outputs a list of the Collectors in the system. Use the input parameters to filter the list",
+        "operationId": "get_inventory_list_collectors",
+        "parameters": [
+          {
+            "description": "Specifies the list cloud account names",
+            "explode": true,
+            "in": "query",
+            "name": "cloudAccounts",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of cloud providers: AWS, Azure, GCP",
+            "explode": true,
+            "in": "query",
+            "name": "cloudProviders",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of cluster",
+            "explode": true,
+            "in": "query",
+            "name": "clusters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of collector group names and retrieves collectors under the\ngiven groups",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroups",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of collector group Ids and retrieves collectors under the\ngiven groups",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroupsIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the group types of the collectors. Types: All, Collector, Workloads. All by default",
+            "in": "query",
+            "name": "collectorType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of device names",
+            "explode": true,
+            "in": "query",
+            "name": "devices",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of device ids",
+            "explode": true,
+            "in": "query",
+            "name": "devicesIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Retrieves collectors that were first seen after the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "firstSeen",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retrieves collectors that have crash dumps",
+            "in": "query",
+            "name": "hasCrashDumps",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of IP values",
+            "explode": true,
+            "in": "query",
+            "name": "ips",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "in": "query",
+            "name": "itemsPerPage",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were last seen before the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "lastSeenEnd",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were last seen after the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "lastSeenStart",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the user that was logged when the event occurred",
+            "in": "query",
+            "name": "loggedUser",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of specific operating systems. For example, Windows 7 Pro",
+            "explode": true,
+            "in": "query",
+            "name": "operatingSystems",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.\n",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of operating system families: Windows, Windows Server or OS X",
+            "explode": true,
+            "in": "query",
+            "name": "osFamilies",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "An integer used for paging that indicates the required page number",
+            "in": "query",
+            "name": "pageNumber",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies whether to include collectors which have been disconnected for more than 30 days (sequentially) and are marked as Expired",
+            "in": "query",
+            "name": "showExpired",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of collector states: Running, Disconnected, Disabled, Degraded, \nPending Reboot, Isolated, Expired, Migrated or Pending Migration",
+            "explode": true,
+            "in": "query",
+            "name": "states",
+            "required": false,
+            "schema": {
+              "enum": [
+                "New",
+                "Selected",
+                "Running",
+                "Disabled",
+                "Degraded",
+                "Disconnected",
+                "Registered",
+                "Uninstalling",
+                "Unmanaged",
+                "Isolated",
+                "Expired",
+                "RebootPending",
+                "PendingMigration",
+                "Migrated"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "in": "query",
+            "name": "strictMode",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of collector versions",
+            "explode": true,
+            "in": "query",
+            "name": "versions",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetCollectorsResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-collectors",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/list-cores": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call output the list of cores",
+        "operationId": "get_inventory_list_cores",
+        "parameters": [
+          {
+            "description": "List of cores deployments modes",
+            "explode": true,
+            "in": "query",
+            "name": "deploymentModes",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Has crash dumps",
+            "in": "query",
+            "name": "hasCrashDumps",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "IP",
+            "in": "query",
+            "name": "ip",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "List of cores names",
+            "explode": true,
+            "in": "query",
+            "name": "names",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "List of cores versions",
+            "explode": true,
+            "in": "query",
+            "name": "versions",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetCoresResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-cores",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/list-repositories": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call output the list of repositories (edrs)",
+        "operationId": "get_inventory_list_repositories",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetEdrsResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-repositories",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/list-unmanaged-devices": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call outputs a list of the unmanaged devices in the system",
+        "operationId": "get_inventory_list_unmanaged_devices",
+        "parameters": [
+          {
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "in": "query",
+            "name": "itemsPerPage",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "An integer used for paging that indicates the required page number",
+            "in": "query",
+            "name": "pageNumber",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "in": "query",
+            "name": "strictMode",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BaseCollectorsResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-unmanaged-devices",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/move-collectors": {
+      "put": {
+        "deprecated": false,
+        "description": "This API call move collector between groups",
+        "operationId": "inventory_move_collectors",
+        "parameters": [
+          {
+            "description": "value = Array of collectors Ids. To move collectors from one organization to another",
+            "explode": true,
+            "in": "query",
+            "name": "collectorIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "value = Array of collectors SIDS. To move collectors from one organization to another",
+            "explode": true,
+            "in": "query",
+            "name": "collectorSIDs",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Array of collectors names. To move collectors from one organization to another, for each collector please add the organization name before the collector name (<organization-name>//<collector-name>)",
+            "explode": true,
+            "in": "query",
+            "name": "collectors",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Indicates whether to force the assignment even if the organization of the target Collector group is under migration",
+            "in": "query",
+            "name": "forceAssign",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Collector group. To move collectors from one organization to another, please add the organization name before the target collector group (<organization-name>//<collector-group-name>)",
+            "in": "query",
+            "name": "targetCollectorGroup",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "move-collectors",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/release-license": {
+      "put": {
+        "deprecated": false,
+        "description": "This API call enables/disables a Collector(s) and release it license. You must specify whether the License must be released or acquired! Cooldown between the requests should be 2-3 minutes!",
+        "operationId": "inventory_release_license",
+        "parameters": [
+          {
+            "description": "Specifies the list cloud account names",
+            "explode": true,
+            "in": "query",
+            "name": "cloudAccounts",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of cloud providers: AWS, Azure, GCP",
+            "explode": true,
+            "in": "query",
+            "name": "cloudProviders",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of cluster",
+            "explode": true,
+            "in": "query",
+            "name": "clusters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of collector group names and retrieves collectors under the\ngiven groups",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroups",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of collector group Ids and retrieves collectors under the\ngiven groups",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroupsIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the group types of the collectors. Types: All, Collector, Workloads. All by default",
+            "in": "query",
+            "name": "collectorType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of device names",
+            "explode": true,
+            "in": "query",
+            "name": "devices",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of device ids",
+            "explode": true,
+            "in": "query",
+            "name": "devicesIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "maximum": 5,
+              "minimum": 1,
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Retrieves collectors that were first seen after the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "firstSeen",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retrieves collectors that have crash dumps",
+            "in": "query",
+            "name": "hasCrashDumps",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of IP values",
+            "explode": true,
+            "in": "query",
+            "name": "ips",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "in": "query",
+            "name": "itemsPerPage",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were last seen before the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "lastSeenEnd",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were last seen after the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "lastSeenStart",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the user that was logged when the event occurred",
+            "in": "query",
+            "name": "loggedUser",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of specific operating systems. For example, Windows 7 Pro",
+            "explode": true,
+            "in": "query",
+            "name": "operatingSystems",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.\n",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of operating system families: Windows, Windows Server or OS X",
+            "explode": true,
+            "in": "query",
+            "name": "osFamilies",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "An integer used for paging that indicates the required page number",
+            "in": "query",
+            "name": "pageNumber",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Collector releaseLicense",
+            "in": "query",
+            "name": "releaseLicense",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies whether to include collectors which have been disconnected for more than 30 days (sequentially) and are marked as Expired",
+            "in": "query",
+            "name": "showExpired",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of collector states: Running, Disconnected, Disabled, Degraded, \nPending Reboot, Isolated, Expired, Migrated or Pending Migration",
+            "explode": true,
+            "in": "query",
+            "name": "states",
+            "required": false,
+            "schema": {
+              "enum": [
+                "New",
+                "Selected",
+                "Running",
+                "Disabled",
+                "Degraded",
+                "Disconnected",
+                "Registered",
+                "Uninstalling",
+                "Unmanaged",
+                "Isolated",
+                "Expired",
+                "RebootPending",
+                "PendingMigration",
+                "Migrated"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "in": "query",
+            "name": "strictMode",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of collector versions",
+            "explode": true,
+            "in": "query",
+            "name": "versions",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "format": "int32",
+                    "type": "integer"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "release-license",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/system-logs": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call retrieves a system logs",
+        "operationId": "get_inventory_system_logs",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputStream"
+                }
+              }
+            },
+            "description": "This operation results in a file stream (binary data), which is a .zip file"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "system-logs",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/toggle-collectors": {
+      "put": {
+        "deprecated": false,
+        "description": "This API call enables/disables a Collector(s). You must specify whether the Collector is to be enabled or disabled",
+        "operationId": "inventory_toggle_collectors",
+        "parameters": [
+          {
+            "description": "Specifies the list cloud account names",
+            "explode": true,
+            "in": "query",
+            "name": "cloudAccounts",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of cloud providers: AWS, Azure, GCP",
+            "explode": true,
+            "in": "query",
+            "name": "cloudProviders",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of cluster",
+            "explode": true,
+            "in": "query",
+            "name": "clusters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of collector group names and retrieves collectors under the\ngiven groups",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroups",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of collector group Ids and retrieves collectors under the\ngiven groups",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroupsIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the group types of the collectors. Types: All, Collector, Workloads. All by default",
+            "in": "query",
+            "name": "collectorType",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of device names",
+            "explode": true,
+            "in": "query",
+            "name": "devices",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of device ids",
+            "explode": true,
+            "in": "query",
+            "name": "devicesIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Toggle enable",
+            "in": "query",
+            "name": "enable",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were first seen after the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "firstSeen",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retrieves collectors that have crash dumps",
+            "in": "query",
+            "name": "hasCrashDumps",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of IP values",
+            "explode": true,
+            "in": "query",
+            "name": "ips",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "An integer used for paging that indicates the number of collectors to retrieve forthe current page. The default is 100. The maximum value is 1,000",
+            "in": "query",
+            "name": "itemsPerPage",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were last seen before the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "lastSeenEnd",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retrieves collectors that were last seen after the value assigned to this date. Date Format: yyyy-MM-dd HH:mm:ss",
+            "in": "query",
+            "name": "lastSeenStart",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the user that was logged when the event occurred",
+            "in": "query",
+            "name": "loggedUser",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of specific operating systems. For example, Windows 7 Pro",
+            "explode": true,
+            "in": "query",
+            "name": "operatingSystems",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.\n",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of operating system families: Windows, Windows Server or OS X",
+            "explode": true,
+            "in": "query",
+            "name": "osFamilies",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "An integer used for paging that indicates the required page number",
+            "in": "query",
+            "name": "pageNumber",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies whether to include collectors which have been disconnected for more than 30 days (sequentially) and are marked as Expired",
+            "in": "query",
+            "name": "showExpired",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of collector states: Running, Disconnected, Disabled, Degraded, \nPending Reboot, Isolated, Expired, Migrated or Pending Migration",
+            "explode": true,
+            "in": "query",
+            "name": "states",
+            "required": false,
+            "schema": {
+              "enum": [
+                "New",
+                "Selected",
+                "Running",
+                "Disabled",
+                "Degraded",
+                "Disconnected",
+                "Registered",
+                "Uninstalling",
+                "Unmanaged",
+                "Isolated",
+                "Expired",
+                "RebootPending",
+                "PendingMigration",
+                "Migrated"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "A true/false parameter indicating whether to perform strict matching on the search parameters. The default is False",
+            "in": "query",
+            "name": "strictMode",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the list of collector versions",
+            "explode": true,
+            "in": "query",
+            "name": "versions",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "toggle-collectors",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/uninstall-collectors": {
+      "post": {
+        "deprecated": false,
+        "description": "This API uninstall collectors",
+        "operationId": "inventory_uninstall_collectors",
+        "parameters": [
+          {
+            "description": "Specifies the list of device ids",
+            "explode": true,
+            "in": "query",
+            "name": "collectorIDs",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of device machine SID",
+            "explode": true,
+            "in": "query",
+            "name": "collectorSIDs",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "uninstall-collectors",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/unisolate-collectors": {
+      "put": {
+        "deprecated": false,
+        "description": "This API call isolate collector functionality",
+        "operationId": "inventory_unisolate_collectors",
+        "parameters": [
+          {
+            "description": "Specifies the list of device names",
+            "explode": true,
+            "in": "query",
+            "name": "devices",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of device ids",
+            "explode": true,
+            "in": "query",
+            "name": "devicesIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "unisolate-collectors",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    },
+    "/management-rest/inventory/update-collector-group-name": {
+      "put": {
+        "deprecated": false,
+        "description": "This API updates collector group name!",
+        "operationId": "inventory_update_collector_group_name",
+        "parameters": [
+          {
+            "description": "Collector Group id",
+            "in": "query",
+            "name": "collectorGroupId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "New group name",
+            "in": "query",
+            "name": "groupName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update-collector-group-name",
+        "tags": [
+          "System Inventory"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "The System Inventory module enables you to monitor the health of Fortinet Endpoint Protection and Response Platform components and to create Collector Groups.",
+      "name": "System Inventory"
+    }
+  ]
+}

@@ -1,0 +1,334 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Forensics",
+      "description": "The Forensics module facilitates deep analysis into the actual internals of the communicating devices operating system that led up to an event."
+    }
+  ],
+  "paths": {
+    "/management-rest/forensics/get-event-file": {
+      "get": {
+        "tags": [
+          "Forensics"
+        ],
+        "summary": "get-event-file",
+        "description": "This API call retrieves a file or memory",
+        "operationId": "get-event-file",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "parameters": [
+          {
+            "name": "disk",
+            "in": "query",
+            "description": "A true/false parameter indicating whether find in the disk",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "endRange",
+            "in": "query",
+            "description": "Specifies the memory end range, in Hexadecimal format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filePaths",
+            "in": "query",
+            "description": "Specifies the list of file paths",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "memory",
+            "in": "query",
+            "description": "A true/false parameter indicating whether find in the memory",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "processId",
+            "in": "query",
+            "description": "Specifies the ID of the process from which to take a memory image. required for memory base action",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "rawEventId",
+            "in": "query",
+            "description": "Specifies the ID of the raw event on which to perform the memory retrieval",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "startRange",
+            "in": "query",
+            "description": "Specifies the memory start range, in Hexadecimal format",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "This operation results in a file stream (binary data), which is a .zip file",
+            "schema": {
+              "$ref": "#/definitions/InputStream"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/forensics/get-file": {
+      "get": {
+        "tags": [
+          "Forensics"
+        ],
+        "summary": "get-file",
+        "description": "This API call retrieves a file or memory",
+        "operationId": "get-file",
+        "produces": [
+          "application/octet-stream"
+        ],
+        "parameters": [
+          {
+            "name": "device",
+            "in": "query",
+            "description": "Specifies the name or id of the device to remediate",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "filePaths",
+            "in": "query",
+            "description": "Specifies the list of file paths",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Specifies the device parameter type used in the request : Name or ID",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "ID",
+              "NAME"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "This operation results in a file stream (binary data), which is a .zip file",
+            "schema": {
+              "$ref": "#/definitions/InputStream"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/forensics/remediate-device": {
+      "put": {
+        "tags": [
+          "Forensics"
+        ],
+        "summary": "remediate-device",
+        "description": "This API kill process / delete file / clean persistence, File and persistence paths must be specified in a logical format",
+        "operationId": "remediate-device",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "device",
+            "in": "query",
+            "description": "Specifies the name of the device to remediate. You must specify a value for either device or deviceId (see below)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "deviceId",
+            "in": "query",
+            "description": "Specifies the unique identifier (ID) of the device to remediate. You must specify a value for either deviceId or device (see above)",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "executablesToRemove",
+            "in": "query",
+            "description": "Specifies the list of full paths of executable files (*.exe) to delete on the\ngiven device",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "persistenceDataAction",
+            "in": "query",
+            "description": "persistence data desired action",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "DeleteKey",
+              "DeleteValue",
+              "Update"
+            ]
+          },
+          {
+            "name": "persistenceDataNewContent",
+            "in": "query",
+            "description": "persistence data new content",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "persistenceDataPath",
+            "in": "query",
+            "description": "persistence data path",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "persistenceDataValueName",
+            "in": "query",
+            "description": "persistence data value name",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "persistenceDataValueNewType",
+            "in": "query",
+            "description": "persistence data value new type",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "REG_SZ",
+              "REG_EXPAND_SZ",
+              "REG_BINARY",
+              "REG_DWORD",
+              "REG_DWORD_BIG_ENDIAN",
+              "REG_LINK",
+              "REG_MULTI_SZ",
+              "REG_RESOURCE_LIST",
+              "REG_FULL_RESOURCE_DESCRIPTOR",
+              "REG_RESOURCE_REQUIREMENTS_LIST",
+              "REG_QWORD"
+            ]
+          },
+          {
+            "name": "processName",
+            "in": "query",
+            "description": "Specifies the process name",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "terminatedProcessId",
+            "in": "query",
+            "description": "Represents the process ID to terminate on the device",
+            "required": true,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false
+          },
+          {
+            "name": "threadId",
+            "in": "query",
+            "description": "Specifies the thread ID",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "InputStream": {
+      "type": "object",
+      "title": "InputStream"
+    }
+  }
+}

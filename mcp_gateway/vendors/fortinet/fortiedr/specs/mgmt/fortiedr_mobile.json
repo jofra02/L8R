@@ -1,0 +1,1174 @@
+{
+  "components": {
+    "schemas": {
+      "HandleEventsRequest": {
+        "properties": {
+          "classification": {
+            "description": "Handle event classification",
+            "enum": [
+              "ClassificationMalicious",
+              "ClassificationProbablyMalicious",
+              "ClassificationPup",
+              "ClassificationInconclusive",
+              "ClassificationProbablyGood",
+              "ClassificationGood"
+            ],
+            "type": "string"
+          },
+          "comment": {
+            "description": "Handle event comment",
+            "type": "string"
+          },
+          "eventIds": {
+            "description": "Handle event event ids to hanle",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "handlingState": {
+            "description": "Handle event state",
+            "enum": [
+              "Handled",
+              "Unhandled",
+              "InProgress"
+            ],
+            "type": "string"
+          },
+          "muteDurationTime": {
+            "description": "Handle event mute duration time",
+            "type": "string"
+          },
+          "muteEnabled": {
+            "description": "Handle event mute enabled",
+            "type": "boolean"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization"
+        ],
+        "title": "HandleEventsRequest",
+        "type": "object"
+      },
+      "HandleIncidentRequest": {
+        "properties": {
+          "classification": {
+            "description": "Specifies handle incident classification",
+            "enum": [
+              "ClassificationMalicious",
+              "ClassificationProbablyMalicious",
+              "ClassificationPup",
+              "ClassificationInconclusive",
+              "ClassificationProbablyGood",
+              "ClassificationGood"
+            ],
+            "type": "string"
+          },
+          "comment": {
+            "description": "Specifies handle incident comment",
+            "type": "string"
+          },
+          "eventIds": {
+            "description": "Specifies incident events ids",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "handlingState": {
+            "description": "Specifies handle incident state",
+            "enum": [
+              "Handled",
+              "Unhandled",
+              "InProgress"
+            ],
+            "type": "string"
+          },
+          "incidentId": {
+            "description": "Specifies handle incident id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          },
+          "userId": {
+            "description": "Specifies handle incident user id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "userName": {
+            "description": "Specifies user name to assign",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization"
+        ],
+        "title": "HandleIncidentRequest",
+        "type": "object"
+      },
+      "IncidentAssignUserRequest": {
+        "properties": {
+          "advancedFilters": {
+            "description": "Specifies advanced filters",
+            "type": "string"
+          },
+          "allSelectedEventsParentIds": {
+            "description": "Meaning all those incidents' events under the filters/search criteria are selected. Specifies the events parent incidents ids",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "endDate": {
+            "description": "Specifies the time filter end date",
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventIds": {
+            "description": "Specifies the IDs of the events",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "freeTextFilters": {
+            "description": "Specifies the free text search filter",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "freeTextSearch": {
+            "description": "Specifies the free text search",
+            "type": "string"
+          },
+          "incidentIds": {
+            "description": "Specifies the id's of the incidents",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "isAllIncidents": {
+            "description": "Specifies the all incidents under the filters/search criteria are selected",
+            "type": "boolean"
+          },
+          "offset": {
+            "description": "Specifies the page offset",
+            "format": "int32",
+            "type": "integer"
+          },
+          "organizationId": {
+            "description": "Specifies the organization id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "pageSize": {
+            "description": "Specifies the page size",
+            "format": "int32",
+            "type": "integer"
+          },
+          "sorting": {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "type": "string"
+          },
+          "startDate": {
+            "description": "Specifies the time filter start date",
+            "format": "int64",
+            "type": "integer"
+          },
+          "statusFilter": {
+            "description": "Specifies the incidents status filter",
+            "enum": [
+              "All",
+              "Handled",
+              "InProgress",
+              "Unhandled"
+            ],
+            "type": "string"
+          },
+          "timeFilter": {
+            "description": "Specifies the incidents time filter",
+            "enum": [
+              "Last7days",
+              "Last30days",
+              "Last90days",
+              "All"
+            ],
+            "type": "string"
+          },
+          "typeFilter": {
+            "description": "Specifies the incidents type filter",
+            "enum": [
+              "All",
+              "SecurityEvents",
+              "DeviceControl",
+              "ApplicationControl",
+              "ThreatHunting"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "description": "Specifies user id to assign",
+            "format": "int32",
+            "type": "integer"
+          },
+          "userName": {
+            "description": "Specifies user name to assign, need for mobile incident",
+            "type": "string"
+          }
+        },
+        "title": "IncidentAssignUserRequest",
+        "type": "object"
+      },
+      "IncidentModificationStatusRequest": {
+        "properties": {
+          "incidentId": {
+            "description": "Specifies incident id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "modificationStatus": {
+            "description": "Specifies the incident modification status to update",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization"
+        ],
+        "title": "IncidentModificationStatusRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/incidents/mobile": {
+      "delete": {
+        "deprecated": false,
+        "description": "Delete incidents",
+        "operationId": "delete_incidents_mobile",
+        "parameters": [
+          {
+            "description": "Specifies advanced filters",
+            "in": "query",
+            "name": "advancedFilters",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Meaning all those incidents' events under the filters/search criteria are selected. Specifies the events parent incidents ids",
+            "explode": true,
+            "in": "query",
+            "name": "allSelectedEventsParentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the time filter end date",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the IDs of the events",
+            "explode": true,
+            "in": "query",
+            "name": "eventIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the free text search filter",
+            "explode": true,
+            "in": "query",
+            "name": "freeTextFilters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the free text search",
+            "in": "query",
+            "name": "freeTextSearch",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the id's of the incidents",
+            "explode": true,
+            "in": "query",
+            "name": "incidentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the all incidents under the filters/search criteria are selected",
+            "in": "query",
+            "name": "isAllIncidents",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the page offset",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the organization id",
+            "in": "query",
+            "name": "organizationId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the page size",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the time filter start date",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the incidents status filter",
+            "in": "query",
+            "name": "statusFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "Handled",
+                "InProgress",
+                "Unhandled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the incidents time filter",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last7days",
+                "Last30days",
+                "Last90days",
+                "All"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the incidents type filter",
+            "in": "query",
+            "name": "typeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "SecurityEvents",
+                "DeviceControl",
+                "ApplicationControl",
+                "ThreatHunting"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "incidents",
+        "tags": [
+          "Mobile"
+        ]
+      },
+      "get": {
+        "deprecated": false,
+        "description": "Get incidents",
+        "operationId": "get_incidents_mobile",
+        "parameters": [
+          {
+            "description": "Specifies advanced filters",
+            "in": "query",
+            "name": "advancedFilters",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Meaning all those incidents' events under the filters/search criteria are selected. Specifies the events parent incidents ids",
+            "explode": true,
+            "in": "query",
+            "name": "allSelectedEventsParentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the time filter end date",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the IDs of the events",
+            "explode": true,
+            "in": "query",
+            "name": "eventIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the free text search filter",
+            "explode": true,
+            "in": "query",
+            "name": "freeTextFilters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the free text search",
+            "in": "query",
+            "name": "freeTextSearch",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the id's of the incidents",
+            "explode": true,
+            "in": "query",
+            "name": "incidentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the all incidents under the filters/search criteria are selected",
+            "in": "query",
+            "name": "isAllIncidents",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the page offset",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the organization id",
+            "in": "query",
+            "name": "organizationId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the page size",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the time filter start date",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the incidents status filter",
+            "in": "query",
+            "name": "statusFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "Handled",
+                "InProgress",
+                "Unhandled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the tags",
+            "explode": true,
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the tags ids",
+            "explode": true,
+            "in": "query",
+            "name": "tagsIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the incidents time filter",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last7days",
+                "Last30days",
+                "Last90days",
+                "All"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the incidents type filter",
+            "in": "query",
+            "name": "typeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "SecurityEvents",
+                "DeviceControl",
+                "ApplicationControl",
+                "ThreatHunting"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "incidents",
+        "tags": [
+          "Mobile"
+        ]
+      }
+    },
+    "/api/incidents/mobile/assign-user": {
+      "post": {
+        "deprecated": false,
+        "description": "update modification status",
+        "operationId": "incidents_mobile_assign_user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncidentAssignUserRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update modification status",
+        "tags": [
+          "Mobile"
+        ]
+      }
+    },
+    "/api/incidents/mobile/events/handle": {
+      "put": {
+        "deprecated": false,
+        "description": "Handle events",
+        "operationId": "update_incidents_mobile_events_handle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandleEventsRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "events-handle",
+        "tags": [
+          "Mobile"
+        ]
+      }
+    },
+    "/api/incidents/mobile/incident-handle": {
+      "put": {
+        "deprecated": false,
+        "description": "Handle incidents",
+        "operationId": "update_incidents_mobile_incident_handle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandleIncidentRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "incident-handle",
+        "tags": [
+          "Mobile"
+        ]
+      }
+    },
+    "/api/incidents/mobile/incident/{incidentId}": {
+      "get": {
+        "deprecated": false,
+        "description": "Get incident by id",
+        "operationId": "get_incidents_mobile_incident_id",
+        "parameters": [
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get incident by id",
+        "tags": [
+          "Mobile"
+        ]
+      }
+    },
+    "/api/incidents/mobile/modification-status": {
+      "post": {
+        "deprecated": false,
+        "description": "update modification status",
+        "operationId": "create_incidents_mobile_modification_status",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncidentModificationStatusRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update modification status",
+        "tags": [
+          "Mobile"
+        ]
+      }
+    },
+    "/api/incidents/mobile/{incidentId}/audit-history": {
+      "get": {
+        "deprecated": false,
+        "description": "get incident audit history",
+        "operationId": "get_incidents_mobile_incident_id_audit_history",
+        "parameters": [
+          {
+            "description": "events",
+            "explode": true,
+            "in": "query",
+            "name": "events",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get incident audit history",
+        "tags": [
+          "Mobile"
+        ]
+      }
+    },
+    "/api/incidents/mobile/{incidentId}/events": {
+      "get": {
+        "deprecated": false,
+        "description": "Get events",
+        "operationId": "get_incidents_mobile_incident_id_events",
+        "parameters": [
+          {
+            "description": "advancedFilters",
+            "in": "query",
+            "name": "advancedFilters",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "freeTextFilters",
+            "explode": true,
+            "in": "query",
+            "name": "freeTextFilters",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "freeTextSearch",
+            "in": "query",
+            "name": "freeTextSearch",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "incidentId",
+            "in": "path",
+            "name": "incidentId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "offset",
+            "in": "query",
+            "name": "offset",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "organizationId",
+            "in": "query",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "pageSize",
+            "in": "query",
+            "name": "pageSize",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "sorting",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "statusFilter",
+            "in": "query",
+            "name": "statusFilter",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "timeFilter",
+            "in": "query",
+            "name": "timeFilter",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "typeFilter",
+            "in": "query",
+            "name": "typeFilter",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "events",
+        "tags": [
+          "Mobile"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Mobile Incidents Rest Api Controller",
+      "name": "Mobile"
+    }
+  ]
+}

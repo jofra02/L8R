@@ -1,0 +1,1000 @@
+{
+  "components": {
+    "schemas": {
+      "AgentGroupResponse": {
+        "properties": {
+          "id": {
+            "description": "The Collectors group's Id.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "The Collectors group name.",
+            "type": "string"
+          },
+          "numberOfCollectors": {
+            "description": "Number of collectors associated with this group.",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "numberOfCollectors"
+        ],
+        "title": "AgentGroupResponse",
+        "type": "object"
+      },
+      "CategoryConfiguration": {
+        "properties": {
+          "eventTypes": {
+            "description": "Event Type identifier.",
+            "items": {
+              "$ref": "#/components/schemas/EventTypeConfiguration"
+            },
+            "type": "array"
+          },
+          "identifier": {
+            "description": "Category identifier.",
+            "type": "string"
+          }
+        },
+        "title": "CategoryConfiguration",
+        "type": "object"
+      },
+      "CategoryMetadataResponse": {
+        "properties": {
+          "identifier": {
+            "description": "Category identifier. Use this value while creating a new exclusion.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Category name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "name"
+        ],
+        "title": "CategoryMetadataResponse",
+        "type": "object"
+      },
+      "CommonExclusionDtoItem": {
+        "properties": {
+          "attributes": {
+            "description": "The list of exclusion attributes (identifiers) defining this exclusion. Follow /exclusions/exclusions-metadata for appropriate values.",
+            "items": {
+              "$ref": "#/components/schemas/ExclusionAttributeDtoItem"
+            },
+            "type": "array"
+          },
+          "comments": {
+            "description": "The exclusion's comments.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Exclusion enabled/disabled status.",
+            "type": "boolean"
+          },
+          "eventTypes": {
+            "description": "The list of Threat Hunting event types (identifiers) covered by this exclusion.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "operatingSystems": {
+            "description": "The exclusion's enabled operating system.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributes",
+          "enabled",
+          "eventTypes",
+          "operatingSystems"
+        ],
+        "title": "CommonExclusionDtoItem",
+        "type": "object"
+      },
+      "CreateExclusionListRequest": {
+        "properties": {
+          "collectorGroupIds": {
+            "description": "The list of Collector group Ids associated with this exclusion list.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "name": {
+            "description": "Exclusion list name.",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "organization"
+        ],
+        "title": "CreateExclusionListRequest",
+        "type": "object"
+      },
+      "CreateExclusionsRequest": {
+        "properties": {
+          "exclusionListName": {
+            "description": "Exclusions created in the request will be associated with this list.",
+            "type": "string"
+          },
+          "exclusions": {
+            "description": "List of exclusions definitions to be created.",
+            "items": {
+              "$ref": "#/components/schemas/CommonExclusionDtoItem"
+            },
+            "type": "array"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exclusionListName",
+          "exclusions",
+          "organization"
+        ],
+        "title": "CreateExclusionsRequest",
+        "type": "object"
+      },
+      "DeleteExclusionsRequest": {
+        "properties": {
+          "exclusionIds": {
+            "description": "List of exclusion Ids for deletion.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exclusionIds",
+          "organization"
+        ],
+        "title": "DeleteExclusionsRequest",
+        "type": "object"
+      },
+      "EventTypeConfiguration": {
+        "properties": {
+          "identifier": {
+            "description": "Threat Hunting Setting event type identifier.",
+            "type": "string"
+          },
+          "sourceAttributes": {
+            "description": "Threat Hunting Setting source attribute identifier.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "targetAttributes": {
+            "description": "Threat Hunting Setting target attribute identifier.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "title": "EventTypeConfiguration",
+        "type": "object"
+      },
+      "EventTypeMetadataResponse": {
+        "properties": {
+          "identifier": {
+            "description": "Event Type identifier. Use this value while creating a new exclusion.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Event Type name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "name"
+        ],
+        "title": "EventTypeMetadataResponse",
+        "type": "object"
+      },
+      "ExclusionAttributeDtoItem": {
+        "properties": {
+          "identifier": {
+            "description": "The attribute name.",
+            "type": "string"
+          },
+          "secondaryValue": {
+            "description": "Secondary property identifying the attribute. Used in special cases like with the Signer attribute. See /exclusions-metadata for the full list of valid values.",
+            "type": "string"
+          },
+          "type": {
+            "description": "The attribute type, either Source or Target.",
+            "enum": [
+              "Source",
+              "Target"
+            ],
+            "type": "string"
+          },
+          "value": {
+            "description": "The attribute value.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "type",
+          "value"
+        ],
+        "title": "ExclusionAttributeDtoItem",
+        "type": "object"
+      },
+      "ExclusionAttributeMetadataResponse": {
+        "properties": {
+          "description": {
+            "description": "Attribute description.",
+            "type": "string"
+          },
+          "identifier": {
+            "description": "Attribute identifier.",
+            "type": "string"
+          },
+          "inputType": {
+            "description": "Input type of this attribute's value.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Attribute name.",
+            "type": "string"
+          },
+          "options": {
+            "description": "In case this is a multi/single select input type, the value should be selected from this list.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "secondaryValue": {
+            "description": "Secondary property for identifying complex attributes. Used in special cases like with the Signer attribute.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "identifier",
+          "inputType",
+          "name",
+          "secondaryValue"
+        ],
+        "title": "ExclusionAttributeMetadataResponse",
+        "type": "object"
+      },
+      "ExclusionResponse": {
+        "properties": {
+          "attributes": {
+            "description": "The list of exclusion attributes (identifiers) defining this exclusion. Follow /exclusions/exclusions-metadata for appropriate values.",
+            "items": {
+              "$ref": "#/components/schemas/ExclusionAttributeDtoItem"
+            },
+            "type": "array"
+          },
+          "comments": {
+            "description": "The exclusion's comments.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Exclusion enabled/disabled status.",
+            "type": "boolean"
+          },
+          "eventTypes": {
+            "description": "The list of Threat Hunting event types (identifiers) covered by this exclusion.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "The exclusion id.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastDateModified": {
+            "description": "The time and date of the last modification of this exclusion.",
+            "type": "string"
+          },
+          "lastUserModifier": {
+            "description": "The last user who modified this exclusion.",
+            "type": "string"
+          },
+          "operatingSystems": {
+            "description": "The exclusion's enabled operating system.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributes",
+          "enabled",
+          "eventTypes",
+          "id",
+          "lastDateModified",
+          "lastUserModifier",
+          "operatingSystems"
+        ],
+        "title": "ExclusionResponse",
+        "type": "object"
+      },
+      "ExclusionsConfigurationMapping": {
+        "properties": {
+          "categories": {
+            "description": "Threat Hunting Categories identifiers.",
+            "items": {
+              "$ref": "#/components/schemas/CategoryConfiguration"
+            },
+            "type": "array"
+          },
+          "os": {
+            "description": "Operating System identifier.",
+            "type": "string"
+          }
+        },
+        "title": "ExclusionsConfigurationMapping",
+        "type": "object"
+      },
+      "ExclusionsListResponse": {
+        "properties": {
+          "associatedCollectorGroups": {
+            "description": "The Collector groups associated with this Exclusions list.",
+            "items": {
+              "$ref": "#/components/schemas/AgentGroupResponse"
+            },
+            "type": "array"
+          },
+          "defaultExclusionList": {
+            "description": "When set to True this is the Default Exclusions list, any Collector group created is automatically added to this list.",
+            "type": "boolean"
+          },
+          "exclusions": {
+            "description": "Exclusions configured within this list.",
+            "items": {
+              "$ref": "#/components/schemas/ExclusionResponse"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "The Exclusions list Id.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "immutable": {
+            "description": "When set to True this list cannot be modified.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "The Exclusion list name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "associatedCollectorGroups",
+          "defaultExclusionList",
+          "exclusions",
+          "id",
+          "immutable",
+          "name"
+        ],
+        "title": "ExclusionsListResponse",
+        "type": "object"
+      },
+      "ExclusionsMetadataResponse": {
+        "properties": {
+          "attributes": {
+            "description": "The source attributes available for exclusions configuration.",
+            "items": {
+              "$ref": "#/components/schemas/ExclusionAttributeMetadataResponse"
+            },
+            "type": "array"
+          },
+          "categories": {
+            "description": "The Threat Hunting categories available for exclusions configuration.",
+            "items": {
+              "$ref": "#/components/schemas/CategoryMetadataResponse"
+            },
+            "type": "array"
+          },
+          "configurationMappings": {
+            "description": "Threat hunting setting valid combinations of OS, Category, Event Types and attributes, for configuring an exclusion.",
+            "items": {
+              "$ref": "#/components/schemas/ExclusionsConfigurationMapping"
+            },
+            "type": "array"
+          },
+          "eventTypeMetadataResponses": {
+            "description": "The Threat Hunting event types available for exclusions configuration.",
+            "items": {
+              "$ref": "#/components/schemas/EventTypeMetadataResponse"
+            },
+            "type": "array"
+          },
+          "operatingSystems": {
+            "description": "The operating systems available for exclusions configuration.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "attributes",
+          "categories",
+          "configurationMappings",
+          "eventTypeMetadataResponses",
+          "operatingSystems"
+        ],
+        "title": "ExclusionsMetadataResponse",
+        "type": "object"
+      },
+      "ExistingExclusionDtoItem": {
+        "properties": {
+          "attributes": {
+            "description": "The list of exclusion attributes (identifiers) defining this exclusion. Follow /exclusions/exclusions-metadata for appropriate values.",
+            "items": {
+              "$ref": "#/components/schemas/ExclusionAttributeDtoItem"
+            },
+            "type": "array"
+          },
+          "comments": {
+            "description": "The exclusion's comments.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Exclusion enabled/disabled status.",
+            "type": "boolean"
+          },
+          "eventTypes": {
+            "description": "The list of Threat Hunting event types (identifiers) covered by this exclusion.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "exclusionId": {
+            "description": "The exclusion's Id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "operatingSystems": {
+            "description": "The exclusion's enabled operating system.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributes",
+          "enabled",
+          "eventTypes",
+          "exclusionId",
+          "operatingSystems"
+        ],
+        "title": "ExistingExclusionDtoItem",
+        "type": "object"
+      },
+      "UpdateExclusionListRequest": {
+        "properties": {
+          "collectorGroupIds": {
+            "description": "The list of Collector group Ids associated with this exclusion list.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "listName": {
+            "description": "Exclusions list name.",
+            "type": "string"
+          },
+          "newName": {
+            "description": "Exclusion list new name.",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "collectorGroupIds",
+          "listName",
+          "organization"
+        ],
+        "title": "UpdateExclusionListRequest",
+        "type": "object"
+      },
+      "UpdateExclusionsRequest": {
+        "properties": {
+          "exclusionListName": {
+            "description": "Exclusions created in the request will be associated with this list.",
+            "type": "string"
+          },
+          "exclusions": {
+            "description": "List of exclusions definitions to update.",
+            "items": {
+              "$ref": "#/components/schemas/ExistingExclusionDtoItem"
+            },
+            "type": "array"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exclusionListName",
+          "exclusions",
+          "organization"
+        ],
+        "title": "UpdateExclusionsRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/threat-hunting-exclusions/exclusion": {
+      "delete": {
+        "deprecated": false,
+        "description": "Deletes one or more exclusions by Id.",
+        "operationId": "delete_threat_hunting_exclusions_exclusion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteExclusionsRequest"
+              }
+            }
+          },
+          "description": "deleteExclusionsRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "exclusion",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      },
+      "post": {
+        "deprecated": false,
+        "description": "Creates exclusions.",
+        "operationId": "create_threat_hunting_exclusions_exclusion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExclusionsRequest"
+              }
+            }
+          },
+          "description": "createExclusionsRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExclusionResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "exclusion",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      },
+      "put": {
+        "deprecated": false,
+        "description": "Update exclusions.",
+        "operationId": "update_threat_hunting_exclusions_exclusion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExclusionsRequest"
+              }
+            }
+          },
+          "description": "updateExclusionsRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExclusionResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "exclusions",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      }
+    },
+    "/management-rest/threat-hunting-exclusions/exclusions-list": {
+      "delete": {
+        "deprecated": false,
+        "description": "Deletes an exclusions list.",
+        "operationId": "delete_threat_hunting_exclusions_list",
+        "parameters": [
+          {
+            "description": "Exclusions list name.",
+            "in": "query",
+            "name": "listName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "exclusions-list",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      },
+      "get": {
+        "deprecated": false,
+        "description": "Get the list of Exclusions lists.",
+        "operationId": "get_threat_hunting_exclusions_list",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExclusionsListResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "exclusions-list",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      },
+      "post": {
+        "deprecated": false,
+        "description": "Creates an exclusions list",
+        "operationId": "create_threat_hunting_exclusions_list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExclusionListRequest"
+              }
+            }
+          },
+          "description": "createExclusionListRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExclusionsListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "exclusions-list",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      },
+      "put": {
+        "deprecated": false,
+        "description": "Updates an exclusions list",
+        "operationId": "update_threat_hunting_exclusions_list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExclusionListRequest"
+              }
+            }
+          },
+          "description": "updateExclusionListRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExclusionsListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "exclusions-list",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      }
+    },
+    "/management-rest/threat-hunting-exclusions/exclusions-metadata": {
+      "get": {
+        "deprecated": false,
+        "description": "Get the metadata and available properties for exclusions configuration. When creating/modifying an exclusion, use the response of this API as a guide for the valid attribute names and values, and their corresponding EDR event types. Every attribute corresponds to an EDR category (for example, Filename attribute corresponds with the File category), and each category is a set of EDR event types. ",
+        "operationId": "get_threat_hunting_exclusions_metadata",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExclusionsMetadataResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "exclusions-metadata",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      }
+    },
+    "/management-rest/threat-hunting-exclusions/exclusions-search": {
+      "get": {
+        "deprecated": false,
+        "description": "Free-text search of exclusions",
+        "operationId": "get_threat_hunting_exclusions_search",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "OS identifiers list.",
+            "explode": true,
+            "in": "query",
+            "name": "os",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "The free text search string. The API will return every exclusion list that contains this string, or contains an exclusion with any field that contains it.",
+            "in": "query",
+            "name": "searchText",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExclusionsListResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "exclusions-search",
+        "tags": [
+          "Threat Hunting Exclusions"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "API to create Threat Hunting exclusions.",
+      "name": "Threat Hunting Exclusions"
+    }
+  ]
+}

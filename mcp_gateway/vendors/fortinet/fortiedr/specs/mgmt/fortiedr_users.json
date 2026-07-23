@@ -1,0 +1,921 @@
+{
+  "components": {
+    "schemas": {
+      "GetCreateUserRequest": {
+        "properties": {
+          "confirmPassword": {
+            "description": "Specifies the confirm login password",
+            "type": "string"
+          },
+          "customScript": {
+            "description": "Is user can upload custom scripts",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "Specifies the email of user",
+            "type": "string"
+          },
+          "firstName": {
+            "description": "Specifies the first name of user",
+            "type": "string"
+          },
+          "lastName": {
+            "description": "Specifies the last name of user",
+            "type": "string"
+          },
+          "password": {
+            "description": "Specifies the login password",
+            "type": "string"
+          },
+          "remoteShell": {
+            "description": "Is user can use remote shell",
+            "type": "boolean"
+          },
+          "restApi": {
+            "description": "Is user can access by rest to the api",
+            "type": "boolean"
+          },
+          "role": {
+            "description": "Specifies the roles of the user",
+            "enum": [
+              "Admin",
+              "Senior Analyst",
+              "Read-Only",
+              "Analyst",
+              "IT"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "description": "Specifies the title of user",
+            "type": "string"
+          },
+          "username": {
+            "description": "Specifies the login username of the user",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmPassword",
+          "email",
+          "firstName",
+          "lastName",
+          "password",
+          "role",
+          "username"
+        ],
+        "title": "GetCreateUserRequest",
+        "type": "object"
+      },
+      "GetUserAuthenticationRequest": {
+        "properties": {
+          "confirmPassword": {
+            "description": "Specifies the confirm login password",
+            "type": "string"
+          },
+          "password": {
+            "description": "Specifies the login password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmPassword",
+          "password"
+        ],
+        "title": "GetUserAuthenticationRequest",
+        "type": "object"
+      },
+      "GetUserRequest": {
+        "properties": {
+          "customScript": {
+            "description": "Is user can upload custom scripts",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "Specifies the email of user",
+            "type": "string"
+          },
+          "firstName": {
+            "description": "Specifies the first name of user",
+            "type": "string"
+          },
+          "lastName": {
+            "description": "Specifies the last name of user",
+            "type": "string"
+          },
+          "remoteShell": {
+            "description": "Is user can use remote shell",
+            "type": "boolean"
+          },
+          "restApi": {
+            "description": "Is user can access by rest to the api",
+            "type": "boolean"
+          },
+          "role": {
+            "description": "Specifies the roles of the user",
+            "enum": [
+              "Admin",
+              "Senior Analyst",
+              "Read-Only",
+              "Analyst",
+              "IT"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "description": "Specifies the title of user",
+            "type": "string"
+          },
+          "username": {
+            "description": "Specifies the login username of the user",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "firstName",
+          "lastName",
+          "role",
+          "username"
+        ],
+        "title": "GetUserRequest",
+        "type": "object"
+      },
+      "GetUserResponse": {
+        "properties": {
+          "customScript": {
+            "description": "Is user can upload custom scripts",
+            "type": "boolean"
+          },
+          "email": {
+            "description": "Specifies the email of the user",
+            "type": "string"
+          },
+          "firstName": {
+            "description": "Specifies the first name of the user",
+            "type": "string"
+          },
+          "id": {
+            "description": "Specifies the ID of the user",
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastName": {
+            "description": "Specifies the last name of the user",
+            "type": "string"
+          },
+          "organization": {
+            "description": "The organization of the user",
+            "type": "string"
+          },
+          "rbacRole": {
+            "description": "specific rbac role of the user",
+            "type": "string"
+          },
+          "remoteShell": {
+            "description": "Is user can use remote shell",
+            "type": "boolean"
+          },
+          "restApi": {
+            "description": "Is user can access by rest to the api",
+            "type": "boolean"
+          },
+          "role": {
+            "description": "Specifies the role of the user",
+            "enum": [
+              "Admin",
+              "Senior Analyst",
+              "Read-Only",
+              "Analyst",
+              "IT"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "description": "Specifies the title of the user",
+            "type": "string"
+          },
+          "username": {
+            "description": "Specifies the login username of the user",
+            "type": "string"
+          }
+        },
+        "title": "GetUserResponse",
+        "type": "object"
+      },
+      "SetUserPreferencesRequest": {
+        "properties": {
+          "entries": {
+            "description": "User preferences entries to update",
+            "type": "object"
+          },
+          "preferenceKey": {
+            "description": "User preferences key to update",
+            "type": "string"
+          }
+        },
+        "title": "SetUserPreferencesRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/users": {
+      "get": {
+        "deprecated": false,
+        "description": "Get users",
+        "operationId": "get_users",
+        "parameters": [
+          {
+            "description": "Specifies the free text search",
+            "in": "query",
+            "name": "freeTextSearch",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the page offset",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the page size",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies a list of strings in JSON format representing the fields by which to sort the results in the following format: %7B\"column1\":true, \"column2\":false%7D. True indicates to sort in descending order.Results are sorted by the first field, then by the second field and so on",
+            "in": "query",
+            "name": "sorting",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetUserResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-users",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/get-gdpr-privacy-note": {
+      "get": {
+        "deprecated": false,
+        "description": "Get GDPR privacy note",
+        "operationId": "users_get_gdpr_privacy_note",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-gdpr-privacy-note",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/preferences": {
+      "put": {
+        "deprecated": false,
+        "description": "Set user preferences",
+        "operationId": "update_users_preferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUserPreferencesRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "set-user-preferences",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/preferences/{preferenceKey}": {
+      "get": {
+        "deprecated": false,
+        "description": "Get user preferences",
+        "operationId": "get_users_preferences_preference_key",
+        "parameters": [
+          {
+            "description": "preferenceKey",
+            "in": "path",
+            "name": "preferenceKey",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-user-preferences",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/update-gdpr-privacy-note": {
+      "put": {
+        "deprecated": false,
+        "description": "Put GDPR privacy note",
+        "operationId": "users_update_gdpr_privacy_note",
+        "parameters": [
+          {
+            "description": "userId",
+            "in": "query",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update-gdpr-privacy-note",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/users-by-account": {
+      "get": {
+        "deprecated": false,
+        "description": "Get account users",
+        "operationId": "get_users_by_account",
+        "parameters": [
+          {
+            "description": "includeDummyAccountUsers",
+            "in": "query",
+            "name": "includeDummyAccountUsers",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "organizationId",
+            "in": "query",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetUserResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-users-by-account",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/management-rest/users/create-user": {
+      "post": {
+        "deprecated": false,
+        "description": "This API create user in the system. (only for Admin role",
+        "operationId": "users_create_user",
+        "parameters": [
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non-shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\teach – Indicates that the operation applies independently to each organization. For example, let's assume that the same user exists in multiple organizations. When each is specified in the organization parameter, then each organization can update this user separately.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetCreateUserRequest"
+              }
+            }
+          },
+          "description": "userRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "create-user",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/management-rest/users/delete-saml-settings": {
+      "delete": {
+        "deprecated": false,
+        "description": "Delete SAML authentication settings per organization",
+        "operationId": "users_delete_saml_settings",
+        "parameters": [
+          {
+            "description": "organizationNameRequest",
+            "in": "query",
+            "name": "organizationNameRequest",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "delete-saml-settings",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/management-rest/users/delete-user": {
+      "delete": {
+        "deprecated": false,
+        "description": "This API delete user from the system. Use the input parameters to filter organization",
+        "operationId": "users_delete_user",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of the user",
+            "in": "query",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "delete-user",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/management-rest/users/get-sp-metadata": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call retrieve the FortiEdr metadata by organization",
+        "operationId": "users_get_sp_metadata",
+        "parameters": [
+          {
+            "description": "organization",
+            "in": "query",
+            "name": "organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-sp-metadata",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/management-rest/users/list-users": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call outputs a list of the users in the system. Use the input parameters to filter the list",
+        "operationId": "get_users_list_users",
+        "parameters": [
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetUserResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-users",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/management-rest/users/reset-password": {
+      "put": {
+        "deprecated": false,
+        "description": "This API reset user password. Use the input parameters to filter organization",
+        "operationId": "users_reset_password",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of the user",
+            "in": "query",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetUserAuthenticationRequest"
+              }
+            }
+          },
+          "description": "userRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "reset-password",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/management-rest/users/update-saml-settings": {
+      "post": {
+        "deprecated": false,
+        "description": "Create / Update SAML authentication settings per organization",
+        "operationId": "users_update_saml_settings",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "idpMetadataFile": {
+                    "description": "idpMetadataFile",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "idpMetadataFile"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update-saml-settings",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/management-rest/users/update-user": {
+      "put": {
+        "deprecated": false,
+        "description": "This API update user in the system. Use the input parameters to filter organization",
+        "operationId": "users_update_user",
+        "parameters": [
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non-shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\teach – Indicates that the operation applies independently to each organization. For example, let's assume that the same user exists in multiple organizations. When each is specified in the organization parameter, then each organization can update this user separately.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of the user",
+            "in": "query",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetUserRequest"
+              }
+            }
+          },
+          "description": "userRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update-user",
+        "tags": [
+          "Users"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "API to define user",
+      "name": "Users"
+    }
+  ]
+}

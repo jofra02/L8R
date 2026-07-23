@@ -1,0 +1,244 @@
+{
+  "components": {
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/inventory/mobile/create-group": {
+      "post": {
+        "deprecated": false,
+        "description": "Create a Mobile group",
+        "operationId": "inventory_mobile_create_group",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "description": "params",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "create group",
+        "tags": [
+          "mobile-inventory-rest-api-controller"
+        ]
+      }
+    },
+    "/api/inventory/mobile/delete": {
+      "delete": {
+        "deprecated": false,
+        "description": "Delete",
+        "operationId": "inventory_mobile_delete",
+        "parameters": [
+          {
+            "description": "params",
+            "in": "query",
+            "name": "params",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Delete",
+        "tags": [
+          "mobile-inventory-rest-api-controller"
+        ]
+      }
+    },
+    "/api/inventory/mobile/groups": {
+      "get": {
+        "deprecated": false,
+        "description": "Return mobile groups",
+        "operationId": "get_inventory_mobile_groups",
+        "parameters": [
+          {
+            "description": "params",
+            "in": "query",
+            "name": "params",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get groups",
+        "tags": [
+          "mobile-inventory-rest-api-controller"
+        ]
+      }
+    },
+    "/api/inventory/mobile/list": {
+      "get": {
+        "deprecated": false,
+        "description": "Return mobile devices",
+        "operationId": "get_inventory_mobile_list",
+        "parameters": [
+          {
+            "description": "params",
+            "in": "query",
+            "name": "params",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get devices",
+        "tags": [
+          "mobile-inventory-rest-api-controller"
+        ]
+      }
+    },
+    "/api/inventory/mobile/move-group": {
+      "put": {
+        "deprecated": false,
+        "description": "Move a Mobile group",
+        "operationId": "inventory_mobile_move_group",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "description": "params",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "move group",
+        "tags": [
+          "mobile-inventory-rest-api-controller"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Mobile Inventory Rest Api Controller",
+      "name": "mobile-inventory-rest-api-controller"
+    }
+  ]
+}
