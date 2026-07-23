@@ -1,3 +1,8 @@
 # Shell scripts must stay LF: they are COPYed into Linux images and a CRLF
 # checkout (core.autocrlf=true on Windows) breaks the container entrypoint.
 *.sh text eol=lf
+
+# FortiEDR specs must stay LF: convert_fortiedr_specs.py --check compares the
+# generated files byte-for-byte against the converter output (written with LF).
+mcp_gateway/FortiEDR/** text eol=lf
+mcp_gateway/vendors/fortinet/fortiedr/specs/** text eol=lf
