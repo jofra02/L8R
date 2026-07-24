@@ -68,7 +68,7 @@ def get_response_ready_state() -> GlobalState:
     state["components"] = [mock_component("fgt_demo", "firewall")]
     state["evidence_refs"] = [
         mock_evidence("get_system_status", "Version: 7.0.0"),
-        mock_evidence("fgt_monitor_sys_get_status", "Host unreachable")
+        mock_evidence("fgt74_monitor_sys_get_status", "Host unreachable")
     ]
     state["hypotheses"] = [
         Hypothesis(id="h1", summary="Firewall rule blocking traffic", status="verified", rank=1, confidence=0.8, reasoning="Tool check failed")

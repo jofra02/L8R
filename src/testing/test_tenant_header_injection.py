@@ -46,7 +46,7 @@ async def test_injects_tenant_when_llm_omits_it(monkeypatch):
 
     tools, _ = create_engineer_tools(customer_id="druidics", run_id="r", ticket_id="t")
     await _get_execute_tool(tools).ainvoke(
-        {"tool_name": "fgt_x", "tool_params": '{"device": "fw1"}'}
+        {"tool_name": "fgt74_x", "tool_params": '{"device": "fw1"}'}
     )
 
     assert fake.calls, "gateway tool was not invoked"
@@ -61,7 +61,7 @@ async def test_injection_overrides_llm_supplied_tenant(monkeypatch):
     tools, _ = create_engineer_tools(customer_id="druidics", run_id="r", ticket_id="t")
     # The model tries to spoof another tenant — the framework must override it.
     await _get_execute_tool(tools).ainvoke(
-        {"tool_name": "fgt_x", "tool_params": '{"device": "fw1", "tenant": "victim_tenant"}'}
+        {"tool_name": "fgt74_x", "tool_params": '{"device": "fw1", "tenant": "victim_tenant"}'}
     )
 
     assert fake.calls[0]["tenant"] == "druidics"

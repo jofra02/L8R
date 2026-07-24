@@ -97,13 +97,16 @@ class InventoryService:
         }
         if mcp.token:
             connection["token"] = mcp.token
-        return {
+        payload = {
             "id": component.id,
             "name": component.ref,
             "type": mcp.device_type,
             "primary": mcp.primary,
             "connection": connection,
         }
+        if mcp.os_version:
+            payload["os_version"] = mcp.os_version
+        return payload
 
     @staticmethod
     def _set_mcp_metadata(component: Component, mcp: McpConnection, sync_info: dict) -> None:
@@ -113,6 +116,7 @@ class InventoryService:
             "vendor": mcp.vendor,
             "appliance": mcp.appliance,
             "device_type": mcp.device_type,
+            "os_version": mcp.os_version,
             "host": mcp.host,
             "port": mcp.port,
             "verify_ssl": mcp.verify_ssl,

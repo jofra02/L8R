@@ -1,0 +1,290 @@
+# FortiGate Security Baseline — assessment definition
+#
+# Versioned and immutable: once synced to the database, editing this file
+# without bumping `assessment.version` is rejected by the DefinitionRegistry.
+# Tool names are pinned against mcp_gateway/baseline_tools.txt (name-freeze).
+# Controls derive from the internal FortiGate hardening manual
+# (docs/planning/assessment/fortigate_hardening_manual.txt).
+#
+# 1.0.1 supersedes 1.0.0: identical controls; collection tool names updated
+# for the versioned pack prefix rename (fgt_* -> fgt74_*). Use this version —
+# 1.0.0 references retired tool names and its collection steps will fail.
+
+assessment:
+  id: fortigate-security-baseline
+  version: 1.0.1
+  name: FortiGate Security Baseline
+  vendor: fortinet
+  product: fortigate
+  min_product_version: "7.0"
+  description: >
+    Baseline hardening assessment for FortiGate devices: management plane,
+    authentication, logging, time, firewall policy hygiene and HA posture.
+
+scoring:
+  version: "1.0"
+  severity_weights: { critical: 10, high: 5, medium: 2, low: 1 }
+  status_credit: { pass: 1.0, warning: 0.5, fail: 0.0 }
+  excluded_from_denominator:
+    - not_applicable
+    - not_evaluated
+    - insufficient_evidence
+    - error
+
+collection_steps:
+  - id: system_status
+    tool: fgt74_monitor_sys_get_status
+    required: true
+    timeout_s: 30
+    normalizer: fortigate.monitor_results
+
+  - id: system_global
+    tool: fgt74_cmdb_sys_get_global
+    required: true
+    normalizer: fortigate.cmdb_results
+
+  - id: interfaces
+    tool: fgt74_cmdb_sys_get_interface
+    required: true
+    normalizer: fortigate.cmdb_results
+
+  - id: admin_users
+    tool: fgt74_cmdb_sys_get_admin
+    required: true
+    normalizer: fortigate.cmdb_results
+    sanitize: [password, private-key, ssh-public-key1, ssh-public-key2, ssh-public-key3]
+
+  - id: radius_servers
+    tool: fgt74_cmdb_user_adgrp_get_radius
+    required: false
+    normalizer: fortigate.cmdb_results
+    sanitize: [secret, secondary-secret, tertiary-secret]
+
+  - id: ldap_servers
+    tool: fgt74_cmdb_user_adgrp_get_ldap
+    required: false
+    normalizer: fortigate.cmdb_results
+    sanitize: [password]
+
+  - id: faz_setting
+    tool: fgt74_cmdb_log_disk_filter_get_log_fortianalyzer_setting
+    required: false
+    normalizer: fortigate.cmdb_results
+
+  - id: syslog_setting
+    tool: fgt74_cmdb_log_disk_filter_get_log_syslogd_setting
+    required: false
+    normalizer: fortigate.cmdb_results
+
+  - id: ntp_config
+    tool: fgt74_cmdb_sys_get_ntp
+    required: false
+    normalizer: fortigate.cmdb_results
+    sanitize: [key]
+
+  - id: ntp_status
+    tool: fgt74_monitor_sys_get_ntp_status
+    required: false
+    depends_on: [ntp_config]
+    normalizer: fortigate.monitor_results
+
+  - id: firewall_policies
+    tool: fgt74_cmdb_fw_ipmacbinding_setting_get_firewall_policy
+    required: true
+    timeout_s: 90
+    normalizer: fortigate.cmdb_results
+
+  - id: ha_config
+    tool: fgt74_cmdb_sys_get_ha
+    required: false
+    normalizer: fortigate.cmdb_results
+    sanitize: [password, key]
+
+  - id: ha_status
+    tool: fgt74_monitor_sys_get_ha_statistics
+    required: false
+    depends_on: [ha_config]
+    normalizer: fortigate.monitor_results
+
+controls:
+  - id: FGT-SYS-001
+    title: FortiOS version is supported
+    category: System
+    severity: high
+    description: >
+      The device must run a FortiOS release train that still receives
+      security fixes. Unsupported trains accumulate unpatched CVEs.
+    required_evidence: [system_status]
+    evaluation:
+      type: parser
+      parser: fortigate.fortios_version_supported
+    params:
+      minimum_supported: "7.2"
+    references:
+      - Fortinet Product Life Cycle
+    remediation:
+      summary: Upgrade to a supported FortiOS release train.
+
+  - id: FGT-MGMT-001
+    title: Restrict administrative access
+    category: Management Plane
+    severity: critical
+    description: >
+      Administrative access should be restricted to dedicated management
+      interfaces and trusted source networks. Insecure management protocols
+      must be disabled.
+    required_evidence: [interfaces, system_global, admin_users]
+    evaluation:
+      type: hybrid
+      rule: fortigate.management_access_rule
+      llm_instructions: >
+        Using ONLY the provided evidence, evaluate whether administrative
+        access (HTTP, HTTPS, SSH, Telnet in interface allowaccess) is exposed
+        on non-management or WAN-role interfaces, or reachable by
+        administrators without trusted hosts. Cite the exact interface names
+        and admin account names involved. Do not assume anything not present
+        in the evidence.
+    expected_state:
+      - Dedicated management interface where supported
+      - HTTP and Telnet disabled on all interfaces
+      - allowaccess restricted on WAN/production interfaces
+      - Trusted hosts configured for administrative accounts
+    references:
+      - Fortinet Security Best Practices
+      - Internal Hardening Manual — Management plane hardening
+    remediation:
+      summary: >
+        Restrict allowaccess to dedicated management interfaces, disable
+        insecure protocols and enforce trusted hosts on all admin accounts.
+
+  - id: FGT-MGMT-002
+    title: Trusted hosts configured for all administrators
+    category: Management Plane
+    severity: high
+    description: >
+      Every administrative account must define trusted hosts so management
+      logins are only possible from administrative networks.
+    required_evidence: [admin_users]
+    evaluation:
+      type: rule
+      rule: fortigate.trusted_hosts_rule
+    references:
+      - Internal Hardening Manual — Trusted hosts
+    remediation:
+      summary: Configure trusted hosts on every admin account.
+
+  - id: FGT-AUTH-001
+    title: Remote authentication for administrators
+    category: Authentication
+    severity: medium
+    description: >
+      Administrators should authenticate against a central identity source
+      (RADIUS/LDAP/SAML) with nominal accounts; local-only administration
+      prevents central accounting and MFA enforcement.
+    required_evidence: [admin_users]
+    optional_evidence: [radius_servers, ldap_servers]
+    evaluation:
+      type: rule
+      rule: fortigate.remote_auth_rule
+    references:
+      - Internal Hardening Manual — AAA / identidad
+    remediation:
+      summary: Integrate administrator authentication with RADIUS/LDAP and keep a controlled local break-glass account.
+
+  - id: FGT-LOG-001
+    title: Central logging to FortiAnalyzer or syslog
+    category: Logging
+    severity: high
+    description: >
+      Logs must be forwarded off-box (FortiAnalyzer or syslog) for detection,
+      forensics and retention.
+    optional_evidence: [faz_setting, syslog_setting]
+    evaluation:
+      type: rule
+      rule: fortigate.central_logging_rule
+    references:
+      - Internal Hardening Manual — FortiAnalyzer / logging
+    remediation:
+      summary: Enable log forwarding to FortiAnalyzer or a syslog collector.
+
+  - id: FGT-SYS-002
+    title: NTP configured and synchronized
+    category: System
+    severity: medium
+    description: >
+      Accurate time is required for log correlation with SIEM/FAZ and for
+      certificate validation.
+    required_evidence: [ntp_config]
+    optional_evidence: [ntp_status]
+    evaluation:
+      type: rule
+      rule: fortigate.ntp_rule
+    references:
+      - Internal Hardening Manual — Time / NTP
+    remediation:
+      summary: Configure trusted NTP servers and verify synchronization.
+
+  - id: FGT-POL-001
+    title: Firewall policies without logging
+    category: Firewall Policy
+    severity: medium
+    description: >
+      Enabled accept policies without traffic logging create blind spots for
+      detection and forensics.
+    required_evidence: [firewall_policies]
+    evaluation:
+      type: parser
+      parser: fortigate.policies_without_logging
+    references:
+      - Internal Hardening Manual — Política de firewall
+    remediation:
+      summary: Enable logging (logtraffic all) on relevant policies.
+
+  - id: FGT-POL-002
+    title: Overly permissive firewall policies
+    category: Firewall Policy
+    severity: critical
+    description: >
+      Accept policies matching any source, any destination and all services
+      defeat segmentation and violate deny-by-default.
+    required_evidence: [firewall_policies]
+    evaluation:
+      type: parser
+      parser: fortigate.overly_permissive_policies
+    references:
+      - Internal Hardening Manual — Modelo de reglas
+    remediation:
+      summary: Replace any/any/ALL policies with specific source, destination and service objects.
+
+  - id: FGT-POL-003
+    title: Security profiles applied on accept policies
+    category: Security Profiles
+    severity: medium
+    description: >
+      Accept policies without any UTM security profile (IPS, AV, web filter,
+      DNS filter, application control) forward traffic uninspected.
+    required_evidence: [firewall_policies]
+    evaluation:
+      type: parser
+      parser: fortigate.policies_without_profiles
+    references:
+      - Internal Hardening Manual — UTM / security profiles
+    remediation:
+      summary: Apply appropriate security profiles per exposure and criticality.
+
+  - id: FGT-HA-001
+    title: HA configured and synchronized
+    category: High Availability
+    severity: medium
+    description: >
+      Where HA is deployed it must be healthy and synchronized; standalone
+      devices are reported as not applicable.
+    required_evidence: [ha_config]
+    optional_evidence: [ha_status]
+    evaluation:
+      type: rule
+      rule: fortigate.ha_status_rule
+    references:
+      - Internal Hardening Manual — HA
+    remediation:
+      summary: Review HA mode, heartbeat interfaces and synchronization status.

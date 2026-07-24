@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Dict, List, Any, Optional
 from src.core.interfaces import MCPToolInterface, CapabilityPackInterface
 from src.mcp.client import MCPClient
@@ -7,6 +8,19 @@ import logging
 import json
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class GatewayPackInfo:
+    """Authoritative appliance-pack identity, fetched from GET /admin/packs."""
+
+    vendor: str
+    product: str
+    version: str
+    prefix: str
+    device_type: str
+    display_name: str
+    pack_key: str  # "vendor/product/version" — catalog partition key
 
 # --- Tool metadata extraction constants ---
 
@@ -58,7 +72,7 @@ def _extract_tool_metadata(
             method = m
             break
     if method == "unknown":
-        # Suffix match: tool names like "fgt_cmdb_voip_profile_post"
+        # Suffix match: tool names like "fgt74_cmdb_voip_profile_post"
         for m in (*_WRITE_METHODS, *_READ_METHODS):
             if name_lower.endswith("_" + m):
                 method = m
@@ -99,7 +113,8 @@ class CapabilityRegistry:
     """
     _packs: Dict[str, CapabilityPackInterface] = {}
     _tools: Dict[str, MCPToolInterface] = {}
-    
+    _gateway_packs: List[GatewayPackInfo] = []
+
     @classmethod
     def register_pack(cls, pack: CapabilityPackInterface):
         """Register a capability pack."""
@@ -193,13 +208,86 @@ class CapabilityRegistry:
         from src.mcp.client import MCPClient
         client = MCPClient()
         external_tools = await client.discover_tools()
-        
+
         for tool in external_tools:
             logger.info(f"Registry: Registering external tool {tool.name} from {tool.server_name}")
             cls._tools[tool.name] = tool
 
+        await cls._fetch_gateway_packs()
+
+    @classmethod
+    async def _fetch_gateway_packs(cls) -> None:
+        """Fetch authoritative pack identity from the gateway admin API.
+
+        Failure is non-fatal: without pack metadata, tools index without pack
+        identity (heuristic vendor only) and catalog searches run unscoped.
+        """
+        from src.api.services.gateway_admin_client import GatewayAdminClient
+
+        client = GatewayAdminClient.from_settings()
+        if client is None:
+            logger.warning(
+                "Registry: gateway admin API not configured — "
+                "tool catalog will carry no pack identity."
+            )
+            return
+
+        raw_packs = await client.list_packs()
+        packs: List[GatewayPackInfo] = []
+        for entry in raw_packs:
+            try:
+                vendor = entry["vendor"]
+                product = entry["appliance"]
+                version = entry["version"]
+                packs.append(GatewayPackInfo(
+                    vendor=vendor,
+                    product=product,
+                    version=version,
+                    prefix=entry["prefix"],
+                    device_type=entry["device_type"],
+                    display_name=entry.get("display_name", product),
+                    pack_key=entry.get("pack_key") or f"{vendor}/{product}/{version}",
+                ))
+            except KeyError as e:
+                logger.warning(f"Registry: malformed pack entry {entry}: missing {e}")
+        if packs:
+            cls._gateway_packs = packs
+            logger.info(
+                f"Registry: loaded {len(packs)} gateway packs: "
+                f"{', '.join(p.pack_key for p in packs)}"
+            )
+
+    @classmethod
+    def get_gateway_packs(cls) -> List[GatewayPackInfo]:
+        return list(cls._gateway_packs)
+
+    @classmethod
+    def resolve_pack_for_tool(cls, tool_name: str) -> Optional[GatewayPackInfo]:
+        """Map a tool to its appliance pack by longest-prefix match on '{prefix}_'."""
+        for pack in sorted(cls._gateway_packs, key=lambda p: len(p.prefix), reverse=True):
+            if tool_name.startswith(pack.prefix + "_"):
+                return pack
+        return None
+
     # Sentinel used for global (tenant-agnostic) tool catalog storage in Qdrant.
     TOOL_CATALOG_SENTINEL = "__global__"
+
+    @classmethod
+    def _tool_schema_json(cls, tool) -> dict:
+        """Best-fidelity JSON schema for a tool's arguments.
+
+        Prefers the raw MCP inputSchema captured at discovery — it carries the
+        types, formats, enums, and per-parameter descriptions the server
+        advertises. Falls back to the pydantic ``args_schema`` round-trip for
+        builtin tools (external wrappers' args_schema is a typeless shell and
+        must never be the schema source).
+        """
+        raw = getattr(tool, "input_schema", None)
+        if raw:
+            return raw
+        if getattr(tool, "args_schema", None):
+            return tool.args_schema.model_json_schema()
+        return {}
 
     @classmethod
     async def index_tools(cls):
@@ -208,7 +296,11 @@ class CapabilityRegistry:
         Uses diff logic: only indexes tools not already present, avoiding
         unnecessary OpenAI Embedding API calls on warm startups.
         """
-        from src.core.qdrant import vector_store
+        from src.core.qdrant import vector_store, tool_schema_hash
+
+        # The gateway may have come up after load_external_tools() ran.
+        if not cls._gateway_packs:
+            await cls._fetch_gateway_packs()
 
         cid = cls.TOOL_CATALOG_SENTINEL
         tools = cls.list_tools()
@@ -229,13 +321,16 @@ class CapabilityRegistry:
 
         new_tools = registry_names - already_indexed
         stale_tools = already_indexed - registry_names  # tools removed from MCP
-        # Description drift: same name, different indexed description (e.g. a
-        # gateway pack enriched a summary). Deterministic ids make re-indexing an
-        # in-place upsert. The payload stores `description or name` — compare
-        # against that same expression to avoid false positives.
+        # Drift: same name but different indexed description OR args schema
+        # (e.g. a gateway pack enriched a summary, an enum, or a parameter
+        # description). Deterministic ids make re-indexing an in-place upsert.
+        # The payload stores `description or name` — compare against that same
+        # expression to avoid false positives.
         changed_tools = {
             name for name in (registry_names & already_indexed)
-            if (tools_by_name[name].description or name) != indexed_descriptions[name]
+            if (tools_by_name[name].description or name) != indexed_descriptions[name]["description"]
+            or tool_schema_hash(cls._tool_schema_json(tools_by_name[name]))
+            != indexed_descriptions[name]["schema_hash"]
         }
 
         if len(changed_tools) > settings.TOOL_CATALOG_REINDEX_CAP:
@@ -268,9 +363,7 @@ class CapabilityRegistry:
         for tool_name in to_index:
             tool = tools_by_name[tool_name]
             try:
-                args_schema_json = {}
-                if tool.args_schema:
-                    args_schema_json = tool.args_schema.model_json_schema()
+                args_schema_json = cls._tool_schema_json(tool)
 
                 server_name = getattr(tool, 'server_name', 'builtin')
                 meta = _extract_tool_metadata(tool.name, tool.description or "", args_schema_json, server_name)
@@ -290,12 +383,12 @@ class CapabilityRegistry:
                 embed_text = f"{tool.description or tool.name}. {args_summary}".strip()
                 dedup_key = f"{cid}-{tool.name}"
 
-                texts.append(embed_text)
-                metadatas.append({
+                metadata = {
                     "tool_name": tool.name,
                     "description": tool.description or tool.name,
                     "server_name": server_name,
                     "args_schema": args_schema_json,
+                    "schema_hash": tool_schema_hash(args_schema_json),
                     "vendor": meta["vendor"],
                     "method": meta["method"],
                     "read_only": "true" if meta["read_only"] else "false",
@@ -305,7 +398,23 @@ class CapabilityRegistry:
                     "provides_identifiers": [],
                     "requires_identifiers": [],
                     "scope_params": [],
-                })
+                }
+                # Pack identity (catalog partition): authoritative over the
+                # heuristic vendor. Non-pack tools omit these keys entirely so
+                # the IsEmpty(pack_key) search branch matches them.
+                pack = cls.resolve_pack_for_tool(tool.name)
+                if pack:
+                    metadata.update({
+                        "vendor": pack.vendor,
+                        "pack_vendor": pack.vendor,
+                        "pack_product": pack.product,
+                        "pack_version": pack.version,
+                        "device_type": pack.device_type,
+                        "pack_key": pack.pack_key,
+                    })
+
+                texts.append(embed_text)
+                metadatas.append(metadata)
                 ids.append(vector_store._generate_id(dedup_key))
             except Exception as e:
                 logger.warning(f"Registry: Failed to prepare tool {tool.name}: {e}")
@@ -455,6 +564,7 @@ class CapabilityRegistry:
         cls, intent: str, customer_id: str, limit: int = 8,
         vendor: str = None, method: str = None,
         read_only: bool = None, categories: List[str] = None,
+        allowed_pack_keys: Optional[List[str]] = None,
     ) -> List[MCPToolInterface]:
         """
         Semantic search for tools by INTENT (what you want to accomplish).
@@ -472,6 +582,7 @@ class CapabilityRegistry:
                 method=method,
                 read_only=read_only,
                 categories=categories,
+                allowed_pack_keys=allowed_pack_keys,
             )
             
             # Map back to actual tool objects

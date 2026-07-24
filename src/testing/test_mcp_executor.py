@@ -50,15 +50,15 @@ async def _patch_collaborators(monkeypatch, fake, *, safe=True, allowed=True):
 # ---------------------------------------------------------------------------
 
 def test_read_only_allowlist_names():
-    assert is_read_only_tool_name("fgt_cmdb_sys_get_admin")
-    assert is_read_only_tool_name("fgt_monitor_sys_get_status")
+    assert is_read_only_tool_name("fgt74_cmdb_sys_get_admin")
+    assert is_read_only_tool_name("fgt74_monitor_sys_get_status")
     # No GET marker
-    assert not is_read_only_tool_name("fgt_cmdb_sys_admin")
+    assert not is_read_only_tool_name("fgt74_cmdb_sys_admin")
     # Mutating / active markers
-    assert not is_read_only_tool_name("fgt_cmdb_fw_ipmacbinding_setting_put_firewall_policy_policyid")
-    assert not is_read_only_tool_name("fgt_cmdb_fw_ipmacbinding_setting_post_firewall_policy")
-    assert not is_read_only_tool_name("fgt_cmdb_fw_ipmacbinding_setting_delete_firewall_policy_policyid")
-    assert not is_read_only_tool_name("fgt_monitor_sys_post_vmlicense_download")
+    assert not is_read_only_tool_name("fgt74_cmdb_fw_ipmacbinding_setting_put_firewall_policy_policyid")
+    assert not is_read_only_tool_name("fgt74_cmdb_fw_ipmacbinding_setting_post_firewall_policy")
+    assert not is_read_only_tool_name("fgt74_cmdb_fw_ipmacbinding_setting_delete_firewall_policy_policyid")
+    assert not is_read_only_tool_name("fgt74_monitor_sys_post_vmlicense_download")
 
 
 async def test_enforce_read_only_blocks_mutating_tool(monkeypatch):
@@ -66,7 +66,7 @@ async def test_enforce_read_only_blocks_mutating_tool(monkeypatch):
     await _patch_collaborators(monkeypatch, fake)
 
     res = await execute_mcp_tool(
-        "fgt_cmdb_x_put_thing", {"device": "fw1"}, "acme", enforce_read_only=True
+        "fgt74_cmdb_x_put_thing", {"device": "fw1"}, "acme", enforce_read_only=True
     )
     assert not res.ok
     assert res.error_type == "read_only"
@@ -79,7 +79,7 @@ async def test_enforce_read_only_allows_get_tool(monkeypatch):
     await _patch_collaborators(monkeypatch, fake)
 
     res = await execute_mcp_tool(
-        "fgt_cmdb_sys_get_admin", {"device": "fw1"}, "acme", enforce_read_only=True
+        "fgt74_cmdb_sys_get_admin", {"device": "fw1"}, "acme", enforce_read_only=True
     )
     assert res.ok
     assert res.content == {"results": []}
@@ -93,7 +93,7 @@ async def test_safety_block(monkeypatch):
     fake = FakeWrapper()
     await _patch_collaborators(monkeypatch, fake, safe=False)
 
-    res = await execute_mcp_tool("fgt_x_get_y", {}, "acme")
+    res = await execute_mcp_tool("fgt74_x_get_y", {}, "acme")
     assert not res.ok and res.error_type == "safety" and res.preflight_failure
     assert not fake.calls
 
@@ -102,7 +102,7 @@ async def test_tenant_governance_block(monkeypatch):
     fake = FakeWrapper()
     await _patch_collaborators(monkeypatch, fake, allowed=False)
 
-    res = await execute_mcp_tool("fgt_x_get_y", {}, "acme")
+    res = await execute_mcp_tool("fgt74_x_get_y", {}, "acme")
     assert not res.ok and res.error_type == "authorization" and res.preflight_failure
     assert not fake.calls
 
@@ -123,7 +123,7 @@ async def test_tenant_injected_and_overrides_caller_value(monkeypatch):
     await _patch_collaborators(monkeypatch, fake)
 
     args = {"device": "fw1", "tenant": "victim_tenant"}
-    res = await execute_mcp_tool("fgt_x_get_y", args, "acme")
+    res = await execute_mcp_tool("fgt74_x_get_y", args, "acme")
 
     assert res.ok
     assert fake.calls[0]["tenant"] == "acme"
@@ -141,7 +141,7 @@ async def test_timeout_classification(monkeypatch):
     fake = FakeWrapper(delay_s=0.5)
     await _patch_collaborators(monkeypatch, fake)
 
-    res = await execute_mcp_tool("fgt_x_get_y", {}, "acme", timeout_s=0.05)
+    res = await execute_mcp_tool("fgt74_x_get_y", {}, "acme", timeout_s=0.05)
     assert not res.ok
     assert res.error_type == "timeout"
     assert res.stage == "execute" and not res.preflight_failure
@@ -151,7 +151,7 @@ async def test_connection_error_classification(monkeypatch):
     fake = FakeWrapper(exc=ConnectionError("connection refused"))
     await _patch_collaborators(monkeypatch, fake)
 
-    res = await execute_mcp_tool("fgt_x_get_y", {}, "acme")
+    res = await execute_mcp_tool("fgt74_x_get_y", {}, "acme")
     assert not res.ok and res.error_type == "connection"
 
 
@@ -159,7 +159,7 @@ async def test_unknown_error_classification(monkeypatch):
     fake = FakeWrapper(exc=RuntimeError("boom"))
     await _patch_collaborators(monkeypatch, fake)
 
-    res = await execute_mcp_tool("fgt_x_get_y", {}, "acme")
+    res = await execute_mcp_tool("fgt74_x_get_y", {}, "acme")
     assert not res.ok and res.error_type == "unknown"
     assert "boom" in res.error
 
@@ -172,6 +172,6 @@ async def test_gateway_error_flag(monkeypatch):
     fake = FakeWrapper(result="Error: device 'fw9' not found")
     await _patch_collaborators(monkeypatch, fake)
 
-    res = await execute_mcp_tool("fgt_x_get_y", {}, "acme")
+    res = await execute_mcp_tool("fgt74_x_get_y", {}, "acme")
     assert res.ok  # the call itself succeeded
     assert res.gateway_error

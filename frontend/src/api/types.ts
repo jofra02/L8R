@@ -282,6 +282,7 @@ export interface McpConnection {
   vendor?: string;
   appliance?: string;
   device_type?: string;
+  os_version?: string;
   host: string;
   port?: number;
   token?: string; // write-only: forwarded to the gateway, never stored/returned
@@ -302,6 +303,7 @@ export interface McpMetadata {
   vendor: string;
   appliance: string;
   device_type: string;
+  os_version?: string | null;
   host: string;
   port: number;
   verify_ssl: boolean;

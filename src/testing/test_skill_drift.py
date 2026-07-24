@@ -18,8 +18,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BASELINE = REPO_ROOT / "mcp_gateway" / "baseline_tools.txt"
 
 # Backtick-quoted gateway tool names inside skill files; a trailing `*` marks a
-# prefix family (e.g. `fgt_cmdb_registration_post_forticare_*`).
-ANCHOR_RE = re.compile(r"`(fgt_[a-z0-9_]+\*?)`")
+# prefix family (e.g. `fgt74_cmdb_registration_post_forticare_*`). Pack prefixes
+# are versioned (fgt74, fedr62, ...), so match any fgt/fedr prefix variant.
+ANCHOR_RE = re.compile(r"`((?:fgt|fedr)[a-z0-9]*_[a-z0-9_]+\*?)`")
 
 
 def test_domain_skill_map_files_exist():

@@ -38,21 +38,21 @@ A FortiGate can affect a flow through **independent mechanisms**. Verify each on
 
 | Tool | What it answers |
 |---|---|
-| `fgt_monitor_fw_get_firewall_policy_lookup` | **The discriminating test.** Simulates a packet (source interface/IP, protocol, destination, destination port per its args_schema) and returns the policy that would match — run it once per dependency in the profile, including the ones with no observed sessions. |
-| `fgt_monitor_fw_get_firewall_sessions` | Live session table with filters (source/destination address, port, protocol, policyid). Attribution: filter by the profile's destination port/IPs — never attribute sessions by resemblance. |
-| `fgt_cmdb_fw_ipmacbinding_setting_get_firewall_policy` / `..._policy_policyid` | Policy **configuration**: attached UTM profiles, NAT mode, ippool, log setting. **Misleading prefix**: firewall config tools live under `fgt_cmdb_fw_ipmacbinding_setting_*` — do not infer capability from names. |
-| `fgt_monitor_fw_get_firewall_policy` | Per-policy runtime hit/byte counters. |
-| `fgt_cmdb_app_custom_get_application_list` / `..._list_name` | Application-control profiles: blocked/monitored application signatures and categories. |
-| `fgt_cmdb_web_content_get_webfilter_profile` / `..._profile_name` | Webfilter profiles attached to the policy. |
-| `fgt_cmdb_dns_domain_filter_get_dnsfilter_profile` / `..._profile_name` | DNS-filter profiles — can silently break an application's name resolution. |
-| `fgt_cmdb_fw_ipmacbinding_setting_get_firewall_ssl_ssh_profile` / `..._profile_name` | SSL/SSH inspection profiles — deep inspection breaks certificate-pinned apps. |
-| `fgt_cmdb_ips_custom_get_sensor` / `..._sensor_name` | IPS sensors attached to the policy. |
-| `fgt_cmdb_fw_ipmacbinding_setting_get_firewall_ippool` / `..._ippool_name`, `fgt_monitor_fw_get_firewall_ippool` | NAT pool config and usage — pool type decides port preservation, which decides hole punching. |
-| `fgt_cmdb_fw_ipmacbinding_setting_get_firewall_central_snat_map`, `fgt_monitor_fw_get_firewall_central_snat_map` | Central SNAT rules that may override policy NAT. |
-| `fgt_monitor_router_get_lookup` | Route lookup for a destination → actual egress interface. |
-| `fgt_cmdb_fw_ipmacbinding_setting_get_firewall_local_in_policy` | Local-in policies (traffic to the firewall itself). |
-| `fgt_cmdb_fw_ipmacbinding_setting_get_firewall_DoS_policy` | DoS policies. |
-| `fgt_cmdb_fw_ipmacbinding_setting_get_firewall_shaping_policy`, `..._get_firewall_shaper_traffic_shaper` | Shaping policies and traffic shapers. |
+| `fgt74_monitor_fw_get_firewall_policy_lookup` | **The discriminating test.** Simulates a packet (source interface/IP, protocol, destination, destination port per its args_schema) and returns the policy that would match — run it once per dependency in the profile, including the ones with no observed sessions. |
+| `fgt74_monitor_fw_get_firewall_sessions` | Live session table with filters (source/destination address, port, protocol, policyid). Attribution: filter by the profile's destination port/IPs — never attribute sessions by resemblance. |
+| `fgt74_cmdb_fw_ipmacbinding_setting_get_firewall_policy` / `..._policy_policyid` | Policy **configuration**: attached UTM profiles, NAT mode, ippool, log setting. **Misleading prefix**: firewall config tools live under `fgt74_cmdb_fw_ipmacbinding_setting_*` — do not infer capability from names. |
+| `fgt74_monitor_fw_get_firewall_policy` | Per-policy runtime hit/byte counters. |
+| `fgt74_cmdb_app_custom_get_application_list` / `..._list_name` | Application-control profiles: blocked/monitored application signatures and categories. |
+| `fgt74_cmdb_web_content_get_webfilter_profile` / `..._profile_name` | Webfilter profiles attached to the policy. |
+| `fgt74_cmdb_dns_domain_filter_get_dnsfilter_profile` / `..._profile_name` | DNS-filter profiles — can silently break an application's name resolution. |
+| `fgt74_cmdb_fw_ipmacbinding_setting_get_firewall_ssl_ssh_profile` / `..._profile_name` | SSL/SSH inspection profiles — deep inspection breaks certificate-pinned apps. |
+| `fgt74_cmdb_ips_custom_get_sensor` / `..._sensor_name` | IPS sensors attached to the policy. |
+| `fgt74_cmdb_fw_ipmacbinding_setting_get_firewall_ippool` / `..._ippool_name`, `fgt74_monitor_fw_get_firewall_ippool` | NAT pool config and usage — pool type decides port preservation, which decides hole punching. |
+| `fgt74_cmdb_fw_ipmacbinding_setting_get_firewall_central_snat_map`, `fgt74_monitor_fw_get_firewall_central_snat_map` | Central SNAT rules that may override policy NAT. |
+| `fgt74_monitor_router_get_lookup` | Route lookup for a destination → actual egress interface. |
+| `fgt74_cmdb_fw_ipmacbinding_setting_get_firewall_local_in_policy` | Local-in policies (traffic to the firewall itself). |
+| `fgt74_cmdb_fw_ipmacbinding_setting_get_firewall_DoS_policy` | DoS policies. |
+| `fgt74_cmdb_fw_ipmacbinding_setting_get_firewall_shaping_policy`, `..._get_firewall_shaper_traffic_shaper` | Shaping policies and traffic shapers. |
 
 Denied-traffic evidence (`action==deny` log entries, including local disk/memory fallback when FortiAnalyzer/FortiCloud fail): `load_domain_skill("logs")`.
 
@@ -66,10 +66,10 @@ Catalog queries that rank these tools (calibrated against this index):
 ## Investigation Sequence (starting frame)
 
 1. **Dependency profile first (Step 0).** No verdict-bearing tool call before it exists.
-2. **Per dependency, run `fgt_monitor_fw_get_firewall_policy_lookup`** with that dependency's tuple. An implicit-deny result for a required dependency is a root-cause finding; an allow result names the policy to inspect next.
+2. **Per dependency, run `fgt74_monitor_fw_get_firewall_policy_lookup`** with that dependency's tuple. An implicit-deny result for a required dependency is a root-cause finding; an allow result names the policy to inspect next.
 3. **For each matched policy, get its configuration** (`..._get_firewall_policy_policyid`): attached UTM profiles, NAT mode, ippool, log setting. Session-table matches alone say nothing about UTM verdicts.
 4. **Inspect each attached UTM profile** (app control, webfilter, dnsfilter, ssl-ssh, IPS anchors above): can it plausibly act on this application?
-5. **Attribution pass**: `fgt_monitor_fw_get_firewall_sessions` filtered by the profile's destination ports/IPs. Presence and absence are both findings — a missing session for a required dependency localizes the failure at or before the client-to-firewall segment.
+5. **Attribution pass**: `fgt74_monitor_fw_get_firewall_sessions` filtered by the profile's destination ports/IPs. Presence and absence are both findings — a missing session for a required dependency localizes the failure at or before the client-to-firewall segment.
 6. **Deny evidence**: `load_domain_skill("logs")` → traffic logs filtered `srcip==<host>` and `action==deny`, with local fallback on remote-backend errors.
 7. **NAT sensitivity**: if the app needs inbound or hole-punched UDP, verify policy NAT mode, ippool type, and central SNAT.
 8. **Classify every dependency**: `verified-pass` / `verified-fail` / `unverifiable from this vantage point` — then write the verdict scoped to that table (base methodology step 11).
@@ -78,7 +78,7 @@ Skip steps the evidence has already answered. Add steps this frame does not list
 
 ## Safety Rail — tools you must NOT execute
 
-The same tool families contain mutating members: `fgt_monitor_fw_post_firewall_session_close` / `..._close_all` / `..._close_multiple`, `fgt_monitor_fw_post_firewall_policy_reset`, `..._policy_clear_counters`, `..._central_snat_map_reset` / `..._clear_counters`. Never execute them. If resolution requires a configuration change (new policy, profile exemption, NAT change), put it in the recommended plan with its impact and set `case_status` to `needs_human`.
+The same tool families contain mutating members: `fgt74_monitor_fw_post_firewall_session_close` / `..._close_all` / `..._close_multiple`, `fgt74_monitor_fw_post_firewall_policy_reset`, `..._policy_clear_counters`, `..._central_snat_map_reset` / `..._clear_counters`. Never execute them. If resolution requires a configuration change (new policy, profile exemption, NAT change), put it in the recommended plan with its impact and set `case_status` to `needs_human`.
 
 ## Common Pitfalls
 

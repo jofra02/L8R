@@ -22,9 +22,9 @@ BASE_DEF = {
         "vendor": "fortinet", "product": "fortigate",
     },
     "collection_steps": [
-        {"id": "a", "tool": "fgt_x_get_a", "required": True,
+        {"id": "a", "tool": "fgt74_x_get_a", "required": True,
          "normalizer": "fortigate.cmdb_results"},
-        {"id": "b", "tool": "fgt_x_get_b", "depends_on": ["a"]},
+        {"id": "b", "tool": "fgt74_x_get_b", "depends_on": ["a"]},
     ],
     "controls": [
         {"id": "C-1", "title": "t", "category": "cat", "severity": "high",
@@ -76,7 +76,7 @@ def test_hybrid_requires_rule_and_instructions():
 
 def test_duplicate_step_ids_rejected():
     data = _clone()
-    data["collection_steps"].append({"id": "a", "tool": "fgt_x_get_c"})
+    data["collection_steps"].append({"id": "a", "tool": "fgt74_x_get_c"})
     with pytest.raises(Exception, match="duplicate"):
         AssessmentDefinitionModel.model_validate(data)
 

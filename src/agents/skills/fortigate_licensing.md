@@ -33,17 +33,17 @@ Tool names verified in this platform's indexed catalog. Search for them by funct
 
 | Tool | What it answers |
 |---|---|
-| `fgt_monitor_lic_get_license_status` | **Primary snapshot — answers most licensing AND definition-version questions in one call.** Per service (IPS, AV, app control, web filtering, industrial DB, malware DBs, security rating, ...): entitlement status, expiry, **installed signature/engine `version`, `last_update`, `last_update_attempt`, `last_update_result_status`**; plus FortiCare registration/contract and VM license. If the ticket asks for IPS/AV versions or update timestamps, execute this first. |
-| `fgt_monitor_sys_get_status` | Serial, model, firmware version, hostname — and the device clock context needed to trust expiry evaluations. |
-| `fgt_monitor_sys_get_fortiguard_server_info` | FortiGuard server list and per-server state — is the update path alive, which server is used. |
-| `fgt_monitor_net_get_network_fortiguard_live_services_latency` | Live FortiGuard service reachability/latency — distinguishes "entitled but unreachable" from "not entitled". |
-| `fgt_cmdb_sys_get_fortiguard` | FortiGuard service **configuration**: update source/override (FortiManager?), protocol, port, anycast, schedule. |
-| `fgt_cmdb_fguard_get_fortiguard_service_communication_stats` | Historical FortiGuard communication stats — when did updates last succeed. `service_type` and `timeslot` are **optional**: if a call errors, retry with only `device`. |
-| `fgt_cmdb_registration_get_forticloud_device_status` | FortiCloud registration state of the device. |
-| `fgt_monitor_lic_get_license_fortianalyzer_status` | License/registration of the connected FortiAnalyzer (fabric logging entitlement). |
-| `fgt_monitor_sys_get_vdom_resource` / `fgt_cmdb_sys_get_vdom` | VDOM count and resources — context for VDOM/VM capacity licenses. |
-| `fgt_cmdb_log_disk_filter_get_log_fortiguard_setting` | FortiCloud logging configuration — is a cloud logging entitlement actually in use. |
-| `fgt_monitor_web_get_webfilter_fortiguard_categories` | **Functional probe**: fetching live category data exercises the Web Filter entitlement end to end. |
+| `fgt74_monitor_lic_get_license_status` | **Primary snapshot — answers most licensing AND definition-version questions in one call.** Per service (IPS, AV, app control, web filtering, industrial DB, malware DBs, security rating, ...): entitlement status, expiry, **installed signature/engine `version`, `last_update`, `last_update_attempt`, `last_update_result_status`**; plus FortiCare registration/contract and VM license. If the ticket asks for IPS/AV versions or update timestamps, execute this first. |
+| `fgt74_monitor_sys_get_status` | Serial, model, firmware version, hostname — and the device clock context needed to trust expiry evaluations. |
+| `fgt74_monitor_sys_get_fortiguard_server_info` | FortiGuard server list and per-server state — is the update path alive, which server is used. |
+| `fgt74_monitor_net_get_network_fortiguard_live_services_latency` | Live FortiGuard service reachability/latency — distinguishes "entitled but unreachable" from "not entitled". |
+| `fgt74_cmdb_sys_get_fortiguard` | FortiGuard service **configuration**: update source/override (FortiManager?), protocol, port, anycast, schedule. |
+| `fgt74_cmdb_fguard_get_fortiguard_service_communication_stats` | Historical FortiGuard communication stats — when did updates last succeed. `service_type` and `timeslot` are **optional**: if a call errors, retry with only `device`. |
+| `fgt74_cmdb_registration_get_forticloud_device_status` | FortiCloud registration state of the device. |
+| `fgt74_monitor_lic_get_license_fortianalyzer_status` | License/registration of the connected FortiAnalyzer (fabric logging entitlement). |
+| `fgt74_monitor_sys_get_vdom_resource` / `fgt74_cmdb_sys_get_vdom` | VDOM count and resources — context for VDOM/VM capacity licenses. |
+| `fgt74_cmdb_log_disk_filter_get_log_fortiguard_setting` | FortiCloud logging configuration — is a cloud logging entitlement actually in use. |
+| `fgt74_monitor_web_get_webfilter_fortiguard_categories` | **Functional probe**: fetching live category data exercises the Web Filter entitlement end to end. |
 
 Catalog queries that rank the right tools highly (calibrated against this index):
 
@@ -54,7 +54,7 @@ Catalog queries that rank the right tools highly (calibrated against this index)
 
 ## Investigation Sequence (starting frame)
 
-1. **Authoritative snapshot first.** `fgt_monitor_lic_get_license_status` plus `fgt_monitor_sys_get_status`. One call answers most licensing questions; the second anchors serial/firmware/clock.
+1. **Authoritative snapshot first.** `fgt74_monitor_lic_get_license_status` plus `fgt74_monitor_sys_get_status`. One call answers most licensing questions; the second anchors serial/firmware/clock.
 2. **Interpret per service** (see next section). Build the verdict table before collecting more.
 3. **Corroborate the delivery path only if something looks stale, pending, or contradictory** — server info, live-services latency, FortiGuard config (check for an override/FortiManager source), communication stats.
 4. **Platform capacity** only when the ticket involves VM/VDOM/Hyperscale: VDOM resource + VDOM config against the entitled limits reported in the license snapshot.
@@ -75,25 +75,25 @@ Skip steps that the evidence has already answered. Add steps the frame does not 
   - **Entitled + stale definitions** → delivery problem (path, schedule, override source), not a licensing problem.
   - **Expired** → licensing problem; note the grace behavior: features often keep running with the last downloaded definitions, silently aging.
   - **Pending / unregistered** → registration or first-contact problem; check FortiCare registration and FortiGuard reachability before concluding.
-- **Clock skew invalidates everything**: expiry is evaluated against the device clock. Verify system time (from `fgt_monitor_sys_get_status`) before reporting a surprising expiration.
+- **Clock skew invalidates everything**: expiry is evaluated against the device clock. Verify system time (from `fgt74_monitor_sys_get_status`) before reporting a surprising expiration.
 - Some services are free (e.g. basic DDNS, certain category fetches); absence of a paid entitlement is not automatically a finding.
 
 ## Safety Rail — tools you must NOT execute
 
 The catalog also indexes **mutating** licensing tools. They are outside the read-only mandate and some are outright destructive:
 
-- `fgt_monitor_sys_post_vmlicense_download` / `_download_eval` / `_upload` — **reboot the device immediately** on success
-- `fgt_monitor_sys_post_fortiguard_update` / `_manual_update` / `_test_availability` / `_clear_statistics`
-- `fgt_cmdb_registration_post_forticare_*` (login, create, transfer, deregister, add_license)
-- `fgt_monitor_lic_post_license_database_upgrade`
-- `fgt_cmdb_sys_put_fortiguard`, `fgt_cmdb_log_disk_filter_put_log_fortiguard_*`
+- `fgt74_monitor_sys_post_vmlicense_download` / `_download_eval` / `_upload` — **reboot the device immediately** on success
+- `fgt74_monitor_sys_post_fortiguard_update` / `_manual_update` / `_test_availability` / `_clear_statistics`
+- `fgt74_cmdb_registration_post_forticare_*` (login, create, transfer, deregister, add_license)
+- `fgt74_monitor_lic_post_license_database_upgrade`
+- `fgt74_cmdb_sys_put_fortiguard`, `fgt74_cmdb_log_disk_filter_put_log_fortiguard_*`
 
 If resolution requires any of these, put the action in the recommended plan with its risk (device reboot, account mutation) and set `case_status` to `needs_human`. Never execute them.
 
 ## Common Pitfalls
 
 - **"FortiGuard unreachable" ≠ "license expired"** — separate entitlement state from delivery state in every conclusion.
-- **FortiManager as update source**: in managed or air-gapped environments `fgt_cmdb_sys_get_fortiguard` shows an override server; direct FortiGuard unreachability is then expected, not a fault.
+- **FortiManager as update source**: in managed or air-gapped environments `fgt74_cmdb_sys_get_fortiguard` shows an override server; direct FortiGuard unreachability is then expected, not a fault.
 - **Egress dependencies**: FortiGuard updates depend on DNS resolution and outbound reachability (typically 443/8888) from the management VDOM — a "licensing" ticket can be an egress policy or DNS ticket in disguise.
 - **Evaluation/Flex VM licenses** carry capacity limits (CPU/RAM) and short validity — a "performance" complaint on a VM can be a license-tier fact.
 - **Web Filtering is live-rated**: an expired Web Filter entitlement breaks category lookups at request time even though all configuration looks intact.

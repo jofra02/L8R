@@ -63,7 +63,7 @@ tool descriptions — search by what the tool DOES, not by guessing its name.
 Write queries as natural-language descriptions of the data you need:
   Good: "firewall policies with source destination and action"
   Good: "system resource usage CPU memory uptime"
-  Bad:  "fgt_get_interface" (don't guess names)
+  Bad:  "fgt74_get_interface" (don't guess names)
   Bad:  "show ip route" (don't use CLI syntax)
 
 Each result includes: tool_name (pass to execute_tool), description, args_schema
@@ -120,18 +120,18 @@ Submit your final structured findings. Takes:
    → get networking investigation methodology (layer isolation, routing analysis, etc.)
 
 3. search_tool_catalog("firewall system status")
-   → find tool "fgt_monitor_system_status_get" with params: device
+   → find tool "fgt74_monitor_system_status_get" with params: device
 
-4. execute_tool(tool_name="fgt_monitor_system_status_get", tool_params='{{"device": "fgt_casa"}}')
+4. execute_tool(tool_name="fgt74_monitor_system_status_get", tool_params='{{"device": "fgt_casa"}}')
    → get system status data
 
 5. search_tool_catalog("firewall interfaces routing")
    → find more specific tools
 
-6. execute_tool(tool_name="fgt_monitor_router_ipv4_get", tool_params='{{"device": "fgt_casa"}}')
+6. execute_tool(tool_name="fgt74_monitor_router_ipv4_get", tool_params='{{"device": "fgt_casa"}}')
    → get effective routing table
 
-7. execute_tool(tool_name="fgt_cmdb_firewall_policy_get", tool_params='{{"device": "fgt_casa"}}')
+7. execute_tool(tool_name="fgt74_cmdb_firewall_policy_get", tool_params='{{"device": "fgt_casa"}}')
    → get firewall policies
 
 8. submit_findings(summary="...", hypotheses="[...]", facts="[...]", plan="{{...}}", case_status="resolved")

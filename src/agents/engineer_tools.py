@@ -24,6 +24,46 @@ from src.core.topology_utils import seed_topology_from_context
 
 logger = logging.getLogger(__name__)
 
+# Enum values shown per parameter in catalog results. Enums are what save the
+# agent blind-guess round-trips (each failed call costs a full tool cycle), but
+# unbounded lists would bloat the context — cap and elide with a count.
+_ENUM_DISPLAY_CAP = 12
+
+
+def _render_param_lines(schema: Dict[str, Any]) -> List[str]:
+    """Render a tool's args schema as one compact line per parameter.
+
+    Surfaces the constraints the agent needs to build a valid call on the
+    first attempt — type, format, enum values, required flag — alongside the
+    parameter description. Schemas indexed before raw-inputSchema capture have
+    typeless properties; those degrade gracefully to name + description.
+    """
+    props = (schema or {}).get("properties", {})
+    required = set((schema or {}).get("required") or [])
+    if not props:
+        return []
+    lines = ["Parameters:"]
+    for pname, pinfo in props.items():
+        bits = []
+        ptype = pinfo.get("type", "")
+        if ptype == "array":
+            item_type = (pinfo.get("items") or {}).get("type")
+            ptype = f"array of {item_type}" if item_type else "array"
+        fmt = pinfo.get("format")
+        if ptype:
+            bits.append(f"{ptype} ({fmt})" if fmt else ptype)
+        enum = pinfo.get("enum")
+        if enum:
+            shown = "|".join(str(v) for v in enum[:_ENUM_DISPLAY_CAP])
+            if len(enum) > _ENUM_DISPLAY_CAP:
+                shown += f"|... +{len(enum) - _ENUM_DISPLAY_CAP} more"
+            bits.append(f"one of: {shown}")
+        req_tag = " (REQUIRED)" if pname in required else ""
+        type_note = f" [{', '.join(bits)}]" if bits else ""
+        pdesc = pinfo.get("description", pinfo.get("title", pname))
+        lines.append(f"  - {pname}{req_tag}{type_note}: {pdesc}")
+    return lines
+
 
 async def _audit_tool_call(
     run_id: str, customer_id: str, tool_name: str, args: Dict[str, Any],
@@ -131,6 +171,30 @@ DOMAIN_SKILL_MAP = {
     "tailscale": "flow_verification.md",
     "wireguard": "flow_verification.md",
     "zerotier": "flow_verification.md",
+    # Endpoint security (FortiEDR appliance pack)
+    "fortiedr": "fortiedr.md",
+    "edr": "fortiedr.md",
+    "xdr": "fortiedr.md",
+    "endpoint": "fortiedr.md",
+    "endpoints": "fortiedr.md",
+    "endpoint_security": "fortiedr.md",
+    "endpoint_protection": "fortiedr.md",
+    "security_event": "fortiedr.md",
+    "security_events": "fortiedr.md",
+    "detection": "fortiedr.md",
+    "detections": "fortiedr.md",
+    "malware": "fortiedr.md",
+    "ransomware": "fortiedr.md",
+    "virus": "fortiedr.md",
+    "antivirus": "fortiedr.md",
+    "infection": "fortiedr.md",
+    "infected": "fortiedr.md",
+    "collector": "fortiedr.md",
+    "collectors": "fortiedr.md",
+    "threat": "fortiedr.md",
+    "threats": "fortiedr.md",
+    "threat_hunting": "fortiedr.md",
+    "quarantine": "fortiedr.md",
     # Investigation strategy
     "lateral": "lateral_thinking.md",
     "lateral_thinking": "lateral_thinking.md",
@@ -181,21 +245,15 @@ def create_engineer_tools(
     """
     state = EngineerToolState()
 
-    # ------------------------------------------------------------------
-    # Tool 1: query_client_db
-    # ------------------------------------------------------------------
-    @tool
-    async def query_client_db(query: str) -> str:
-        """Query the client database to understand the tenant's environment.
+    async def _ensure_client_context() -> ClientContext:
+        """Load the tenant context into state if not already loaded.
 
-        Returns the full client context: inventory (devices/components),
-        dependencies (topology), baselines, and known recent changes.
-        Call this FIRST before any diagnostic tool execution.
-
-        Args:
-            query: Description of what you want to know about the client
-                   (e.g. "what devices does this tenant have").
+        search_tool_catalog may run before query_client_db; pack scoping needs
+        the inventory either way.
         """
+        if state.client_context is not None:
+            return state.client_context
+
         from src.core.context_store import ContextStore
         from src.core.database import async_session_factory
 
@@ -213,6 +271,24 @@ def create_engineer_tools(
             )
 
         state.client_context = context
+        return context
+
+    # ------------------------------------------------------------------
+    # Tool 1: query_client_db
+    # ------------------------------------------------------------------
+    @tool
+    async def query_client_db(query: str) -> str:
+        """Query the client database to understand the tenant's environment.
+
+        Returns the full client context: inventory (devices/components),
+        dependencies (topology), baselines, and known recent changes.
+        Call this FIRST before any diagnostic tool execution.
+
+        Args:
+            query: Description of what you want to know about the client
+                   (e.g. "what devices does this tenant have").
+        """
+        context = await _ensure_client_context()
 
         # Seed topology from inventory
         nodes, edges = seed_topology_from_context(context)
@@ -311,19 +387,38 @@ def create_engineer_tools(
                    (e.g. "list firewall interfaces", "check OSPF neighbors",
                    "get system status overview").
         """
+        from src.core.pack_matching import derive_allowed_pack_keys
         from src.core.qdrant import vector_store
+        from src.core.registry import CapabilityRegistry
+
+        # Version-aware scoping: only surface appliance-pack tools matching the
+        # tenant's managed devices (vendor/product + firmware version). Tools
+        # without pack identity (generic) always pass; None -> unscoped.
+        context = await _ensure_client_context()
+        allowed_pack_keys = derive_allowed_pack_keys(
+            context.inventory, CapabilityRegistry.get_gateway_packs()
+        )
+        if allowed_pack_keys:
+            logger.info(
+                f"Engineer: tool catalog search scoped to packs {allowed_pack_keys}"
+            )
 
         results = await vector_store.search_tool_catalog(
             intent=query,
             customer_id=customer_id,
             limit=10,
             read_only=True,
+            allowed_pack_keys=allowed_pack_keys,
         )
 
         if not results:
             return "No matching tools found. Try a different search query."
 
         parts = [f"# Tool Catalog Results ({len(results)} matches)\n"]
+        if allowed_pack_keys:
+            parts.insert(
+                0, f"Scoped to appliance packs: {', '.join(allowed_pack_keys)}\n"
+            )
         for r in results:
             tool_name = r.get("tool_name", "unknown")
             desc = r.get("description", "No description")
@@ -338,14 +433,7 @@ def create_engineer_tools(
                 parts.append(f"Categories: {', '.join(categories)}")
             parts.append(f"Description: {desc}")
 
-            props = schema.get("properties", {})
-            required = schema.get("required", [])
-            if props:
-                parts.append("Parameters:")
-                for pname, pinfo in props.items():
-                    req_tag = " (REQUIRED)" if pname in required else ""
-                    pdesc = pinfo.get("description", pinfo.get("title", pname))
-                    parts.append(f"  - {pname}{req_tag}: {pdesc}")
+            parts.extend(_render_param_lines(schema))
             parts.append("")
 
         return "\n".join(parts)
