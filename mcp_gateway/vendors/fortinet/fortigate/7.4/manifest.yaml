@@ -1,12 +1,15 @@
-# FortiGate (FortiOS) appliance pack — vendor: fortinet.
+# FortiGate (FortiOS 7.4) appliance pack — vendor: fortinet.
 #
-# NAME-FREEZE: prefix, name_strips and sanitizer_stopwords reproduce the
-# original fortinet_ai_suite values byte-for-byte. Changing any of them
-# renames the generated tools and invalidates the Qdrant tool_catalog index.
+# NAME-FREEZE: prefix fgt74 plus the original name_strips/sanitizer_stopwords
+# define the frozen fgt74_* tool names in baseline_tools.txt. name_strips and
+# sanitizer_stopwords reproduce the original fortinet_ai_suite values
+# byte-for-byte — changing any of them (or the prefix) renames the generated
+# tools and invalidates the Qdrant tool_catalog index.
 vendor: fortinet
 name: fortigate
+version: "7.4"
 display_name: FortiGate Suite
-prefix: fgt
+prefix: fgt74
 device_type: fortios
 auth: bearer_header
 
@@ -26,7 +29,7 @@ sanitizer_stopwords:
   - log
   - system
 
-# Expose fgt_get_inventory_tree for device discovery
+# Expose fgt74_get_inventory_tree for device discovery
 inventory_tool: true
 
 device_param_description: "Optional: Name of the target device in inventory (e.g. fgt_branch). Defaults to primary."

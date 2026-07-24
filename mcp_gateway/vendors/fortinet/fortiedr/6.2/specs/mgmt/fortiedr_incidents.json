@@ -2122,7 +2122,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the time filter end date",
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
             "in": "query",
             "name": "endDate",
             "required": false,
@@ -2204,7 +2204,7 @@
             }
           },
           {
-            "description": "Specifies the organization id",
+            "description": "Numeric organization id. OMIT this parameter when the API credential is scoped to a single organization — the console scopes automatically and wrong ids return HTTP 400. Where the endpoint requires it, use the accountId value returned by incident list/detail responses.",
             "in": "query",
             "name": "organizationId",
             "required": false,
@@ -2233,7 +2233,7 @@
             }
           },
           {
-            "description": "Specifies the time filter start date",
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
             "in": "query",
             "name": "startDate",
             "required": false,
@@ -2258,16 +2258,20 @@
             }
           },
           {
-            "description": "Specifies the incidents time filter",
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
             "in": "query",
             "name": "timeFilter",
             "required": false,
             "schema": {
               "enum": [
+                "Last1days",
                 "Last7days",
+                "Last14days",
                 "Last30days",
+                "Last60days",
                 "Last90days",
-                "All"
+                "All",
+                "Custom"
               ],
               "type": "string"
             }
@@ -2338,7 +2342,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the time filter end date",
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
             "in": "query",
             "name": "endDate",
             "required": false,
@@ -2420,7 +2424,7 @@
             }
           },
           {
-            "description": "Specifies the organization id",
+            "description": "Numeric organization id. OMIT this parameter when the API credential is scoped to a single organization — the console scopes automatically and wrong ids return HTTP 400. Where the endpoint requires it, use the accountId value returned by incident list/detail responses.",
             "in": "query",
             "name": "organizationId",
             "required": false,
@@ -2449,7 +2453,7 @@
             }
           },
           {
-            "description": "Specifies the time filter start date",
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
             "in": "query",
             "name": "startDate",
             "required": false,
@@ -2503,16 +2507,20 @@
             "style": "form"
           },
           {
-            "description": "Specifies the incidents time filter",
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
             "in": "query",
             "name": "timeFilter",
             "required": false,
             "schema": {
               "enum": [
+                "Last1days",
                 "Last7days",
+                "Last14days",
                 "Last30days",
+                "Last60days",
                 "Last90days",
-                "All"
+                "All",
+                "Custom"
               ],
               "type": "string"
             }
@@ -2742,7 +2750,7 @@
             }
           },
           {
-            "description": "organizationId",
+            "description": "Numeric organization id. OMIT this parameter when the API credential is scoped to a single organization — the console scopes automatically and wrong ids return HTTP 400. Where the endpoint requires it, use the accountId value returned by incident list/detail responses.",
             "in": "query",
             "name": "organizationId",
             "required": true,
@@ -2780,11 +2788,21 @@
             }
           },
           {
-            "description": "timeFilter",
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
             "in": "query",
             "name": "timeFilter",
             "required": true,
             "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
               "type": "string"
             }
           },
@@ -3335,7 +3353,7 @@
             }
           },
           {
-            "description": "organizationId",
+            "description": "Numeric organization id. OMIT this parameter when the API credential is scoped to a single organization — the console scopes automatically and wrong ids return HTTP 400. Where the endpoint requires it, use the accountId value returned by incident list/detail responses.",
             "in": "query",
             "name": "organizationId",
             "required": true,
@@ -3373,11 +3391,21 @@
             }
           },
           {
-            "description": "timeFilter",
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
             "in": "query",
             "name": "timeFilter",
             "required": true,
             "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
               "type": "string"
             }
           },

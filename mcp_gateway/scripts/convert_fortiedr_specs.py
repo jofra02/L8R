@@ -2,14 +2,14 @@
 """Convert the raw FortiEDR Swagger 2.0 exports to OpenAPI 3.0.3 pack specs.
 
 Source:  FortiEDR/swagger/v6.2/fortiedr-openapi-<area>.json  (Springfox exports)
-Output:  vendors/fortinet/fortiedr/specs/mgmt/fortiedr_<area>.json
+Output:  vendors/fortinet/fortiedr/6.2/specs/mgmt/fortiedr_<area>.json
 
 Usage:
     uv run python scripts/convert_fortiedr_specs.py            # write specs
     uv run python scripts/convert_fortiedr_specs.py --check    # verify no drift
 
 NAME-FREEZE WARNING: the operationId algorithm below defines the frozen
-``fedr_*`` tool names in baseline_tools.txt. It is a pure function of
+``fedr62_*`` tool names in baseline_tools.txt. It is a pure function of
 ``(method, path)`` — re-running the converter on the same inputs is
 byte-identical. Changing the algorithm, READ_EXEMPT, or OVERRIDES after the
 baseline is committed RENAMES TOOLS and forces a Qdrant re-index.
@@ -30,7 +30,7 @@ from gateway import schema_fixes  # noqa: E402
 
 GATEWAY_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SRC = GATEWAY_ROOT / "FortiEDR" / "swagger" / "v6.2"
-DEFAULT_DST = GATEWAY_ROOT / "vendors" / "fortinet" / "fortiedr" / "specs" / "mgmt"
+DEFAULT_DST = GATEWAY_ROOT / "vendors" / "fortinet" / "fortiedr" / "6.2" / "specs" / "mgmt"
 
 RAW_PREFIX = "fortiedr-openapi-"
 CONTROLLER_SUFFIX = "_rest_api_controller"
@@ -71,6 +71,140 @@ READ_EXEMPT = {
 # treated as a side-effect GET and named so the safety filter blocks it.
 OVERRIDES = {
     ("admin", "get", "/api/admin/settings/iot-last-discovery"): "stop_last_discovery",
+}
+
+# Live-API corrections for query parameters the raw Springfox export gets
+# wrong or under-documents. The exports ship enums that are incomplete and
+# mutually inconsistent across specs versus what the appliance actually
+# accepts, blank values are rejected (HTTP 400 ``Invalid value [] to parameter
+# [...]``), and several params carry no usable format hint (epoch unit, id
+# provenance). Keyed by query parameter name and applied to every occurrence
+# after schema conversion; enrichment descriptions REPLACE the raw ones (the
+# curation layer is authoritative — raw descriptions like "Specifies the
+# organization id" carry no usable signal). This touches only param
+# schema/description — never the operationId — so the frozen ``fedr62_*`` tool
+# names are unaffected (name-freeze safe). Every entry must be live-verified
+# against a real console (guarded by test_enrichment_keys_are_live_verified).
+QUERY_PARAM_ENRICHMENTS = {
+    # Raw exports carry two partial per-family variants (dashboard vs
+    # incidents/mobile) plus enum-less occurrences. Live-verified 2026-07-23
+    # against a real 6.2 console: the server uses ONE shared enum parser — an
+    # invalid value on either family answers 400 listing exactly this set.
+    # Applied to every occurrence, including the enum-less required ones.
+    "timeFilter": {
+        "enum": [
+            "Last1days", "Last7days", "Last14days", "Last30days",
+            "Last60days", "Last90days", "All", "Custom",
+        ],
+        "description": (
+            "Time window. Must be one of the enum values — a blank value is "
+            "rejected with HTTP 400. Use 'Custom' only together with the "
+            "startDate/endDate epoch-milliseconds parameters."
+        ),
+    },
+    # Live-verified 2026-07-23: epoch milliseconds -> 200 with data; epoch
+    # seconds -> 200 but silently empty (read as 1970); date strings -> 400
+    # "Invalid value to parameter [endDate]". The silent-empty failure mode is
+    # why the unit must be spelled out.
+    "startDate": {
+        "description": (
+            "Start of the time window as epoch MILLISECONDS (only honored with "
+            "timeFilter=Custom). Epoch seconds are silently read as 1970 and "
+            "return an empty result; date strings are rejected with HTTP 400."
+        ),
+    },
+    "endDate": {
+        "description": (
+            "End of the time window as epoch MILLISECONDS (only honored with "
+            "timeFilter=Custom). Epoch seconds are silently read as 1970 and "
+            "return an empty result; date strings are rejected with HTTP 400."
+        ),
+    },
+    # Live-verified 2026-07-23 on the events family (the only specs carrying
+    # these params): 'yyyy-MM-dd HH:mm:ss' -> 200 and filters correctly
+    # (count 340 unfiltered / 29 in-window / 0 future-window); ISO 8601 with
+    # 'T'/'Z' -> 400; epoch values -> 400. The raw descriptions carry no
+    # format at all ("Specifies the from date").
+    "firstSeenFrom": {
+        "description": (
+            "Start of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, "
+            "space separator). ISO 8601 with 'T'/'Z' and epoch values are "
+            "rejected with HTTP 400."
+        ),
+    },
+    "firstSeenTo": {
+        "description": (
+            "End of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, "
+            "space separator). ISO 8601 with 'T'/'Z' and epoch values are "
+            "rejected with HTTP 400."
+        ),
+    },
+    "lastSeenFrom": {
+        "description": (
+            "Start of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, "
+            "space separator). ISO 8601 with 'T'/'Z' and epoch values are "
+            "rejected with HTTP 400."
+        ),
+    },
+    "lastSeenTo": {
+        "description": (
+            "End of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, "
+            "space separator). ISO 8601 with 'T'/'Z' and epoch values are "
+            "rejected with HTTP 400."
+        ),
+    },
+    # Live-verified 2026-07-23: on every FortiEDR spec, a query param named
+    # "device" is an ENTITY-NAME FILTER (collector hostname on events tools,
+    # core/aggregator on log tools) — it collides with the platform's routing
+    # param name, so the routing header is never injected on these operations
+    # and a caller passing the platform component id lands it in the query
+    # string: count-events?device=fortiedr-01 -> 200 with 0 results (silent),
+    # device=WIN11-01 (real collector) -> 5, omitted -> 340.
+    "device": {
+        "description": (
+            "FortiEDR entity name to filter by (collector/endpoint hostname; "
+            "core or aggregator name on log endpoints). NOT the platform "
+            "routing device — console routing is automatic. OMIT this unless "
+            "filtering to one entity whose exact name was verified via the "
+            "collector/inventory list; any other value silently matches "
+            "nothing (HTTP 200, zero results)."
+        ),
+    },
+    # Live-verified 2026-07-23: omitted -> 200 (the console scopes by the
+    # authenticated organization); guessed ids (0, 1) -> 400 "Invalid
+    # organization id"; the accountId returned by incident list/detail
+    # responses -> 200 on the endpoints that require this param.
+    "organizationId": {
+        "description": (
+            "Numeric organization id. OMIT this parameter when the API "
+            "credential is scoped to a single organization — the console "
+            "scopes automatically and wrong ids return HTTP 400. Where the "
+            "endpoint requires it, use the accountId value returned by "
+            "incident list/detail responses."
+        ),
+    },
+}
+
+# Curation notes appended to every operation description of an area (one raw
+# spec file = one area). Live-verified 2026-07-23 against a real console: every
+# GET under /api/incidents/mobile and /api/inventory/mobile answers HTTP 404
+# when the mobile protection module is absent, and the raw descriptions ("Get
+# incidents") read as drop-in alternatives to the main endpoints — the agent
+# picked mobile incidents as a fallback for general security incidents and
+# misread the 404 as a broken integration. Descriptions never feed
+# operationIds — name-freeze safe. Same live-verification rule as
+# QUERY_PARAM_ENRICHMENTS (guarded by test_enrichment_keys_are_live_verified).
+AREA_DESCRIPTION_NOTES = {
+    "mobile": (
+        "Mobile-device (iOS/Android) protection module ONLY — not an "
+        "alternative to the main incidents endpoints. Consoles without the "
+        "mobile module return HTTP 404 for every path in this area."
+    ),
+    "mobile_inventory": (
+        "Mobile-device (iOS/Android) protection module ONLY — not an "
+        "alternative to the main inventory endpoints. Consoles without the "
+        "mobile module return HTTP 404 for every path in this area."
+    ),
 }
 
 _CAMEL_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
@@ -149,6 +283,13 @@ def _convert_parameter(param: dict) -> dict:
     out = {k: param[k] for k in ("name", "in", "description", "required", "allowEmptyValue") if k in param}
     schema = {k: param[k] for k in _PARAM_SCHEMA_FIELDS if k in param}
     out["schema"] = _convert_schema(schema)
+    enrich = QUERY_PARAM_ENRICHMENTS.get(param.get("name"))
+    if enrich and param.get("in") == "query":
+        if "enum" in enrich:
+            out["schema"]["enum"] = list(enrich["enum"])
+        if enrich.get("description"):
+            # Curation layer is authoritative: replace the raw description.
+            out["description"] = enrich["description"]
     if param.get("collectionFormat") == "multi":
         out["style"] = "form"
         out["explode"] = True
@@ -217,6 +358,11 @@ def _convert_operation(area: str, method: str, path: str, op: dict) -> dict:
     if body_params or form_params:
         out["requestBody"] = _build_request_body(body_params, form_params)
     out["responses"] = _convert_responses(op.get("responses", {}))
+
+    note = AREA_DESCRIPTION_NOTES.get(area)
+    if note:
+        desc = (out.get("description") or out.get("summary") or "").rstrip(". ")
+        out["description"] = f"{desc}. {note}" if desc else note
     return out
 
 

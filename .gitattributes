@@ -4,5 +4,6 @@
 
 # FortiEDR specs must stay LF: convert_fortiedr_specs.py --check compares the
 # generated files byte-for-byte against the converter output (written with LF).
+# All pack specs kept LF for the same reason (future generated packs included).
 mcp_gateway/FortiEDR/** text eol=lf
-mcp_gateway/vendors/fortinet/fortiedr/specs/** text eol=lf
+mcp_gateway/vendors/**/specs/** text eol=lf

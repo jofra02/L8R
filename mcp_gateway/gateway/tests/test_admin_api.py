@@ -57,8 +57,9 @@ def _make_pack(tmp_path: Path) -> AppliancePack:
     manifest = ApplianceManifest(
         vendor="fortinet",
         name="fortigate",
+        version="7.4",
         display_name="FortiGate Suite",
-        prefix="fgt",
+        prefix="fgt74",
         device_type="fortios",
     )
     return AppliancePack(manifest, tmp_path / "pack")
@@ -187,6 +188,53 @@ def test_patch_without_token_preserves_ciphertext(client_and_registry, inventory
     assert updated[0]["connection"]["token"] == original_enc  # byte-identical ENC string
     assert updated[0]["connection"]["host"] == "10.0.9.9"
     assert registry.devices["fw_branch"].connection["host"] == "10.0.9.9"
+
+
+def test_packs_endpoint_reports_versioned_identity(client_and_registry):
+    client, _ = client_and_registry
+    resp = client.get("/admin/packs", headers=AUTH)
+    assert resp.status_code == 200
+    packs = resp.json()
+    assert packs == [
+        {
+            "vendor": "fortinet",
+            "appliance": "fortigate",
+            "version": "7.4",
+            "display_name": "FortiGate Suite",
+            "device_type": "fortios",
+            "prefix": "fgt74",
+            "pack_key": "fortinet/fortigate/7.4",
+        }
+    ]
+
+
+def test_os_version_round_trips_create_patch_get(client_and_registry, inventory_root):
+    client, registry = client_and_registry
+    resp = client.post(
+        f"/admin/tenants/{TENANT}/devices",
+        headers=AUTH,
+        json=_device_payload(os_version="7.4.5"),
+    )
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["device"]["os_version"] == "7.4.5"
+
+    entries = yaml.safe_load(_managed_path(inventory_root).read_text(encoding="utf-8"))
+    assert entries[0]["os_version"] == "7.4.5"
+    assert registry.devices["fw_branch"].os_version == "7.4.5"
+
+    resp = client.patch(
+        f"/admin/tenants/{TENANT}/devices/fw_branch",
+        headers=AUTH,
+        json={"os_version": "7.4.7"},
+    )
+    assert resp.status_code == 200, resp.text
+    entries = yaml.safe_load(_managed_path(inventory_root).read_text(encoding="utf-8"))
+    assert entries[0]["os_version"] == "7.4.7"
+    assert registry.devices["fw_branch"].os_version == "7.4.7"
+
+    listed = client.get(f"/admin/tenants/{TENANT}/devices", headers=AUTH).json()
+    managed = [d for d in listed["devices"] if d["id"] == "fw_branch"]
+    assert managed[0]["os_version"] == "7.4.7"
 
 
 def test_mutating_unmanaged_device_conflicts(client_and_registry):

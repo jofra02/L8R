@@ -749,7 +749,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the device name where the events occurred",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,
@@ -841,7 +841,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the event was first seen",
+            "description": "Start of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenFrom",
             "required": false,
@@ -850,7 +850,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the event was first seen",
+            "description": "End of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenTo",
             "required": false,
@@ -889,7 +889,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the event was last seen",
+            "description": "Start of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenFrom",
             "required": false,
@@ -898,7 +898,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the event was last seen",
+            "description": "End of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenTo",
             "required": false,
@@ -1188,7 +1188,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the device name where the events occurred",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,
@@ -1280,7 +1280,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the event was first seen",
+            "description": "Start of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenFrom",
             "required": false,
@@ -1289,7 +1289,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the event was first seen",
+            "description": "End of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenTo",
             "required": false,
@@ -1328,7 +1328,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the event was last seen",
+            "description": "Start of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenFrom",
             "required": false,
@@ -1337,7 +1337,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the event was last seen",
+            "description": "End of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenTo",
             "required": false,
@@ -1643,7 +1643,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the device name where the events occurred",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,
@@ -1735,7 +1735,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the event was first seen",
+            "description": "Start of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenFrom",
             "required": false,
@@ -1744,7 +1744,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the event was first seen",
+            "description": "End of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenTo",
             "required": false,
@@ -1783,7 +1783,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the event was last seen",
+            "description": "Start of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenFrom",
             "required": false,
@@ -1792,7 +1792,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the event was last seen",
+            "description": "End of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenTo",
             "required": false,
@@ -2325,7 +2325,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the device name where the events occurred",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,
@@ -2417,7 +2417,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the event was first seen",
+            "description": "Start of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenFrom",
             "required": false,
@@ -2426,7 +2426,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the event was first seen",
+            "description": "End of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenTo",
             "required": false,
@@ -2465,7 +2465,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the event was last seen",
+            "description": "Start of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenFrom",
             "required": false,
@@ -2474,7 +2474,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the event was last seen",
+            "description": "End of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenTo",
             "required": false,
@@ -2702,7 +2702,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the name of the device where the raw event occurred",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,
@@ -2744,7 +2744,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the raw data item was first seen",
+            "description": "Start of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenFrom",
             "required": false,
@@ -2753,7 +2753,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the raw data item was first seen",
+            "description": "End of the first-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "firstSeenTo",
             "required": false,
@@ -2792,7 +2792,7 @@
             }
           },
           {
-            "description": "Specifies the from date when the raw data item was last seen",
+            "description": "Start of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenFrom",
             "required": false,
@@ -2801,7 +2801,7 @@
             }
           },
           {
-            "description": "Specifies the to date when the raw data item was last seen",
+            "description": "End of the last-seen window as 'yyyy-MM-dd HH:mm:ss' (24h, space separator). ISO 8601 with 'T'/'Z' and epoch values are rejected with HTTP 400.",
             "in": "query",
             "name": "lastSeenTo",
             "required": false,

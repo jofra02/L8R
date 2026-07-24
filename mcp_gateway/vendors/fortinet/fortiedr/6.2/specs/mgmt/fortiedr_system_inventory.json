@@ -377,7 +377,7 @@
         "operationId": "get_inventory_aggregator_logs",
         "parameters": [
           {
-            "description": "Specifies the name of the device",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,
@@ -482,7 +482,7 @@
         "operationId": "get_inventory_collector_logs",
         "parameters": [
           {
-            "description": "Specifies the name of the device",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,
@@ -544,7 +544,7 @@
         "operationId": "get_inventory_core_logs",
         "parameters": [
           {
-            "description": "Specifies the name of the device",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,

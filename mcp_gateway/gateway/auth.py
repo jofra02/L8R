@@ -31,9 +31,13 @@ class BearerHeaderAuth:
 class BasicHeaderAuth:
     """``Authorization: Basic base64(token)`` from ``connection.token``.
 
-    The token holds the raw ``user:password`` pair — for FortiEDR that is
-    ``api_user@organization:password`` — and is Fernet-encrypted at rest like
-    any other token.
+    The token holds the raw ``user:password`` pair — for FortiEDR multi-tenancy
+    that is ``organization\\api_user:password`` (org as a backslash prefix, e.g.
+    ``Acme\\apiuser:secret``; the ``user@organization`` form is rejected).
+    The API user must hold the REST API role. Sent as HTTP Basic on every call:
+    FortiEDR's ``X-Auth-Token`` is bound to the TCP session (60s idle / 4h max),
+    so per-call Basic is the reliable path. Fernet-encrypted at rest like any
+    other token.
     """
 
     def headers(self, connection: Dict[str, object]) -> Dict[str, str]:

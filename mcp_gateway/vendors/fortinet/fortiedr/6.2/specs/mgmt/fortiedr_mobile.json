@@ -272,7 +272,7 @@
     "/api/incidents/mobile": {
       "delete": {
         "deprecated": false,
-        "description": "Delete incidents",
+        "description": "Delete incidents. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "delete_incidents_mobile",
         "parameters": [
           {
@@ -300,7 +300,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the time filter end date",
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
             "in": "query",
             "name": "endDate",
             "required": false,
@@ -382,7 +382,7 @@
             }
           },
           {
-            "description": "Specifies the organization id",
+            "description": "Numeric organization id. OMIT this parameter when the API credential is scoped to a single organization — the console scopes automatically and wrong ids return HTTP 400. Where the endpoint requires it, use the accountId value returned by incident list/detail responses.",
             "in": "query",
             "name": "organizationId",
             "required": false,
@@ -411,7 +411,7 @@
             }
           },
           {
-            "description": "Specifies the time filter start date",
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
             "in": "query",
             "name": "startDate",
             "required": false,
@@ -436,16 +436,20 @@
             }
           },
           {
-            "description": "Specifies the incidents time filter",
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
             "in": "query",
             "name": "timeFilter",
             "required": false,
             "schema": {
               "enum": [
+                "Last1days",
                 "Last7days",
+                "Last14days",
                 "Last30days",
+                "Last60days",
                 "Last90days",
-                "All"
+                "All",
+                "Custom"
               ],
               "type": "string"
             }
@@ -488,7 +492,7 @@
       },
       "get": {
         "deprecated": false,
-        "description": "Get incidents",
+        "description": "Get incidents. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "get_incidents_mobile",
         "parameters": [
           {
@@ -516,7 +520,7 @@
             "style": "form"
           },
           {
-            "description": "Specifies the time filter end date",
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
             "in": "query",
             "name": "endDate",
             "required": false,
@@ -598,7 +602,7 @@
             }
           },
           {
-            "description": "Specifies the organization id",
+            "description": "Numeric organization id. OMIT this parameter when the API credential is scoped to a single organization — the console scopes automatically and wrong ids return HTTP 400. Where the endpoint requires it, use the accountId value returned by incident list/detail responses.",
             "in": "query",
             "name": "organizationId",
             "required": false,
@@ -627,7 +631,7 @@
             }
           },
           {
-            "description": "Specifies the time filter start date",
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
             "in": "query",
             "name": "startDate",
             "required": false,
@@ -681,16 +685,20 @@
             "style": "form"
           },
           {
-            "description": "Specifies the incidents time filter",
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
             "in": "query",
             "name": "timeFilter",
             "required": false,
             "schema": {
               "enum": [
+                "Last1days",
                 "Last7days",
+                "Last14days",
                 "Last30days",
+                "Last60days",
                 "Last90days",
-                "All"
+                "All",
+                "Custom"
               ],
               "type": "string"
             }
@@ -742,7 +750,7 @@
     "/api/incidents/mobile/assign-user": {
       "post": {
         "deprecated": false,
-        "description": "update modification status",
+        "description": "update modification status. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "incidents_mobile_assign_user",
         "requestBody": {
           "content": {
@@ -781,7 +789,7 @@
     "/api/incidents/mobile/events/handle": {
       "put": {
         "deprecated": false,
-        "description": "Handle events",
+        "description": "Handle events. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "update_incidents_mobile_events_handle",
         "requestBody": {
           "content": {
@@ -827,7 +835,7 @@
     "/api/incidents/mobile/incident-handle": {
       "put": {
         "deprecated": false,
-        "description": "Handle incidents",
+        "description": "Handle incidents. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "update_incidents_mobile_incident_handle",
         "requestBody": {
           "content": {
@@ -873,7 +881,7 @@
     "/api/incidents/mobile/incident/{incidentId}": {
       "get": {
         "deprecated": false,
-        "description": "Get incident by id",
+        "description": "Get incident by id. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "get_incidents_mobile_incident_id",
         "parameters": [
           {
@@ -917,7 +925,7 @@
     "/api/incidents/mobile/modification-status": {
       "post": {
         "deprecated": false,
-        "description": "update modification status",
+        "description": "update modification status. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "create_incidents_mobile_modification_status",
         "requestBody": {
           "content": {
@@ -956,7 +964,7 @@
     "/api/incidents/mobile/{incidentId}/audit-history": {
       "get": {
         "deprecated": false,
-        "description": "get incident audit history",
+        "description": "get incident audit history. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "get_incidents_mobile_incident_id_audit_history",
         "parameters": [
           {
@@ -1015,7 +1023,7 @@
     "/api/incidents/mobile/{incidentId}/events": {
       "get": {
         "deprecated": false,
-        "description": "Get events",
+        "description": "Get events. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main incidents endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "get_incidents_mobile_incident_id_events",
         "parameters": [
           {
@@ -1071,7 +1079,7 @@
             }
           },
           {
-            "description": "organizationId",
+            "description": "Numeric organization id. OMIT this parameter when the API credential is scoped to a single organization — the console scopes automatically and wrong ids return HTTP 400. Where the endpoint requires it, use the accountId value returned by incident list/detail responses.",
             "in": "query",
             "name": "organizationId",
             "required": true,
@@ -1109,11 +1117,21 @@
             }
           },
           {
-            "description": "timeFilter",
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
             "in": "query",
             "name": "timeFilter",
             "required": true,
             "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
               "type": "string"
             }
           },

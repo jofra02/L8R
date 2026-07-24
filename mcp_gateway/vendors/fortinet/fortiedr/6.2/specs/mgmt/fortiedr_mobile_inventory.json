@@ -16,7 +16,7 @@
     "/api/inventory/mobile/create-group": {
       "post": {
         "deprecated": false,
-        "description": "Create a Mobile group",
+        "description": "Create a Mobile group. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main inventory endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "inventory_mobile_create_group",
         "requestBody": {
           "content": {
@@ -59,7 +59,7 @@
     "/api/inventory/mobile/delete": {
       "delete": {
         "deprecated": false,
-        "description": "Delete",
+        "description": "Delete. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main inventory endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "inventory_mobile_delete",
         "parameters": [
           {
@@ -95,7 +95,7 @@
     "/api/inventory/mobile/groups": {
       "get": {
         "deprecated": false,
-        "description": "Return mobile groups",
+        "description": "Return mobile groups. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main inventory endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "get_inventory_mobile_groups",
         "parameters": [
           {
@@ -138,7 +138,7 @@
     "/api/inventory/mobile/list": {
       "get": {
         "deprecated": false,
-        "description": "Return mobile devices",
+        "description": "Return mobile devices. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main inventory endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "get_inventory_mobile_list",
         "parameters": [
           {
@@ -181,7 +181,7 @@
     "/api/inventory/mobile/move-group": {
       "put": {
         "deprecated": false,
-        "description": "Move a Mobile group",
+        "description": "Move a Mobile group. Mobile-device (iOS/Android) protection module ONLY — not an alternative to the main inventory endpoints. Consoles without the mobile module return HTTP 404 for every path in this area.",
         "operationId": "inventory_mobile_move_group",
         "requestBody": {
           "content": {

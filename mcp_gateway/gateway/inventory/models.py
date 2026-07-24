@@ -11,6 +11,9 @@ class Device(BaseModel):
     id: str = Field(..., description="Unique identifier for the device (slug)")
     name: str = Field(..., description="Human readable name")
     type: str = Field(..., description="Device driver type (e.g. 'fortios', 'cisco_ios', 'linux')")
+    os_version: Optional[str] = Field(
+        default=None, description="Firmware/OS version of the device (e.g. '7.4.5')"
+    )
     description: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     primary: bool = Field(

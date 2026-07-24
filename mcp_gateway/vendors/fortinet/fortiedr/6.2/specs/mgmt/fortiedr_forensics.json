@@ -137,7 +137,7 @@
         "operationId": "forensics_get_file",
         "parameters": [
           {
-            "description": "Specifies the name or id of the device to remediate",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": true,
@@ -216,7 +216,7 @@
         "operationId": "forensics_remediate_device",
         "parameters": [
           {
-            "description": "Specifies the name of the device to remediate. You must specify a value for either device or deviceId (see below)",
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
             "in": "query",
             "name": "device",
             "required": false,

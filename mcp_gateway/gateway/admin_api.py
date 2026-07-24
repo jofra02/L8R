@@ -74,6 +74,9 @@ class DeviceWrite(BaseModel):
     id: str
     name: str
     type: str
+    os_version: Optional[str] = Field(
+        default=None, description="Firmware/OS version of the device (e.g. '7.4.5')"
+    )
     description: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     primary: bool = False
@@ -83,6 +86,7 @@ class DeviceWrite(BaseModel):
 class DevicePatch(BaseModel):
     name: Optional[str] = None
     type: Optional[str] = None
+    os_version: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[List[str]] = None
     primary: Optional[bool] = None
@@ -175,8 +179,11 @@ def register_admin_routes(
                 {
                     "vendor": pack.vendor,
                     "appliance": pack.name,
+                    "version": pack.version,
+                    "display_name": pack.manifest.display_name,
                     "device_type": pack.manifest.device_type,
                     "prefix": pack.prefix,
+                    "pack_key": pack.pack_key,
                 }
                 for pack in packs
             ]

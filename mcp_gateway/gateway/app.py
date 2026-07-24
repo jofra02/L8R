@@ -40,8 +40,21 @@ def build_gateway(vendors_root: Path = VENDORS_ROOT) -> FastMCP:
     if not packs:
         log.warning("No appliance packs found — the gateway will expose no tools.")
 
+    # Mount prefixes must be unique: two packs sharing a prefix would merge
+    # their tool namespaces and silently shadow same-named tools.
+    seen_prefixes: dict[str, str] = {}
+    for pack in packs:
+        other = seen_prefixes.get(pack.prefix)
+        if other:
+            raise RuntimeError(
+                f"Duplicate mount prefix '{pack.prefix}' between packs "
+                f"'{other}' and '{pack.qualified_name}'."
+            )
+        seen_prefixes[pack.prefix] = pack.qualified_name
+
     # One TenantRegistries per device_type (lazy per-tenant DeviceRegistry cache),
-    # not bound to any single customer_id.
+    # not bound to any single customer_id. Multiple versions of the same
+    # appliance share the registry (same inventory), each under its own prefix.
     registries: dict[str, TenantRegistries] = {}
     for pack in packs:
         tenant_registries = registries.get(pack.manifest.device_type)

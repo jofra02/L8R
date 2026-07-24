@@ -476,7 +476,7 @@
             }
           },
           {
-            "description": "organizationId",
+            "description": "Numeric organization id. OMIT this parameter when the API credential is scoped to a single organization — the console scopes automatically and wrong ids return HTTP 400. Where the endpoint requires it, use the accountId value returned by incident list/detail responses.",
             "in": "query",
             "name": "organizationId",
             "required": true,
