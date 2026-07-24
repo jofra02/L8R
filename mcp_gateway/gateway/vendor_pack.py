@@ -1,13 +1,18 @@
 """Appliance pack discovery and loading.
 
-Packs are organized as ``vendors/<vendor>/<appliance>/`` — a vendor is a
-manufacturer (fortinet, cisco, paloalto) and each of its appliances/products
-(fortigate, fortianalyzer, ios_xe, panos, ...) is a self-contained pack:
+Packs are organized as ``vendors/<vendor>/<appliance>/<version>/`` — a vendor
+is a manufacturer (fortinet, cisco, paloalto), each of its appliances/products
+(fortigate, fortianalyzer, ios_xe, panos, ...) can ship several firmware/OS
+versions, and each version is a self-contained pack:
 
-    vendors/<vendor>/<appliance>/
+    vendors/<vendor>/<appliance>/<version>/
         manifest.yaml     # required — see ApplianceManifest for the schema
         specs/<group>/*.json  # OpenAPI/Swagger specs, one sub-server per group
         hooks.py          # optional appliance-specific transforms
+
+Multiple versions of the same appliance mount concurrently; they share the
+``device_type`` (and therefore the tenant inventory) but each carries its own
+tool prefix (e.g. ``fgt74``, ``fgt76``) so tool names never collide.
 
 ``hooks.py`` may expose:
 - ``SPEC_FIXES``: list of ``(spec: dict) -> dict`` callables run after the
@@ -34,10 +39,13 @@ DEFAULT_DEVICE_PARAM_DESCRIPTION = (
 
 
 class ApplianceManifest(BaseModel):
-    """Schema of ``vendors/<vendor>/<appliance>/manifest.yaml``."""
+    """Schema of ``vendors/<vendor>/<appliance>/<version>/manifest.yaml``."""
 
-    vendor: str = Field(..., description="Vendor slug (matches the parent directory name)")
-    name: str = Field(..., description="Appliance/product slug (matches the directory name)")
+    vendor: str = Field(..., description="Vendor slug (matches the grandparent directory name)")
+    name: str = Field(..., description="Appliance/product slug (matches the parent directory name)")
+    version: str = Field(
+        ..., description="Firmware/OS version covered by this pack (matches the directory name)"
+    )
     display_name: str = Field(..., description="Human readable server name")
     prefix: str = Field(..., description="Mount prefix — first token of every tool name")
     device_type: str = Field(..., description="Inventory device type served by this pack")
@@ -76,8 +84,10 @@ class AppliancePack:
         if not hooks_path.exists():
             return
 
+        version_label = self.manifest.version.replace(".", "_")
         spec = importlib.util.spec_from_file_location(
-            f"vendors.{self.manifest.vendor}.{self.manifest.name}.hooks", hooks_path
+            f"vendors.{self.manifest.vendor}.{self.manifest.name}.{version_label}.hooks",
+            hooks_path,
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -99,8 +109,17 @@ class AppliancePack:
         return self.manifest.vendor
 
     @property
+    def version(self) -> str:
+        return self.manifest.version
+
+    @property
     def qualified_name(self) -> str:
-        return f"{self.manifest.vendor}/{self.manifest.name}"
+        return f"{self.manifest.vendor}/{self.manifest.name}/{self.manifest.version}"
+
+    # Alias used by the catalog partitioning contract (app-side pack_key payload).
+    @property
+    def pack_key(self) -> str:
+        return self.qualified_name
 
     @property
     def prefix(self) -> str:
@@ -125,7 +144,7 @@ class AppliancePack:
 
 
 def load_appliance_pack(pack_dir: Path) -> Optional[AppliancePack]:
-    """Load one appliance pack from ``vendors/<vendor>/<appliance>/``."""
+    """Load one appliance pack from ``vendors/<vendor>/<appliance>/<version>/``."""
     manifest_path = pack_dir / "manifest.yaml"
     if not manifest_path.exists():
         return None
@@ -133,17 +152,18 @@ def load_appliance_pack(pack_dir: Path) -> Optional[AppliancePack]:
     with open(manifest_path, "r", encoding="utf-8") as f:
         data: Dict[str, Any] = yaml.safe_load(f) or {}
 
-    data.setdefault("vendor", pack_dir.parent.name)
-    data.setdefault("name", pack_dir.name)
+    data.setdefault("vendor", pack_dir.parent.parent.name)
+    data.setdefault("name", pack_dir.parent.name)
+    data.setdefault("version", pack_dir.name)
     manifest = ApplianceManifest(**data)
     return AppliancePack(manifest, pack_dir)
 
 
 def discover_packs(vendors_root: Path) -> List[AppliancePack]:
-    """Load every appliance pack under ``vendors/<vendor>/<appliance>/``.
+    """Load every appliance pack under ``vendors/<vendor>/<appliance>/<version>/``.
 
-    Sorted by vendor then appliance so mount order (and therefore any name
-    collision resolution) is deterministic.
+    Sorted by vendor, appliance, then version so mount order (and therefore any
+    name collision resolution) is deterministic.
     """
     packs: List[AppliancePack] = []
     if not vendors_root.exists():
@@ -156,16 +176,31 @@ def discover_packs(vendors_root: Path) -> List[AppliancePack]:
             log.warning(f"Vendor '{vendor_dir.name}' has no appliance directories — skipping")
             continue
 
-        for pack_dir in appliance_dirs:
-            try:
-                pack = load_appliance_pack(pack_dir)
-                if pack:
-                    packs.append(pack)
-                else:
-                    log.warning(
-                        f"Skipping '{vendor_dir.name}/{pack_dir.name}': no manifest.yaml"
-                    )
-            except Exception as e:
-                log.error(f"Failed to load pack '{vendor_dir.name}/{pack_dir.name}': {e}")
+        for appliance_dir in appliance_dirs:
+            if (appliance_dir / "manifest.yaml").exists():
+                log.error(
+                    f"Unversioned pack layout at '{vendor_dir.name}/{appliance_dir.name}': "
+                    f"move it to vendors/{vendor_dir.name}/{appliance_dir.name}/<version>/ — skipping"
+                )
+                continue
+
+            version_dirs = sorted(p for p in appliance_dir.iterdir() if p.is_dir())
+            if not version_dirs:
+                log.warning(
+                    f"Appliance '{vendor_dir.name}/{appliance_dir.name}' has no version "
+                    f"directories — skipping"
+                )
+                continue
+
+            for pack_dir in version_dirs:
+                label = f"{vendor_dir.name}/{appliance_dir.name}/{pack_dir.name}"
+                try:
+                    pack = load_appliance_pack(pack_dir)
+                    if pack:
+                        packs.append(pack)
+                    else:
+                        log.warning(f"Skipping '{label}': no manifest.yaml")
+                except Exception as e:
+                    log.error(f"Failed to load pack '{label}': {e}")
 
     return packs

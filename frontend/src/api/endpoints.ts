@@ -474,3 +474,88 @@ export async function updateTenantScope(customerId: string, scopeId: number, bod
 export async function deleteTenantScope(customerId: string, scopeId: number): Promise<void> {
   await client.delete(`/tenants/${customerId}/scopes/${scopeId}`);
 }
+
+// --- Assessments ---
+import type {
+  AssessmentDefinitionItem,
+  AssessmentDefinitionDetail,
+  AssessmentListItem,
+  AssessmentDetail,
+  AssessmentCreate as AssessmentCreateBody,
+  AssessmentCreateResponse,
+  AssessmentExecution,
+  AssessmentControlResult,
+  AssessmentEvidence,
+  AssessmentReport,
+} from "./types";
+
+interface AssessmentFilters {
+  page?: number;
+  page_size?: number;
+  status?: string;
+  definition_id?: string;
+  search?: string;
+}
+
+export async function listAssessmentDefinitions(): Promise<AssessmentDefinitionItem[]> {
+  const { data } = await client.get<AssessmentDefinitionItem[]>("/assessment-definitions");
+  return data;
+}
+
+export async function getAssessmentDefinition(definitionId: string, version: string): Promise<AssessmentDefinitionDetail> {
+  const { data } = await client.get<AssessmentDefinitionDetail>(`/assessment-definitions/${definitionId}/versions/${version}`);
+  return data;
+}
+
+export async function listAssessments(filters: AssessmentFilters = {}): Promise<PaginatedResponse<AssessmentListItem>> {
+  const { data } = await client.get<PaginatedResponse<AssessmentListItem>>("/assessments", { params: filters });
+  return data;
+}
+
+export async function getAssessmentDetail(runId: string): Promise<AssessmentDetail> {
+  const { data } = await client.get<AssessmentDetail>(`/assessments/${runId}`);
+  return data;
+}
+
+export async function createAssessment(body: AssessmentCreateBody): Promise<AssessmentCreateResponse> {
+  const { data } = await client.post<AssessmentCreateResponse>("/assessments", body);
+  return data;
+}
+
+export async function startAssessment(runId: string): Promise<AssessmentDetail> {
+  const { data } = await client.post<AssessmentDetail>(`/assessments/${runId}/start`);
+  return data;
+}
+
+export async function cancelAssessment(runId: string): Promise<AssessmentDetail> {
+  const { data } = await client.post<AssessmentDetail>(`/assessments/${runId}/cancel`);
+  return data;
+}
+
+export async function reevaluateAssessment(runId: string): Promise<AssessmentDetail> {
+  const { data } = await client.post<AssessmentDetail>(`/assessments/${runId}/reevaluate`);
+  return data;
+}
+
+export async function listAssessmentSteps(runId: string, params?: { target_id?: string; status?: string }): Promise<AssessmentExecution[]> {
+  const { data } = await client.get<AssessmentExecution[]>(`/assessments/${runId}/steps`, { params });
+  return data;
+}
+
+export async function listAssessmentResults(
+  runId: string,
+  params?: { target_id?: string; status?: string; severity?: string; category?: string },
+): Promise<AssessmentControlResult[]> {
+  const { data } = await client.get<AssessmentControlResult[]>(`/assessments/${runId}/results`, { params });
+  return data;
+}
+
+export async function getAssessmentEvidence(runId: string, executionId: string): Promise<AssessmentEvidence> {
+  const { data } = await client.get<AssessmentEvidence>(`/assessments/${runId}/executions/${executionId}/evidence`);
+  return data;
+}
+
+export async function getAssessmentReport(runId: string): Promise<AssessmentReport> {
+  const { data } = await client.get<AssessmentReport>(`/assessments/${runId}/report`);
+  return data;
+}

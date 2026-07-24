@@ -1,0 +1,467 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Threat Hunting Settings",
+      "description": "API to configure Threat Hunting Settings."
+    }
+  ],
+  "paths": {
+    "/management-rest/threat-hunting-settings/threat-hunting-metadata": {
+      "get": {
+        "tags": [
+          "Threat Hunting Settings"
+        ],
+        "summary": "threat-hunting-metadata",
+        "description": "Get the Threat Hunting Settings metadata object, listing the available configuration options (Category and Event Types).",
+        "operationId": "threat-hunting-metadata",
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ThreatHuntingCategoryMetadata"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting-settings/threat-hunting-profile": {
+      "get": {
+        "tags": [
+          "Threat Hunting Settings"
+        ],
+        "summary": "threat-hunting-profile",
+        "description": "Get the list of Threat Hunting Setting profiles.",
+        "operationId": "threat-hunting-profile_1",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ThreatHuntingProfileResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      },
+      "post": {
+        "tags": [
+          "Threat Hunting Settings"
+        ],
+        "summary": "threat-hunting-profile",
+        "description": "Update Threat Hunting profile",
+        "operationId": "threat-hunting-profile_2",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "threatHuntingUpdateRequest",
+            "description": "threatHuntingUpdateRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ThreatHuntingUpdateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ThreatHuntingProfileResponse"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      },
+      "delete": {
+        "tags": [
+          "Threat Hunting Settings"
+        ],
+        "summary": "threat-hunting-profile",
+        "description": "Deletes a Threat Hunting profile.",
+        "operationId": "threat-hunting-profile",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "To be deleted profile's name.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting-settings/threat-hunting-profile-clone": {
+      "post": {
+        "tags": [
+          "Threat Hunting Settings"
+        ],
+        "summary": "threat-hunting-profile-clone",
+        "description": "Clone a Threat Hunting Settings profile.",
+        "operationId": "threat-hunting-profile-clone",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "cloneProfileName",
+            "in": "query",
+            "description": "Cloned profile name.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "existingProfileName",
+            "in": "query",
+            "description": "Existing profile name.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ThreatHuntingProfileResponse"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting-settings/threat-hunting-profile/collector-groups": {
+      "post": {
+        "tags": [
+          "Threat Hunting Settings"
+        ],
+        "summary": "threat-hunting-profile-assign-collector-groups",
+        "description": "Update Threat Hunting profile assigned collector groups. Returns the updated list of assigned collector groups.",
+        "operationId": "threat-hunting-profile-assign-collector-groups",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "threatHuntingAssignGroupsRequest",
+            "description": "threatHuntingAssignGroupsRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ThreatHuntingAssignGroupsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "ThreatHuntingAssignGroupsRequest": {
+      "type": "object",
+      "required": [
+        "associatedCollectorGroupIds",
+        "name"
+      ],
+      "properties": {
+        "associatedCollectorGroupIds": {
+          "type": "array",
+          "description": "List of associated collector groups Ids, for example [1,2,3].",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "name": {
+          "type": "string",
+          "description": "Threat Hunting profile name."
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the name of a specific organization. The value that you specify here must match exactly"
+        }
+      },
+      "title": "ThreatHuntingAssignGroupsRequest"
+    },
+    "ThreatHuntingCategoryDtoItem": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "eventTypes",
+        "identifier"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "When set to True the Threat Hunting event type category is enabled."
+        },
+        "eventTypes": {
+          "type": "array",
+          "description": "A subset of the category's event types (identifiers) which will be set to Enabled. For example [\"Process Termination\", \"Process Creation\"]",
+          "items": {
+            "type": "string"
+          }
+        },
+        "identifier": {
+          "type": "string",
+          "description": "Threat Hunting event type category identifier"
+        }
+      },
+      "title": "ThreatHuntingCategoryDtoItem"
+    },
+    "ThreatHuntingCategoryMetadata": {
+      "type": "object",
+      "required": [
+        "categoryIdentifier",
+        "categoryName",
+        "eventTypes"
+      ],
+      "properties": {
+        "categoryIdentifier": {
+          "type": "string",
+          "description": "The Threat Hunting category identifier."
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Category name."
+        },
+        "eventTypes": {
+          "type": "array",
+          "description": "List of Threat Hunting event types that can be used during the configuration of Threat Hunting Setting profile.",
+          "items": {
+            "$ref": "#/definitions/ThreatHuntingEventType"
+          }
+        }
+      },
+      "title": "ThreatHuntingCategoryMetadata"
+    },
+    "ThreatHuntingEventType": {
+      "type": "object",
+      "required": [
+        "identifier",
+        "name"
+      ],
+      "properties": {
+        "identifier": {
+          "type": "string",
+          "description": "The Threat Hunting event type identifier."
+        },
+        "name": {
+          "type": "string",
+          "description": "The Threat Hunting event type name."
+        }
+      },
+      "title": "ThreatHuntingEventType"
+    },
+    "ThreatHuntingProfileResponse": {
+      "type": "object",
+      "required": [
+        "associatedCollectorGroupIds",
+        "immutable",
+        "name",
+        "threatHuntingCategoryList"
+      ],
+      "properties": {
+        "associatedCollectorGroupIds": {
+          "type": "array",
+          "description": "List of associated collector groups Ids, for example [1,2,3].",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "immutable": {
+          "type": "boolean",
+          "description": "When true this profile cannot be modified."
+        },
+        "name": {
+          "type": "string",
+          "description": "Threat Hunting profile name."
+        },
+        "threatHuntingCategoryList": {
+          "type": "array",
+          "description": "Threat Hunting Categories",
+          "items": {
+            "$ref": "#/definitions/ThreatHuntingCategoryDtoItem"
+          }
+        }
+      },
+      "title": "ThreatHuntingProfileResponse"
+    },
+    "ThreatHuntingUpdateRequest": {
+      "type": "object",
+      "required": [
+        "associatedCollectorGroupIds",
+        "name",
+        "organization",
+        "threatHuntingCategoryList"
+      ],
+      "properties": {
+        "associatedCollectorGroupIds": {
+          "type": "array",
+          "description": "List of associated collector groups Ids, for example [1,2,3].",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "name": {
+          "type": "string",
+          "description": "Threat Hunting profile name."
+        },
+        "newName": {
+          "type": "string",
+          "description": "New profile name. Optional."
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the name of a specific organization. The value that you specify here must match exactly"
+        },
+        "threatHuntingCategoryList": {
+          "type": "array",
+          "description": "Threat Hunting Categories",
+          "items": {
+            "$ref": "#/definitions/ThreatHuntingCategoryDtoItem"
+          }
+        }
+      },
+      "title": "ThreatHuntingUpdateRequest"
+    }
+  }
+}

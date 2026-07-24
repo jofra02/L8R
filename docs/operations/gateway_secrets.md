@@ -34,7 +34,7 @@ uv run python scripts/encrypt_secret.py --batch in.csv --output out.csv   # bulk
    - the repo-root `.env` (compose passes it to the `mcp-gateway` service)
 5. Restart the gateway: `docker compose up -d mcp-gateway`.
 
-**Verification**: startup log shows `Loaded N 'fortios' devices` (decryption OK), then one live read-only tool call per tenant (e.g. `fgt_monitor_sys_get_status` with `device: <id>`). A decryption failure logs `Decryption failed. Check your INVENTORY_MASTER_KEY.`
+**Verification**: startup log shows `Loaded N 'fortios' devices` (decryption OK), then one live read-only tool call per tenant (e.g. `fgt74_monitor_sys_get_status` with `device: <id>`). A decryption failure logs `Decryption failed. Check your INVENTORY_MASTER_KEY.`
 
 **Rollback**: run `rotate_master_key.py` again with the keys swapped, restore the old key in the `.env` files, restart.
 

@@ -1,0 +1,2456 @@
+{
+  "components": {
+    "schemas": {
+      "DashboardMostTargetedItemsResponse": {
+        "properties": {
+          "mostTargetedItems": {
+            "description": "Specifies the list of items",
+            "items": {
+              "$ref": "#/components/schemas/MapOfstringAndobject"
+            },
+            "type": "array"
+          }
+        },
+        "title": "DashboardMostTargetedItemsResponse",
+        "type": "object"
+      },
+      "DashboardUnhandledItem": {
+        "properties": {
+          "amount": {
+            "description": "Specifies the amount of items",
+            "format": "int32",
+            "type": "integer"
+          },
+          "classification": {
+            "description": "Specifies the classification name",
+            "enum": [
+              "Malicious",
+              "Suspicious",
+              "Inconclusive",
+              "Likely Safe",
+              "PUP",
+              "Safe"
+            ],
+            "type": "string"
+          },
+          "severity": {
+            "description": "Specifies the severity name",
+            "enum": [
+              "Critical",
+              "High",
+              "Medium"
+            ],
+            "type": "string"
+          }
+        },
+        "title": "DashboardUnhandledItem",
+        "type": "object"
+      },
+      "DashboardUnhandledItemsResponse": {
+        "properties": {
+          "unhandledItems": {
+            "description": "Specifies the list of items",
+            "items": {
+              "$ref": "#/components/schemas/DashboardUnhandledItem"
+            },
+            "type": "array"
+          }
+        },
+        "title": "DashboardUnhandledItemsResponse",
+        "type": "object"
+      },
+      "MapOfstringAndobject": {
+        "additionalProperties": {
+          "type": "object"
+        },
+        "title": "MapOfstringAndobject",
+        "type": "object"
+      },
+      "ProgressBarBean": {
+        "properties": {
+          "childrenProgressPrecentage": {
+            "description": "Specifies the children progress percentage",
+            "format": "double",
+            "type": "number"
+          },
+          "data": {
+            "description": "Specifies the data ",
+            "type": "object"
+          },
+          "errorsInfos": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/MapOfstringAndobject"
+              },
+              "type": "array"
+            },
+            "description": "Specifies the errors infos",
+            "type": "object"
+          },
+          "failedChildren": {
+            "description": "Specifies the number of failed children",
+            "format": "int32",
+            "type": "integer"
+          },
+          "finishedChildren": {
+            "description": "Specifies the number of finished children",
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Specifies the Progress Bar Bean ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastActivityTime": {
+            "description": "Specifies the last activity time",
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "description": "Specifies the message",
+            "type": "string"
+          },
+          "messageIsFinal": {
+            "description": "Specifies if the message is final ",
+            "type": "boolean"
+          },
+          "numberOfChildren": {
+            "description": "Specifies the number of children ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "optionalMessage": {
+            "description": "Specifies the optional message",
+            "type": "string"
+          },
+          "percentage": {
+            "description": "Specifies the Progress Bar Bean Percentage",
+            "format": "double",
+            "type": "number"
+          },
+          "status": {
+            "description": "Specifies the Progress Bar Bean ID",
+            "enum": [
+              "InProgress",
+              "FinishedSuccessfully",
+              "FinishedWithWarning",
+              "Failed",
+              "Cancelled"
+            ],
+            "type": "string"
+          },
+          "successChildren": {
+            "description": "Specifies the number of success children",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "title": "ProgressBarBean",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/dashboard/collectors": {
+      "get": {
+        "deprecated": false,
+        "description": "Return collectors according to group by field",
+        "operationId": "get_dashboard_collectors",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the OS of the return data",
+            "in": "query",
+            "name": "os",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "collectors",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/collectors-by-os": {
+      "get": {
+        "deprecated": false,
+        "description": "Return collectors according to group by field",
+        "operationId": "get_dashboard_collectors_by_os",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the OS of the return data",
+            "in": "query",
+            "name": "os",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "collectors-by-os",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/collectors-by-policies": {
+      "get": {
+        "deprecated": false,
+        "description": "Return collectors by policies",
+        "operationId": "get_dashboard_collectors_by_policies",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the OS of the return data",
+            "in": "query",
+            "name": "os",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "collectors-by-policies",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/collectors-by-version": {
+      "get": {
+        "deprecated": false,
+        "description": "Return collectors according to group by field",
+        "operationId": "get_dashboard_collectors_by_version",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the OS of the return data",
+            "in": "query",
+            "name": "os",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "collectors-by-version",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/com-control-policies": {
+      "get": {
+        "deprecated": false,
+        "description": "Return com control policies",
+        "operationId": "get_dashboard_com_control_policies",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the operation mode.",
+            "in": "query",
+            "name": "operationMode",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Presentation",
+                "Simulation"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "com-control-policies",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/detection-activity": {
+      "get": {
+        "deprecated": false,
+        "description": "Return detection activity",
+        "operationId": "get_dashboard_detection_activity",
+        "parameters": [
+          {
+            "description": "Specifies the event classification.",
+            "in": "query",
+            "name": "classification",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "ClassificationMalicious",
+                "ClassificationProbablyMalicious",
+                "ClassificationPup",
+                "ClassificationInconclusive",
+                "ClassificationProbablyGood",
+                "ClassificationGood"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "detection-activity",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/event-classification-distribution": {
+      "get": {
+        "deprecated": false,
+        "description": "Return event classification distribution",
+        "operationId": "get_dashboard_event_classification_distribution",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "event-classification-distribution",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/generate-report": {
+      "post": {
+        "deprecated": false,
+        "description": "Export to csv",
+        "operationId": "dashboard_generate_report",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressBarBean"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "generate-report",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/get-progress": {
+      "get": {
+        "deprecated": false,
+        "description": "Get progress",
+        "operationId": "dashboard_get_progress",
+        "parameters": [
+          {
+            "description": "progressBarId",
+            "in": "query",
+            "name": "progressBarId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressBarBean"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-progress",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/layout-config": {
+      "get": {
+        "deprecated": false,
+        "description": "Return dashboard layout config",
+        "operationId": "get_dashboard_layout_config",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "layout-config",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/license-capacity-per-organization": {
+      "get": {
+        "deprecated": false,
+        "description": "Return license capacity per organization",
+        "operationId": "get_dashboard_license_capacity_per_organization",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "selectedOrganization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "license-capacity-per-organization",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/license-status-per-organization": {
+      "get": {
+        "deprecated": false,
+        "description": "Return license status per organization",
+        "operationId": "get_dashboard_license_status_per_organization",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "selectedOrganization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "license-status-per-organization",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/most-targeted-items": {
+      "get": {
+        "deprecated": false,
+        "description": "Returns most targeted devices or most targeted processes, depending on the itemType parameter",
+        "operationId": "get_dashboard_most_targeted_items",
+        "parameters": [
+          {
+            "description": "Specifies the type of items",
+            "in": "query",
+            "name": "itemType",
+            "required": false,
+            "schema": {
+              "enum": [
+                "process",
+                "device"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the number of columns to present",
+            "in": "query",
+            "name": "numOfColumns",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the number of days to present",
+            "in": "query",
+            "name": "numOfDays",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardMostTargetedItemsResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "most-targeted-items",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/my-events": {
+      "get": {
+        "deprecated": false,
+        "description": "Return my events",
+        "operationId": "get_dashboard_my_events",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "my-events",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/new-detections": {
+      "get": {
+        "deprecated": false,
+        "description": "Return new detections",
+        "operationId": "get_dashboard_new_detections",
+        "parameters": [
+          {
+            "description": "Specifies the event classification.",
+            "in": "query",
+            "name": "classification",
+            "required": false,
+            "schema": {
+              "enum": [
+                "All",
+                "ClassificationMalicious",
+                "ClassificationProbablyMalicious",
+                "ClassificationPup",
+                "ClassificationInconclusive",
+                "ClassificationProbablyGood",
+                "ClassificationGood"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "new-detections",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/system-components": {
+      "get": {
+        "deprecated": false,
+        "description": "Return system components",
+        "operationId": "get_dashboard_system_components",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "system-components",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/team-workload-overview": {
+      "get": {
+        "deprecated": false,
+        "description": "Return team workload overview",
+        "operationId": "get_dashboard_team_workload_overview",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the incident handling state.",
+            "in": "query",
+            "name": "incidentHandlingState",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Handled",
+                "Unhandled",
+                "InProgress"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "team-workload-overview",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/top-affected-devices": {
+      "get": {
+        "deprecated": false,
+        "description": "Return top affected devices",
+        "operationId": "get_dashboard_top_affected_devices",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the number of days to display their data",
+            "in": "query",
+            "name": "numDaysToDisplay",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "top-affected-devices",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/top-detection-rule-by-occurrence": {
+      "get": {
+        "deprecated": false,
+        "description": "Return top detection rule by occurrence",
+        "operationId": "get_dashboard_top_detection_rule_by_occurrence",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the num of results to display.",
+            "in": "query",
+            "name": "numOfResultsToDisplay",
+            "required": false,
+            "schema": {
+              "enum": [
+                5,
+                7,
+                12
+              ],
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "top-detection-rule-by-occurrence",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/top-response-action": {
+      "get": {
+        "deprecated": false,
+        "description": "Return top response action",
+        "operationId": "get_dashboard_top_response_action",
+        "parameters": [
+          {
+            "description": "End of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the chart key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the chart number axis items to display",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the sort by field",
+            "in": "query",
+            "name": "sortByField",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the sort direction",
+            "in": "query",
+            "name": "sortDirection",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the time window as epoch MILLISECONDS (only honored with timeFilter=Custom). Epoch seconds are silently read as 1970 and return an empty result; date strings are rejected with HTTP 400.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time window. Must be one of the enum values — a blank value is rejected with HTTP 400. Use 'Custom' only together with the startDate/endDate epoch-milliseconds parameters.",
+            "in": "query",
+            "name": "timeFilter",
+            "required": false,
+            "schema": {
+              "enum": [
+                "Last1days",
+                "Last7days",
+                "Last14days",
+                "Last30days",
+                "Last60days",
+                "Last90days",
+                "All",
+                "Custom"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "top-response-action",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    },
+    "/api/dashboard/unhandled-items": {
+      "get": {
+        "deprecated": false,
+        "description": "Returns unhandled devices or unhandled processes, depending on the itemType parameter",
+        "operationId": "get_dashboard_unhandled_items",
+        "parameters": [
+          {
+            "description": "Specifies the type of items",
+            "in": "query",
+            "name": "itemType",
+            "required": false,
+            "schema": {
+              "enum": [
+                "process",
+                "device"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardUnhandledItemsResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "unhandled-items",
+        "tags": [
+          "dashboard-rest-api-controller"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Dashboard Rest Api Controller",
+      "name": "dashboard-rest-api-controller"
+    }
+  ]
+}

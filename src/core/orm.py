@@ -331,3 +331,172 @@ class CheckpointORM(Base, TenantMixin):
     checkpoint: Mapped[Dict[str, Any]] = mapped_column(JSON)  # Serialization of global state
     metadata_: Mapped[Dict[str, Any]] = mapped_column("metadata", JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+# --- Device Assessment module ---
+
+class AssessmentDefinitionVersionORM(Base):
+    """Immutable snapshot of an assessment definition version.
+
+    Authored as YAML in src/assessments/definitions/ and synced here by the
+    DefinitionRegistry. content holds the full parsed definition (collection
+    steps, controls, scoring); content_hash guards immutability — a changed
+    file with the same version is rejected at sync time.
+    """
+    __tablename__ = "assessment_definition_versions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    definition_id: Mapped[str] = mapped_column(String, index=True)  # e.g. fortigate-security-baseline
+    version: Mapped[str] = mapped_column(String)                    # semver
+    vendor: Mapped[str] = mapped_column(String)
+    product: Mapped[str] = mapped_column(String)
+    name: Mapped[str] = mapped_column(String)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    content: Mapped[Dict[str, Any]] = mapped_column(JSON)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("definition_id", "version", name="uq_assessment_definition_version"),
+    )
+
+
+class AssessmentRunORM(Base, TenantMixin):
+    """One assessment execution over a set of devices, pinned to a definition version."""
+    __tablename__ = "assessment_runs"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    definition_version_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_definition_versions.id"), index=True
+    )
+    # Denormalized for list views without joining the definition snapshot
+    definition_id: Mapped[str] = mapped_column(String)
+    definition_version: Mapped[str] = mapped_column(String)
+    name: Mapped[str] = mapped_column(String)
+    # draft|queued|collecting|evaluating|completed|completed_with_errors|failed|cancelled
+    status: Mapped[str] = mapped_column(String, index=True, default="draft")
+    requested_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # user_id
+    params: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    progress: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    score: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    stats: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)  # findings by severity
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    targets: Mapped[List["AssessmentTargetORM"]] = relationship(
+        back_populates="run", passive_deletes="all"
+    )
+
+    __table_args__ = (
+        Index("ix_assessment_runs_tenant_created", "customer_id", "created_at"),
+    )
+
+
+class AssessmentTargetORM(Base, TenantMixin):
+    """A device evaluated within an assessment run (inventory snapshot at creation)."""
+    __tablename__ = "assessment_targets"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_runs.id", ondelete="CASCADE"), index=True
+    )
+    component_id: Mapped[str] = mapped_column(String)
+    device_name: Mapped[str] = mapped_column(String)   # gateway routing ref
+    device_meta: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    # pending|collecting|collected|partial|failed|skipped
+    status: Mapped[str] = mapped_column(String, default="pending")
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    run: Mapped["AssessmentRunORM"] = relationship(back_populates="targets")
+
+    __table_args__ = (
+        UniqueConstraint("run_id", "component_id", name="uq_assessment_target_per_run"),
+    )
+
+
+class AssessmentCollectionExecutionORM(Base, TenantMixin):
+    """Forensic record of one collection step execution on one target.
+
+    This is the assessment counterpart of tool_calls_audit (whose run_id FK
+    points to agent_runs and therefore cannot host assessment calls). Also
+    carries the evidence references (raw blob sha + normalized JSON).
+    """
+    __tablename__ = "assessment_collection_executions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_runs.id", ondelete="CASCADE"), index=True
+    )
+    target_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_targets.id", ondelete="CASCADE"), index=True
+    )
+    step_id: Mapped[str] = mapped_column(String)
+    tool_name: Mapped[str] = mapped_column(String)
+    tool_args: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)  # sanitized
+    # pending|running|success|failed|timeout|skipped|cancelled
+    status: Mapped[str] = mapped_column(String, default="pending")
+    attempt: Mapped[int] = mapped_column(Integer, default=0)
+    # connection|timeout|authorization|schema|device|unknown
+    error_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    raw_evidence_sha: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    raw_size_bytes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    truncated: Mapped[bool] = mapped_column(Boolean, default=False)
+    normalized: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    normalizer: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("run_id", "target_id", "step_id", name="uq_assessment_execution_step"),
+        Index("ix_assessment_executions_run_status", "run_id", "status"),
+    )
+
+
+class AssessmentControlResultORM(Base, TenantMixin):
+    """Evaluation outcome of one control on one target (a fail/warning is a finding)."""
+    __tablename__ = "assessment_control_results"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_runs.id", ondelete="CASCADE"), index=True
+    )
+    target_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_targets.id", ondelete="CASCADE"), index=True
+    )
+    control_id: Mapped[str] = mapped_column(String)
+    title: Mapped[str] = mapped_column(String)
+    category: Mapped[str] = mapped_column(String)
+    severity: Mapped[str] = mapped_column(String)  # critical|high|medium|low
+    # pass|fail|warning|not_applicable|not_evaluated|insufficient_evidence|error
+    status: Mapped[str] = mapped_column(String)
+    method: Mapped[str] = mapped_column(String)    # rule|parser|llm|hybrid
+    confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recommendation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    references: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)
+    evidence_refs: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSON, nullable=True)
+    llm_output: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("run_id", "target_id", "control_id", name="uq_assessment_result_control"),
+        Index("ix_assessment_results_run_status", "run_id", "status"),
+        Index("ix_assessment_results_run_severity", "run_id", "severity"),
+    )
+
+
+class AssessmentReportORM(Base, TenantMixin):
+    """View-independent report model for a completed assessment run."""
+    __tablename__ = "assessment_reports"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_runs.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    model: Mapped[Dict[str, Any]] = mapped_column(JSON)
+    format_version: Mapped[str] = mapped_column(String, default="1.0")
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

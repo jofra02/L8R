@@ -14,6 +14,9 @@ class McpConnection(BaseModel):
     vendor: str = "fortinet"
     appliance: str = "fortigate"
     device_type: str = "fortios"
+    os_version: Optional[str] = Field(
+        default=None, description="Firmware/OS version of the device (e.g. '7.4.5')"
+    )
     host: str = Field(..., min_length=1)
     port: int = 443
     token: Optional[str] = None

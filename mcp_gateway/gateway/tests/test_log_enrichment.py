@@ -2,7 +2,7 @@
 
 The support_ai_agent tool catalog embeds only tool descriptions (never names),
 and the local-disk log retrieval tools do not even contain the word "log" in
-their names (fgt_cmdb_disk_get_*). The enrich_log_retrieval vendor hook
+their names (fgt74_cmdb_disk_get_*). The enrich_log_retrieval vendor hook
 appends storage/vocabulary context to the retrieval and device-state
 summaries so semantic search can surface them. This test builds the gateway
 offline and asserts the enrichment landed on every backend family equally.
@@ -12,13 +12,13 @@ import asyncio
 
 # One retrieval tool per backend family — all four must be enriched alike.
 RETRIEVAL_TOOLS = [
-    "fgt_cmdb_disk_get_type",
-    "fgt_log_mem_get_memory_type",
-    "fgt_cmdb_faz_get_fortianalyzer_type",
-    "fgt_cmdb_fcloud_get_forticloud_type",
+    "fgt74_cmdb_disk_get_type",
+    "fgt74_log_mem_get_memory_type",
+    "fgt74_cmdb_faz_get_fortianalyzer_type",
+    "fgt74_cmdb_fcloud_get_forticloud_type",
 ]
 
-DEVICE_STATE_TOOL = "fgt_cmdb_log_get_device_state"
+DEVICE_STATE_TOOL = "fgt74_cmdb_log_get_device_state"
 
 
 def test_log_retrieval_descriptions_enriched():

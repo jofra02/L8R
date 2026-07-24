@@ -1,0 +1,736 @@
+{
+  "components": {
+    "schemas": {
+      "AccountRequest": {
+        "properties": {
+          "eXtendedDetection": {
+            "description": "A true/false parameter indication if the eXtended Detection is enabled for the organization",
+            "type": "boolean"
+          },
+          "edr": {
+            "description": "A true/false parameter indicating whether the organization support Threat Hunting",
+            "type": "boolean"
+          },
+          "edrAddOnsAllocated": {
+            "description": "Specifies the EDR storage add-ons allocated to this account",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "edrBackupEnabled": {
+            "description": "A true/false parameter indication if the EDR backup is enabled for the organization",
+            "type": "boolean"
+          },
+          "edrEnabled": {
+            "description": "A true/false parameter indication if the EDR is enabled for the organization",
+            "type": "boolean"
+          },
+          "edrNumberOfShards": {
+            "description": "Specifies the EDR shards per index, should be above 1 only for very large environments",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "edrStorageAllocatedInMb": {
+            "description": "Specifies the EDR storage allocation in MB, used when edrStorageAllocatedPercents is empty",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "expirationDate": {
+            "description": "Specifies the license expiration date. Specify the date using the following date format yyyy-MM-dd",
+            "type": "string"
+          },
+          "forensics": {
+            "description": "A true/false parameter indicating whether the organization support Forensics",
+            "type": "boolean"
+          },
+          "iotAllocated": {
+            "description": "Specifies the IoT device’s license capacity",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "mobileEnabled": {
+            "description": "A true/false parameter indication if the mobile is enabled for the organization",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Specifies the organization name",
+            "type": "string"
+          },
+          "requestPolicyEngineLibUpdates": {
+            "description": "A true/false parameter indicating whether the organization collectors should request for policy engine lib updates",
+            "type": "boolean"
+          },
+          "serialNumber": {
+            "description": "Specifies the serial number",
+            "type": "string"
+          },
+          "serversAllocated": {
+            "description": "Specifies the server collector’s license capacity",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "vulnerabilityAndIoT": {
+            "description": "A true/false parameter indicating whether the organization support Vulnerability And IoT",
+            "type": "boolean"
+          },
+          "workstationsAllocated": {
+            "description": "Specifies the workstation collector’s license capacity",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "title": "AccountRequest",
+        "type": "object"
+      },
+      "AccountResponse": {
+        "properties": {
+          "eXtendedDetection": {
+            "description": "indicate whether the organization support eXtended Detection",
+            "type": "boolean"
+          },
+          "edr": {
+            "description": "indicate whether the organization support Threat Hunting",
+            "type": "boolean"
+          },
+          "expirationDate": {
+            "description": "Expiration date",
+            "type": "string"
+          },
+          "forensics": {
+            "description": "indicate whether the organization support Forensics",
+            "type": "boolean"
+          },
+          "iotAllocated": {
+            "description": "Specifics the iot devices allocated ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "iotInUse": {
+            "description": "Specifics the iot devices account in use",
+            "format": "int32",
+            "type": "integer"
+          },
+          "isAdminAccount": {
+            "description": "Is admin account",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Account name",
+            "type": "string"
+          },
+          "organizationId": {
+            "description": "Specifics the organization ID ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "repositoryAddOns": {
+            "description": "Specifics the organization repository add-ons",
+            "format": "int32",
+            "type": "integer"
+          },
+          "serialNumber": {
+            "description": "serial number",
+            "type": "string"
+          },
+          "serversAllocated": {
+            "description": "Specifics the servers allocated ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "serversInUse": {
+            "description": "Specifics the server account in use",
+            "format": "int32",
+            "type": "integer"
+          },
+          "verificationCode": {
+            "description": "Organization migration verification code",
+            "type": "string"
+          },
+          "vulnerabilityAndIoT": {
+            "description": "indicate whether the organization support Vulnerability And IoT",
+            "type": "boolean"
+          },
+          "workstationsAllocated": {
+            "description": "Specifics the work stations allocated ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "workstationsInUse": {
+            "description": "Specifics the work stations account in use",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "title": "AccountResponse",
+        "type": "object"
+      },
+      "AggregatorMap": {
+        "properties": {
+          "sourceAggregatorId": {
+            "description": "Specifies the source aggregator ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "targetAggregatorDestination": {
+            "description": "Specifies the target aggregator destination ip or dns",
+            "type": "string"
+          },
+          "targetAggregatorPort": {
+            "description": "Specifies the target aggregator destination port",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sourceAggregatorId",
+          "targetAggregatorDestination",
+          "targetAggregatorPort"
+        ],
+        "title": "AggregatorMap",
+        "type": "object"
+      },
+      "CreateAccountRequest": {
+        "properties": {
+          "eXtendedDetection": {
+            "description": "A true/false parameter indication if the eXtended Detection is enabled for the organization",
+            "type": "boolean"
+          },
+          "edr": {
+            "description": "A true/false parameter indicating whether the organization support Threat Hunting",
+            "type": "boolean"
+          },
+          "edrAddOnsAllocated": {
+            "description": "Specifies the EDR storage add-ons allocated to this account",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "edrBackupEnabled": {
+            "description": "A true/false parameter indication if the EDR backup is enabled for the organization",
+            "type": "boolean"
+          },
+          "edrEnabled": {
+            "description": "A true/false parameter indication if the EDR is enabled for the organization",
+            "type": "boolean"
+          },
+          "edrNumberOfShards": {
+            "description": "Specifies the EDR shards per index, should be above 1 only for very large environments",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "edrStorageAllocatedInMb": {
+            "description": "Specifies the EDR storage allocation in MB, used when edrStorageAllocatedPercents is empty",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "expirationDate": {
+            "description": "Specifies the license expiration date. Specify the date using the following date format yyyy-MM-dd",
+            "type": "string"
+          },
+          "forensics": {
+            "description": "A true/false parameter indicating whether the organization support Forensics",
+            "type": "boolean"
+          },
+          "iotAllocated": {
+            "description": "Specifies the IoT device’s license capacity",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "mobileEnabled": {
+            "description": "A true/false parameter indication if the mobile is enabled for the organization",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Specifies the organization name",
+            "type": "string"
+          },
+          "password": {
+            "description": "Specifies the device registration password name",
+            "type": "string"
+          },
+          "passwordConfirmation": {
+            "description": "Specifies the confirm device registration password name",
+            "type": "string"
+          },
+          "requestPolicyEngineLibUpdates": {
+            "description": "A true/false parameter indicating whether the organization collectors should request for policy engine lib updates",
+            "type": "boolean"
+          },
+          "serialNumber": {
+            "description": "Specifies the serial number",
+            "type": "string"
+          },
+          "serversAllocated": {
+            "description": "Specifies the server collector’s license capacity",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "vulnerabilityAndIoT": {
+            "description": "A true/false parameter indicating whether the organization support Vulnerability And IoT",
+            "type": "boolean"
+          },
+          "workstationsAllocated": {
+            "description": "Specifies the workstation collector’s license capacity",
+            "exclusiveMinimum": false,
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expirationDate",
+          "name",
+          "password",
+          "passwordConfirmation"
+        ],
+        "title": "CreateAccountRequest",
+        "type": "object"
+      },
+      "GetImportAccountResponse": {
+        "properties": {
+          "organization": {
+            "description": "Organization Name",
+            "type": "string"
+          },
+          "organizationId": {
+            "description": "Organization ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "verificationCode": {
+            "description": "Import verification code",
+            "type": "string"
+          }
+        },
+        "title": "GetImportAccountResponse",
+        "type": "object"
+      },
+      "StreamingResponseBody": {
+        "title": "StreamingResponseBody",
+        "type": "object"
+      },
+      "TransferCollectorsRequest": {
+        "properties": {
+          "aggregatorsMap": {
+            "description": "Specifies aggregators transfer mapping",
+            "items": {
+              "$ref": "#/components/schemas/AggregatorMap"
+            },
+            "type": "array"
+          },
+          "sourceOrganization": {
+            "description": "Specifies the organization which collectors will be transferred from.",
+            "type": "string"
+          },
+          "targetOrganization": {
+            "description": "Specifies the organization which collectors will be transferred to.",
+            "type": "string"
+          },
+          "verificationCode": {
+            "description": "Specifies the verification code to validate the import step was finished successfully.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "aggregatorsMap",
+          "sourceOrganization",
+          "targetOrganization",
+          "verificationCode"
+        ],
+        "title": "TransferCollectorsRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/organizations/create-organization": {
+      "post": {
+        "deprecated": false,
+        "description": "This API creates organization in the system (only for Admin role)",
+        "operationId": "organizations_create_organization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              }
+            }
+          },
+          "description": "createAccountRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "create-organization",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
+    "/management-rest/organizations/delete-organization": {
+      "delete": {
+        "deprecated": false,
+        "description": "This API delete organization in the system (only for Admin role)",
+        "operationId": "organizations_delete_organization",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "delete-organization",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
+    "/management-rest/organizations/export-organization": {
+      "get": {
+        "deprecated": false,
+        "description": "Export organization data as zip file",
+        "operationId": "get_organizations_export_organization",
+        "parameters": [
+          {
+            "description": "The organization destination name",
+            "in": "query",
+            "name": "destinationName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Organization to export",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamingResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "export-organization",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
+    "/management-rest/organizations/import-organization": {
+      "post": {
+        "deprecated": false,
+        "description": "Import organization",
+        "operationId": "organizations_import_organization",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "description": "Export zip file",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetImportAccountResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "import-organization",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
+    "/management-rest/organizations/list-organizations": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call outputs a list of the accounts in the system.",
+        "operationId": "get_organizations_list_organizations",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AccountResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-organizations",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
+    "/management-rest/organizations/transfer-collectors": {
+      "post": {
+        "deprecated": false,
+        "description": "Transfer collectors from aggregator to aggregator as the organization migration process",
+        "operationId": "organizations_transfer_collectors",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferCollectorsRequest"
+              }
+            }
+          },
+          "description": "transferCollectorRequests",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "transfer-collectors",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
+    "/management-rest/organizations/transfer-collectors-stop": {
+      "post": {
+        "deprecated": false,
+        "description": "Transfer collector stop",
+        "operationId": "organizations_transfer_collectors_stop",
+        "parameters": [
+          {
+            "allowEmptyValue": false,
+            "description": "Specifies the organization which the migration process should stop",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "transfer-collectors-stop",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
+    "/management-rest/organizations/update-organization": {
+      "put": {
+        "deprecated": false,
+        "description": "This API update organization in the system (only for Admin role)",
+        "operationId": "organizations_update_organization",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountRequest"
+              }
+            }
+          },
+          "description": "accountRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update-organization",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Organizations API",
+      "name": "Organizations"
+    }
+  ]
+}

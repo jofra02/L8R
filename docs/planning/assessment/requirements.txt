@@ -1,0 +1,738 @@
+Quiero incorporar al proyecto una nueva funcionalidad completa de **Device Assessment**, inicialmente orientada a FortiGate.
+
+## Contexto del proyecto
+
+El proyecto actual tiene:
+
+* Un agente basado en el patrón **ReAct**.
+* Integración con distintos dispositivos mediante `mcp-gateway`.
+* Capacidad para recibir y resolver tickets de mesa de ayuda.
+* Backend, frontend y persistencia ya implementados.
+* Herramientas MCP que permiten consultar configuración y estado operativo de dispositivos.
+
+La nueva funcionalidad no debe implementarse como un script aislado. Debe tratarse como un **nuevo módulo de producto**, integrado de forma consistente con la arquitectura, autenticación, permisos, navegación, diseño visual, observabilidad y modelo de datos existentes.
+
+Antes de modificar código:
+
+1. Analizá la estructura completa del repositorio.
+2. Identificá los patrones arquitectónicos actuales.
+3. Localizá cómo se implementan:
+
+   * Los agentes.
+   * Las llamadas al `mcp-gateway`.
+   * Los devices y customers.
+   * Los jobs o ejecuciones en background.
+   * La persistencia.
+   * La API.
+   * El frontend.
+   * La autenticación y autorización.
+   * Los logs, errores y auditoría.
+4. Reutilizá los componentes y convenciones existentes.
+5. No inventes una arquitectura paralela cuando ya exista una abstracción equivalente.
+
+## Objetivo funcional
+
+Implementar un módulo que permita ejecutar assessments técnicos sobre dispositivos FortiGate.
+
+El flujo general debe ser:
+
+1. El usuario selecciona uno o varios FortiGate.
+2. Selecciona un tipo o plantilla de assessment.
+3. El sistema ejecuta una recolección determinista de datos.
+4. Los datos son obtenidos mediante `mcp-gateway`.
+5. La evidencia recolectada se normaliza y almacena.
+6. Un motor de evaluación aplica un manual de controles predefinido.
+7. Opcionalmente, un agente LLM interpreta la evidencia siguiendo instrucciones estrictas.
+8. Se generan findings, recomendaciones, scoring y un reporte.
+9. El usuario puede revisar el resultado desde el frontend.
+
+## Principio fundamental: recolección determinista
+
+La recolección no debe depender de que el LLM decida libremente qué comandos ejecutar.
+
+Cada assessment debe estar definido por una plantilla versionada que establezca previamente:
+
+* Qué información se debe recolectar.
+* Qué herramienta MCP se debe utilizar.
+* Qué parámetros debe recibir.
+* Sobre qué dispositivos aplica.
+* Qué timeout utilizar.
+* Qué resultado se considera válido.
+* Qué datos son obligatorios u opcionales.
+* Qué dependencias existen entre pasos.
+* Cómo normalizar la respuesta.
+* Qué controles utilizan cada evidencia.
+
+Ejemplo conceptual:
+
+```yaml
+assessment:
+  id: fortigate-security-baseline
+  version: 1.0.0
+  vendor: fortinet
+  product: fortigate
+
+collection_steps:
+  - id: system_status
+    tool: fortigate.get_system_status
+    required: true
+
+  - id: full_configuration
+    tool: fortigate.get_configuration
+    required: true
+
+  - id: administrators
+    tool: fortigate.get_admin_users
+    required: true
+
+  - id: interfaces_runtime
+    tool: fortigate.get_interfaces
+    required: true
+```
+
+No es necesario utilizar YAML si el proyecto ya posee otro mecanismo de definición, pero el modelo debe mantener esta separación conceptual.
+
+## Separación de responsabilidades
+
+Diseñá el módulo separando claramente:
+
+### 1. Assessment Definition
+
+Define:
+
+* Metadata.
+* Compatibilidad por vendor, producto y versión.
+* Pasos de recolección.
+* Manual de evaluación.
+* Controles.
+* Severidades.
+* Scoring.
+* Versión de la definición.
+
+### 2. Collection Engine
+
+Responsable de:
+
+* Resolver el device.
+* Ejecutar herramientas mediante `mcp-gateway`.
+* Aplicar timeout, retries y límites de concurrencia.
+* Registrar cada ejecución.
+* Preservar la respuesta original.
+* Normalizar resultados.
+* Detectar datos faltantes.
+* Evitar ejecuciones duplicadas.
+* Permitir reintentar pasos fallidos.
+* Mantener trazabilidad completa.
+
+### 3. Evidence Store
+
+Debe almacenar, como mínimo:
+
+* Assessment run.
+* Device evaluado.
+* Collection step.
+* Tool MCP utilizada.
+* Parámetros.
+* Inicio y finalización.
+* Estado.
+* Evidencia original.
+* Evidencia normalizada.
+* Error, cuando corresponda.
+* Hash o identificador de integridad.
+* Versión de la definición.
+* Timestamp de recolección.
+
+No almacenar secretos en texto plano. Aplicar redacción o sanitización cuando corresponda.
+
+### 4. Evaluation Engine
+
+Debe evaluar los controles de forma reproducible.
+
+Prioridad de evaluación:
+
+1. Reglas deterministas.
+2. Parsers o evaluadores específicos.
+3. Evaluación asistida por LLM solamente cuando el control no pueda resolverse de forma suficientemente confiable mediante reglas.
+
+Cada control debería poder producir:
+
+* `pass`
+* `fail`
+* `warning`
+* `not_applicable`
+* `not_evaluated`
+* `insufficient_evidence`
+* `error`
+
+Cada resultado debe incluir:
+
+* Identificador del control.
+* Título.
+* Descripción.
+* Estado.
+* Severidad.
+* Evidencia utilizada.
+* Explicación.
+* Recomendación.
+* Referencias.
+* Confianza.
+* Método de evaluación: `rule`, `parser`, `llm` o `hybrid`.
+
+### 5. Assessment Agent
+
+El agente no debe improvisar el alcance del assessment.
+
+Debe recibir:
+
+* Manual de evaluación.
+* Controles aplicables.
+* Evidencia previamente recolectada.
+* Contexto del dispositivo.
+* Formato de salida estructurado.
+
+El agente debe:
+
+* Evaluar solamente los controles solicitados.
+* No inventar configuraciones.
+* No asumir que una ausencia de evidencia representa incumplimiento.
+* Diferenciar entre `fail` e `insufficient_evidence`.
+* Citar exactamente la evidencia utilizada.
+* Entregar una salida validable mediante schema.
+* Evitar recomendaciones genéricas cuando exista evidencia específica.
+* No ejecutar cambios sobre el dispositivo.
+* No ejecutar herramientas adicionales, salvo que el diseño contemple explícitamente una fase controlada de recolección complementaria.
+
+La lógica principal del assessment no debe depender exclusivamente del agente.
+
+## Manual de assessment
+
+Diseñá una estructura versionada para representar el manual esperado.
+
+Cada control debería soportar campos equivalentes a:
+
+```yaml
+id: FGT-MGMT-001
+title: Restrict administrative access
+category: Management Plane
+severity: high
+
+description: >
+  Administrative access should be restricted to dedicated management
+  interfaces and trusted source networks.
+
+required_evidence:
+  - full_configuration
+  - administrators
+  - interfaces_runtime
+
+evaluation:
+  type: hybrid
+  rule: management_access_rule
+  llm_instructions: >
+    Evaluate whether administrative access is exposed through production
+    interfaces or unrestricted source networks.
+
+expected_state:
+  - Dedicated management interface when supported.
+  - Trusted hosts configured for administrative accounts.
+  - HTTPS and SSH restricted to required interfaces.
+  - Insecure management protocols disabled.
+
+references:
+  - Fortinet Security Best Practices
+  - Internal Security Baseline
+
+remediation:
+  summary: Restrict administrative access.
+```
+
+Las definiciones deben poder evolucionar sin invalidar assessments históricos.
+
+## Alcance inicial del assessment FortiGate
+
+Prepará una primera plantilla extensible que contemple categorías como:
+
+* System information y versión de FortiOS.
+* HA.
+* Administrative access.
+* Local administrators.
+* Remote authentication.
+* Trusted hosts.
+* Management interfaces.
+* Protocolos de administración.
+* Password policy.
+* Certificates.
+* DNS y NTP.
+* Logging.
+* FortiAnalyzer integration.
+* SNMP.
+* Syslog.
+* Backup configuration.
+* Security Fabric.
+* Interfaces.
+* Zones.
+* Routing.
+* SD-WAN.
+* Firewall policies.
+* NAT.
+* VIPs.
+* Central SNAT.
+* Local-in policies.
+* DoS policies.
+* IPS.
+* Antivirus.
+* Application Control.
+* Web Filter.
+* DNS Filter.
+* SSL inspection.
+* Explicit Proxy.
+* IPsec VPN.
+* SSL VPN o Agentless VPN según versión.
+* User groups.
+* FSSO.
+* SAML.
+* RADIUS y LDAP.
+* Security profiles sin uso.
+* Policies sin logging.
+* Policies amplias o potencialmente riesgosas.
+* Objects sin uso.
+* Configuraciones obsoletas.
+* Estado de interfaces.
+* Estado de HA.
+* Estado de routing.
+* Estado de VPN.
+* Estado de recursos.
+* Sesiones y métricas operativas relevantes.
+* Licencias y servicios de seguridad.
+* Compliance contra un baseline interno.
+
+No es necesario implementar todos los controles en una primera iteración, pero la arquitectura debe soportarlos.
+
+## Backend
+
+Implementá el backend del módulo siguiendo los patrones actuales.
+
+Debería contemplar entidades equivalentes a:
+
+* `AssessmentDefinition`
+* `AssessmentDefinitionVersion`
+* `AssessmentControl`
+* `AssessmentRun`
+* `AssessmentTarget`
+* `CollectionStep`
+* `CollectionExecution`
+* `Evidence`
+* `ControlEvaluation`
+* `Finding`
+* `AssessmentReport`
+
+Ajustá estos nombres al dominio actual del proyecto.
+
+El backend debe soportar:
+
+* Crear un assessment run.
+* Seleccionar customer y devices.
+* Seleccionar una versión de assessment.
+* Iniciar ejecución.
+* Consultar progreso.
+* Consultar pasos individuales.
+* Reintentar pasos fallidos.
+* Cancelar una ejecución.
+* Reprocesar la evaluación usando evidencia existente.
+* Consultar findings.
+* Filtrar por severidad, categoría, estado y device.
+* Obtener resumen y scoring.
+* Comparar ejecuciones históricas.
+* Exportar resultados.
+* Mantener auditoría.
+
+Utilizá procesamiento asíncrono si la arquitectura actual ya posee workers o job queues. No mantengas requests HTTP abiertos durante ejecuciones largas.
+
+Considerá:
+
+* Idempotencia.
+* Retry con backoff.
+* Timeout por tool.
+* Concurrency por device.
+* Concurrency global.
+* Rate limiting.
+* Cancelación.
+* Recuperación ante reinicio.
+* Estados transaccionales.
+* Ejecuciones parciales.
+* Observabilidad.
+* Métricas.
+* Structured logging.
+
+Definí una state machine clara, por ejemplo:
+
+```text
+draft
+queued
+collecting
+evaluating
+completed
+completed_with_errors
+failed
+cancelled
+```
+
+## Integración con mcp-gateway
+
+Reutilizá el cliente o abstracción existente.
+
+No dupliques lógica de conexión.
+
+La integración debe:
+
+* Resolver dinámicamente las tools disponibles.
+* Validar que la tool requerida por la definición exista.
+* Validar inputs contra el schema de la tool.
+* Registrar tool, inputs, outputs y duración.
+* Manejar errores del gateway.
+* Distinguir errores de conexión, timeout, autorización, schema y device.
+* Permitir agregar otros vendors en el futuro.
+* Mantener desacopladas las definiciones de assessment respecto del transporte MCP.
+
+Definí una interfaz interna similar a:
+
+```python
+class DeviceCollector:
+    async def collect(
+        self,
+        target: DeviceTarget,
+        step: CollectionStepDefinition
+    ) -> CollectionResult:
+        ...
+```
+
+No copies este código literalmente si el stack o las convenciones del proyecto son diferentes.
+
+## Frontend y UI/UX
+
+El módulo debe sentirse integrado al producto actual.
+
+Agregá una sección principal de navegación como:
+
+```text
+Assessments
+```
+
+Flujo esperado:
+
+### Vista de listado
+
+Mostrar:
+
+* Nombre.
+* Tipo de assessment.
+* Customer.
+* Devices.
+* Estado.
+* Progreso.
+* Score.
+* Findings críticos.
+* Fecha.
+* Usuario que lo inició.
+
+Permitir:
+
+* Buscar.
+* Filtrar.
+* Ordenar.
+* Reanudar navegación hacia una ejecución.
+* Crear assessment.
+* Duplicar una ejecución previa.
+* Comparar resultados.
+
+### Wizard de creación
+
+Pasos sugeridos:
+
+1. Selección de customer.
+2. Selección de devices.
+3. Selección de plantilla y versión.
+4. Revisión del alcance.
+5. Parámetros opcionales.
+6. Confirmación.
+
+Antes de ejecutar, mostrar claramente:
+
+* Cantidad de devices.
+* Cantidad de pasos de recolección.
+* Categorías evaluadas.
+* Tiempo estimado solamente si existe una base real para calcularlo.
+* Advertencias de compatibilidad.
+* Datos que no podrán evaluarse.
+
+### Vista de ejecución
+
+Mostrar progreso en tiempo real:
+
+* Estado general.
+* Progreso por device.
+* Progreso de collection.
+* Progreso de evaluation.
+* Step actual.
+* Errores.
+* Reintentos.
+* Duración.
+
+No mostrar únicamente un spinner durante varios minutos.
+
+### Vista de resultados
+
+Incluir:
+
+* Executive summary.
+* Score general.
+* Score por categoría.
+* Findings por severidad.
+* Estado de cada control.
+* Devices afectados.
+* Evidencia.
+* Recomendación.
+* Referencias.
+* Método de evaluación.
+* Confianza.
+* Fecha y versión del assessment.
+
+Permitir:
+
+* Expandir evidencia.
+* Ver output original y normalizado.
+* Filtrar findings.
+* Marcar finding como accepted risk.
+* Agregar comentarios.
+* Asignar owner.
+* Cambiar estado de remediation.
+* Exportar.
+* Comparar contra un assessment anterior.
+
+### Diseño
+
+* Reutilizá el design system existente.
+* Reutilizá componentes, tablas, cards, badges, drawers y modals existentes.
+* Mantené consistencia de colores y severidades.
+* Evitá pantallas excesivamente densas.
+* Priorizá progressive disclosure.
+* Los errores deben ser accionables.
+* Las operaciones destructivas deben requerir confirmación.
+* La UI debe ser responsive.
+* Incorporá estados vacíos, loading, error y partial success.
+* Cumplí criterios básicos de accesibilidad.
+
+## Scoring
+
+Diseñá un scoring explícito y versionado.
+
+No mezcles controles no evaluados con controles fallidos.
+
+Ejemplo conceptual:
+
+```text
+score = weighted_passed_controls / weighted_evaluated_controls
+```
+
+Debe contemplar:
+
+* Peso por severidad.
+* Controles no aplicables.
+* Evidencia insuficiente.
+* Errores de recolección.
+* Categorías sin datos.
+* Score general y por categoría.
+
+Mostrá claramente cuando un score posee cobertura incompleta.
+
+## Reporting
+
+Prepará una capa de reporting que permita generar:
+
+* Resumen ejecutivo.
+* Resumen técnico.
+* Inventario de devices.
+* Cobertura de recolección.
+* Findings.
+* Recomendaciones.
+* Evidencia.
+* Limitaciones.
+* Metodología.
+* Versión del assessment.
+* Fecha de recolección.
+* Comparación histórica.
+
+Separá el modelo de reporte de la vista HTML para permitir futuras exportaciones a PDF, DOCX o JSON.
+
+## Seguridad
+
+El módulo será utilizado sobre infraestructura real.
+
+Aplicá:
+
+* RBAC por customer y device.
+* Separación de tenants.
+* Sanitización de evidencia.
+* Protección de secretos.
+* Límites de tamaño para outputs.
+* Validación de inputs.
+* Protección contra prompt injection proveniente de configuraciones o banners del dispositivo.
+* Registro de auditoría.
+* Prohibición de cambios sobre el device dentro del assessment.
+* Allowlist de tools MCP de solo lectura.
+* Restricción explícita de herramientas mutativas.
+* Cifrado o protección adecuada de evidencia sensible.
+
+El contenido obtenido del dispositivo debe tratarse como **untrusted input**. Nunca debe poder modificar las instrucciones del agente.
+
+## Extensibilidad
+
+Aunque el primer caso sea FortiGate, el diseño debe permitir agregar posteriormente:
+
+* FortiAnalyzer.
+* FortiManager.
+* FortiWeb.
+* FortiSwitch.
+* Otros vendors.
+
+Separá:
+
+* Core del assessment.
+* Adaptadores por vendor.
+* Definiciones.
+* Parsers.
+* Evaluadores.
+* Integración MCP.
+* Reporting.
+* UI.
+
+## Tests
+
+Agregá tests acordes al stack existente.
+
+Como mínimo:
+
+* Unit tests del collection engine.
+* Unit tests del evaluation engine.
+* Tests de scoring.
+* Tests de state transitions.
+* Tests de retry e idempotencia.
+* Tests de parsers.
+* Tests de autorización.
+* Integration tests con un MCP mock.
+* Tests de API.
+* Tests de componentes frontend críticos.
+* Un flujo end-to-end básico.
+
+Utilizá fixtures con respuestas FortiGate sanitizadas.
+
+## Migraciones y compatibilidad
+
+* Creá las migraciones necesarias.
+* No rompas las funcionalidades actuales.
+* Preservá el flujo de tickets existente.
+* Mantené compatibilidad con los devices ya registrados.
+* No modifiques contratos existentes sin justificarlo.
+* Documentá cualquier cambio incompatible.
+* Incorporá feature flags si fueran útiles para desplegar gradualmente.
+
+## Entregables
+
+Quiero que trabajes en este orden:
+
+### Fase 1: análisis
+
+Entregá:
+
+1. Resumen de la arquitectura actual.
+2. Componentes existentes que se reutilizarán.
+3. Riesgos detectados.
+4. Propuesta de arquitectura.
+5. Modelo de datos.
+6. Flujo backend.
+7. Flujo frontend.
+8. Plan de implementación por etapas.
+9. Archivos que se crearán o modificarán.
+
+No implementes todavía hasta haber presentado este análisis, salvo que estés trabajando en un modo donde se haya solicitado explícitamente ejecución autónoma completa.
+
+### Fase 2: implementación del MVP
+
+El MVP debe incluir:
+
+* Un assessment FortiGate.
+* Una definición versionada.
+* Entre 5 y 10 controles representativos.
+* Recolección determinista mediante MCP.
+* Persistencia de evidencia.
+* Evaluación determinista y, al menos, un ejemplo de evaluación híbrida.
+* API.
+* Job de ejecución.
+* Vista de listado.
+* Wizard de creación.
+* Vista de progreso.
+* Vista de resultados.
+* Tests principales.
+* Documentación.
+
+Controles iniciales sugeridos:
+
+* FortiOS version y soporte.
+* Administrative interfaces.
+* Trusted hosts.
+* Remote authentication.
+* Logging hacia FortiAnalyzer o syslog.
+* NTP.
+* Firewall policies sin logging.
+* Firewall policies excesivamente amplias.
+* Security profiles.
+* HA status.
+
+### Fase 3: endurecimiento
+
+Incluir:
+
+* Retries.
+* Cancelación.
+* Reanudación.
+* Comparación histórica.
+* Exportación.
+* Mejoras de seguridad.
+* Observabilidad.
+* Optimización de performance.
+* Manejo de assessments parciales.
+
+## Restricciones de implementación
+
+* No construyas un prototipo descartable.
+* No coloques toda la lógica en un único service.
+* No hagas que el LLM sea responsable de orquestar libremente la recolección.
+* No dependas de texto libre cuando pueda utilizarse un schema.
+* No mezcles evidencias de diferentes ejecuciones.
+* No sobrescribas versiones históricas de las definiciones.
+* No marques como incumplimiento aquello que no pudo evaluarse.
+* No ejecutes comandos mutativos.
+* No implementes componentes visuales desconectados del design system actual.
+* No dupliques abstracciones existentes.
+
+## Criterios de aceptación
+
+La implementación se considerará correcta cuando:
+
+1. Un usuario pueda crear un assessment desde la UI.
+2. Pueda seleccionar un FortiGate existente.
+3. El backend cree una ejecución persistente.
+4. La recolección use pasos predefinidos.
+5. Las tools sean ejecutadas mediante `mcp-gateway`.
+6. Cada ejecución genere evidencia auditable.
+7. Los controles se evalúen usando una versión específica del manual.
+8. Los resultados distingan `fail`, `not_evaluated` e `insufficient_evidence`.
+9. La UI muestre progreso real.
+10. Los findings incluyan evidencia y recomendaciones.
+11. Los assessments históricos puedan consultarse.
+12. El módulo respete permisos y tenants.
+13. El flujo existente de tickets siga funcionando.
+14. Los tests principales pasen.
+15. La arquitectura permita incorporar nuevos dispositivos y vendors.
+
+Cuando encuentres ambigüedades, tomá como referencia los patrones existentes en el repositorio y documentá el supuesto adoptado. No simplifiques silenciosamente requisitos importantes.

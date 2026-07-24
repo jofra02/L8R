@@ -24,6 +24,46 @@ from src.core.topology_utils import seed_topology_from_context
 
 logger = logging.getLogger(__name__)
 
+# Enum values shown per parameter in catalog results. Enums are what save the
+# agent blind-guess round-trips (each failed call costs a full tool cycle), but
+# unbounded lists would bloat the context — cap and elide with a count.
+_ENUM_DISPLAY_CAP = 12
+
+
+def _render_param_lines(schema: Dict[str, Any]) -> List[str]:
+    """Render a tool's args schema as one compact line per parameter.
+
+    Surfaces the constraints the agent needs to build a valid call on the
+    first attempt — type, format, enum values, required flag — alongside the
+    parameter description. Schemas indexed before raw-inputSchema capture have
+    typeless properties; those degrade gracefully to name + description.
+    """
+    props = (schema or {}).get("properties", {})
+    required = set((schema or {}).get("required") or [])
+    if not props:
+        return []
+    lines = ["Parameters:"]
+    for pname, pinfo in props.items():
+        bits = []
+        ptype = pinfo.get("type", "")
+        if ptype == "array":
+            item_type = (pinfo.get("items") or {}).get("type")
+            ptype = f"array of {item_type}" if item_type else "array"
+        fmt = pinfo.get("format")
+        if ptype:
+            bits.append(f"{ptype} ({fmt})" if fmt else ptype)
+        enum = pinfo.get("enum")
+        if enum:
+            shown = "|".join(str(v) for v in enum[:_ENUM_DISPLAY_CAP])
+            if len(enum) > _ENUM_DISPLAY_CAP:
+                shown += f"|... +{len(enum) - _ENUM_DISPLAY_CAP} more"
+            bits.append(f"one of: {shown}")
+        req_tag = " (REQUIRED)" if pname in required else ""
+        type_note = f" [{', '.join(bits)}]" if bits else ""
+        pdesc = pinfo.get("description", pinfo.get("title", pname))
+        lines.append(f"  - {pname}{req_tag}{type_note}: {pdesc}")
+    return lines
+
 
 async def _audit_tool_call(
     run_id: str, customer_id: str, tool_name: str, args: Dict[str, Any],
@@ -110,6 +150,51 @@ DOMAIN_SKILL_MAP = {
     "webfilter": "fortigate_logs.md",
     "fortianalyzer": "fortigate_logs.md",
     "forticloud": "fortigate_logs.md",
+    # Control-point flow verification (FortiGate appliance pack)
+    "firewall": "flow_verification.md",
+    "policy": "flow_verification.md",
+    "policies": "flow_verification.md",
+    "nat": "flow_verification.md",
+    "block": "flow_verification.md",
+    "blocked": "flow_verification.md",
+    "blocking": "flow_verification.md",
+    "connectivity": "flow_verification.md",
+    "traffic": "flow_verification.md",
+    "flow": "flow_verification.md",
+    "flows": "flow_verification.md",
+    "flow_verification": "flow_verification.md",
+    "utm": "flow_verification.md",
+    "inspection": "flow_verification.md",
+    "app_control": "flow_verification.md",
+    "application_control": "flow_verification.md",
+    "vpn": "flow_verification.md",
+    "tailscale": "flow_verification.md",
+    "wireguard": "flow_verification.md",
+    "zerotier": "flow_verification.md",
+    # Endpoint security (FortiEDR appliance pack)
+    "fortiedr": "fortiedr.md",
+    "edr": "fortiedr.md",
+    "xdr": "fortiedr.md",
+    "endpoint": "fortiedr.md",
+    "endpoints": "fortiedr.md",
+    "endpoint_security": "fortiedr.md",
+    "endpoint_protection": "fortiedr.md",
+    "security_event": "fortiedr.md",
+    "security_events": "fortiedr.md",
+    "detection": "fortiedr.md",
+    "detections": "fortiedr.md",
+    "malware": "fortiedr.md",
+    "ransomware": "fortiedr.md",
+    "virus": "fortiedr.md",
+    "antivirus": "fortiedr.md",
+    "infection": "fortiedr.md",
+    "infected": "fortiedr.md",
+    "collector": "fortiedr.md",
+    "collectors": "fortiedr.md",
+    "threat": "fortiedr.md",
+    "threats": "fortiedr.md",
+    "threat_hunting": "fortiedr.md",
+    "quarantine": "fortiedr.md",
     # Investigation strategy
     "lateral": "lateral_thinking.md",
     "lateral_thinking": "lateral_thinking.md",
@@ -160,21 +245,15 @@ def create_engineer_tools(
     """
     state = EngineerToolState()
 
-    # ------------------------------------------------------------------
-    # Tool 1: query_client_db
-    # ------------------------------------------------------------------
-    @tool
-    async def query_client_db(query: str) -> str:
-        """Query the client database to understand the tenant's environment.
+    async def _ensure_client_context() -> ClientContext:
+        """Load the tenant context into state if not already loaded.
 
-        Returns the full client context: inventory (devices/components),
-        dependencies (topology), baselines, and known recent changes.
-        Call this FIRST before any diagnostic tool execution.
-
-        Args:
-            query: Description of what you want to know about the client
-                   (e.g. "what devices does this tenant have").
+        search_tool_catalog may run before query_client_db; pack scoping needs
+        the inventory either way.
         """
+        if state.client_context is not None:
+            return state.client_context
+
         from src.core.context_store import ContextStore
         from src.core.database import async_session_factory
 
@@ -192,6 +271,24 @@ def create_engineer_tools(
             )
 
         state.client_context = context
+        return context
+
+    # ------------------------------------------------------------------
+    # Tool 1: query_client_db
+    # ------------------------------------------------------------------
+    @tool
+    async def query_client_db(query: str) -> str:
+        """Query the client database to understand the tenant's environment.
+
+        Returns the full client context: inventory (devices/components),
+        dependencies (topology), baselines, and known recent changes.
+        Call this FIRST before any diagnostic tool execution.
+
+        Args:
+            query: Description of what you want to know about the client
+                   (e.g. "what devices does this tenant have").
+        """
+        context = await _ensure_client_context()
 
         # Seed topology from inventory
         nodes, edges = seed_topology_from_context(context)
@@ -290,19 +387,38 @@ def create_engineer_tools(
                    (e.g. "list firewall interfaces", "check OSPF neighbors",
                    "get system status overview").
         """
+        from src.core.pack_matching import derive_allowed_pack_keys
         from src.core.qdrant import vector_store
+        from src.core.registry import CapabilityRegistry
+
+        # Version-aware scoping: only surface appliance-pack tools matching the
+        # tenant's managed devices (vendor/product + firmware version). Tools
+        # without pack identity (generic) always pass; None -> unscoped.
+        context = await _ensure_client_context()
+        allowed_pack_keys = derive_allowed_pack_keys(
+            context.inventory, CapabilityRegistry.get_gateway_packs()
+        )
+        if allowed_pack_keys:
+            logger.info(
+                f"Engineer: tool catalog search scoped to packs {allowed_pack_keys}"
+            )
 
         results = await vector_store.search_tool_catalog(
             intent=query,
             customer_id=customer_id,
             limit=10,
             read_only=True,
+            allowed_pack_keys=allowed_pack_keys,
         )
 
         if not results:
             return "No matching tools found. Try a different search query."
 
         parts = [f"# Tool Catalog Results ({len(results)} matches)\n"]
+        if allowed_pack_keys:
+            parts.insert(
+                0, f"Scoped to appliance packs: {', '.join(allowed_pack_keys)}\n"
+            )
         for r in results:
             tool_name = r.get("tool_name", "unknown")
             desc = r.get("description", "No description")
@@ -317,14 +433,7 @@ def create_engineer_tools(
                 parts.append(f"Categories: {', '.join(categories)}")
             parts.append(f"Description: {desc}")
 
-            props = schema.get("properties", {})
-            required = schema.get("required", [])
-            if props:
-                parts.append("Parameters:")
-                for pname, pinfo in props.items():
-                    req_tag = " (REQUIRED)" if pname in required else ""
-                    pdesc = pinfo.get("description", pinfo.get("title", pname))
-                    parts.append(f"  - {pname}{req_tag}: {pdesc}")
+            parts.extend(_render_param_lines(schema))
             parts.append("")
 
         return "\n".join(parts)
@@ -382,8 +491,7 @@ def create_engineer_tools(
                          Include every required parameter shown in the catalog.
                          Example: '{"device": "fgt_casa", "vdom": "root"}'
         """
-        from src.core.registry import CapabilityRegistry
-        from src.core.safety import is_safe_tool, is_tool_allowed_for_tenant
+        from src.core.mcp_executor import execute_mcp_tool
         from src.core.evidence_store import EvidenceStore
 
         # Guardrail: max tool calls
@@ -399,20 +507,7 @@ def create_engineer_tools(
         if not isinstance(parsed_args, dict):
             return f"ERROR: tool_params must be a JSON object, got {type(parsed_args).__name__}"
 
-        # Safety check
-        if not is_safe_tool(tool_name, parsed_args):
-            return f"ERROR: Tool '{tool_name}' blocked by safety policy. This tool or its arguments contain blocked keywords."
-
-        # Tenant governance
-        if not await is_tool_allowed_for_tenant(tool_name, customer_id):
-            return f"ERROR: Tool '{tool_name}' is not allowed for this tenant."
-
-        # Resolve tool from registry
-        tool_obj = CapabilityRegistry.get_tool(tool_name)
-        if not tool_obj:
-            return f"ERROR: Tool '{tool_name}' not found in registry. Search the tool catalog to find available tools."
-
-        # Dedup check
+        # Dedup check — signature over the LLM's own arguments (pre-injection)
         sig_input = f"{tool_name}::{json.dumps(parsed_args, sort_keys=True)}"
         sig_hash = hashlib.sha256(sig_input.encode()).hexdigest()[:16]
         signature = f"{tool_name}::{sig_hash}"
@@ -420,26 +515,29 @@ def create_engineer_tools(
         if signature in state.executed_signatures:
             return f"SKIPPED: Tool '{tool_name}' with these exact arguments was already executed. Use different arguments or a different tool."
 
-        # Tenant routing: framework-inject the tenant selector so the gateway
-        # routes against this tenant's inventory. Never LLM-supplied (overrides
-        # any value the model produced); mirrors how 'device' travels as a
-        # gateway routing header, but authoritative from the run context. Set
-        # after the dedup signature so it stays about the LLM's own arguments.
+        # Shared guardrail pipeline: safety filter -> tenant governance ->
+        # registry resolution -> framework-side tenant injection -> execution.
         llm_args = dict(parsed_args)  # what the LLM asked for, pre-injection
-        parsed_args["tenant"] = customer_id
-
-        # Direct execution — agent handles errors via its own reasoning
         started_at = datetime.utcnow()
-        try:
-            result = await tool_obj.run(**parsed_args)
-        except Exception as e:
+        exec_result = await execute_mcp_tool(tool_name, parsed_args, customer_id)
+
+        if not exec_result.ok:
+            if exec_result.error_type == "safety":
+                return f"ERROR: Tool '{tool_name}' blocked by safety policy. This tool or its arguments contain blocked keywords."
+            if exec_result.preflight_failure and exec_result.error_type == "authorization":
+                return f"ERROR: Tool '{tool_name}' is not allowed for this tenant."
+            if exec_result.error_type == "not_found":
+                return f"ERROR: Tool '{tool_name}' not found in registry. Search the tool catalog to find available tools."
+            # Execution failure — agent handles errors via its own reasoning
             state.tool_call_count += 1
             await _audit_tool_call(
                 run_id, customer_id, tool_name, llm_args,
-                status="error", error=str(e), started_at=started_at,
+                status="error", error=exec_result.error, started_at=started_at,
             )
-            return f"ERROR executing {tool_name}: {e}"
+            return f"ERROR executing {tool_name}: {exec_result.error}"
 
+        result = exec_result.content
+        parsed_args = exec_result.final_args  # args as dispatched (tenant injected)
         state.tool_call_count += 1
         state.executed_signatures.append(signature)
 

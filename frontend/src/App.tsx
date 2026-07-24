@@ -11,6 +11,9 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { TicketListPage } from "@/pages/tickets/TicketListPage";
 import { TicketDetailPage } from "@/pages/tickets/TicketDetailPage";
 import { RunListPage } from "@/pages/runs/RunListPage";
+import { AssessmentListPage } from "@/pages/assessments/AssessmentListPage";
+import { AssessmentCreatePage } from "@/pages/assessments/AssessmentCreatePage";
+import { AssessmentDetailPage } from "@/pages/assessments/AssessmentDetailPage";
 import { RunDetailPage } from "@/pages/runs/RunDetailPage";
 import { RunStatsPage } from "@/pages/runs/RunStatsPage";
 import { AuditLogsPage } from "@/pages/audit/AuditLogsPage";
@@ -63,6 +66,9 @@ export default function App() {
               <Route path="runs" element={<ProtectedRoute permission="runs:read"><RunListPage /></ProtectedRoute>} />
               <Route path="runs/stats" element={<ProtectedRoute permission="runs:read"><RunStatsPage /></ProtectedRoute>} />
               <Route path="runs/:id" element={<ProtectedRoute permission="runs:read"><RunDetailPage /></ProtectedRoute>} />
+              <Route path="assessments" element={<ProtectedRoute permission="assessments:read"><AssessmentListPage /></ProtectedRoute>} />
+              <Route path="assessments/new" element={<ProtectedRoute permission="assessments:write"><AssessmentCreatePage /></ProtectedRoute>} />
+              <Route path="assessments/:id" element={<ProtectedRoute permission="assessments:read"><AssessmentDetailPage /></ProtectedRoute>} />
               <Route path="audit/logs" element={<ProtectedRoute permission="audit:read"><AuditLogsPage /></ProtectedRoute>} />
               <Route path="audit/tool-calls" element={<ProtectedRoute permission="audit:read"><ToolCallsPage /></ProtectedRoute>} />
               <Route path="inventory" element={<ProtectedRoute permission="inventory:read"><InventoryPage /></ProtectedRoute>} />

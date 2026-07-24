@@ -14,8 +14,8 @@ def is_safe_tool(tool_name: str, tool_args: Dict[str, Any]) -> bool:
     """
     blocked = settings.SAFETY_BLOCKED_KEYWORDS
 
-    # Check Name
-    for kw in blocked:
+    # Check Name (name-only keywords included — see SAFETY_BLOCKED_NAME_KEYWORDS)
+    for kw in blocked + settings.SAFETY_BLOCKED_NAME_KEYWORDS:
         if kw in tool_name.lower():
             logger.warning(f"Safety Block: Tool '{tool_name}' blocked by keyword '{kw}'")
             return False

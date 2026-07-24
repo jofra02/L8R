@@ -1,0 +1,288 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Hash Search",
+      "description": "The Hash Search API"
+    }
+  ],
+  "paths": {
+    "/management-rest/hash/search": {
+      "get": {
+        "tags": [
+          "Hash Search"
+        ],
+        "summary": "search",
+        "description": "This API enables the user to search a file hash among the current events, threat hunting repository and communicating applications that exist in the system",
+        "operationId": "search_1",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "fileHashes",
+            "in": "query",
+            "description": "Specifies the list of files hashes",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/SearchHashResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "GetApplicationsResponse": {
+      "type": "object",
+      "properties": {
+        "collectors": {
+          "type": "array",
+          "description": "Specifies the list of collectors that reported the product, in JSON format. Each collector holds the following parameters: \n• device: Specifies the device name. \n• ip: Specifies the device IP address. \n• os: Specifies the device operating system. \n• lastSeen: Specifies the date when the collector was last seen.",
+          "items": {
+            "$ref": "#/definitions/MapOfstringAndobject"
+          }
+        },
+        "collectorsGroup": {
+          "type": "object",
+          "description": "Specifies the name of the collector group to which the collector belongs.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "cves": {
+          "type": "array",
+          "description": "Specifies the CVE's",
+          "items": {
+            "$ref": "#/definitions/GetCveData"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Specifies the list communication control policies and their decisions for this specific product.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "decisionv2": {
+          "type": "array",
+          "description": "Specifies the list communication control policies and their decisions and mode for this specific product.",
+          "items": {
+            "$ref": "#/definitions/GetDecisionResponse"
+          }
+        },
+        "firstConnectionTime": {
+          "type": "string",
+          "description": "Specifies the date when the product was first seen communicating. Date Format: yyyy-MM-dd HH:mm:ss."
+        },
+        "handled": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether events were handled/unhandled."
+        },
+        "lastConnectionTime": {
+          "type": "string",
+          "description": "Specifies the date when the product was last seen communicating. Date Format: yyyy-MM-dd HH:mm:ss."
+        },
+        "organization": {
+          "type": "string",
+          "description": "The organization of the application"
+        },
+        "processes": {
+          "type": "array",
+          "description": "Specifies the list of process names running alongside the products.",
+          "items": {
+            "$ref": "#/definitions/Map"
+          }
+        },
+        "product": {
+          "type": "string",
+          "description": "Specifies the name of the product."
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Specifies the recommendation of the application: Unknown, Known bad, Assumed bad, Contradiction, Assumed good or Known good."
+        },
+        "seen": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether events were read/unread by the user operating the API."
+        },
+        "severity": {
+          "type": "string",
+          "description": "Specifies severity of product [UNKNOWN, LOW, MEDIUM, HIGH, CRITICAL]"
+        },
+        "statistics": {
+          "type": "array",
+          "description": "Specifies the statistics",
+          "items": {
+            "type": "string"
+          }
+        },
+        "vendor": {
+          "type": "string",
+          "description": "Specifies the name of the vendor."
+        },
+        "version": {
+          "type": "string",
+          "description": "Specifies the name of the version."
+        }
+      },
+      "title": "GetApplicationsResponse"
+    },
+    "GetCveData": {
+      "type": "object",
+      "properties": {
+        "aggregatedImpactScore": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the Aggregated Impact Score of CVE "
+        },
+        "cveIdentifier": {
+          "type": "string",
+          "description": "Specifies the CVE Identifier"
+        },
+        "description": {
+          "type": "string",
+          "description": "Specifies the CVE description"
+        },
+        "impact": {
+          "type": "string",
+          "description": "Specifies the Impact of CVE "
+        },
+        "lastEcsUpdated": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the CVE last modification time"
+        },
+        "lastModified": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the CVE modification time"
+        },
+        "published": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the CVE publish date"
+        }
+      },
+      "title": "GetCveData",
+      "description": "Specifies the CVEs for communication control"
+    },
+    "GetDecisionResponse": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "type": "string",
+          "description": "Indicates the action"
+        },
+        "policyMode": {
+          "type": "string",
+          "description": "Specifies policy mode"
+        },
+        "policyName": {
+          "type": "string",
+          "description": "Specifies policy name"
+        }
+      },
+      "title": "GetDecisionResponse",
+      "description": "Specifies the policy of communication control"
+    },
+    "Map": {
+      "type": "object",
+      "title": "Map",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "MapOfstringAndobject": {
+      "type": "object",
+      "title": "MapOfstringAndobject",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "SearchHashResponse": {
+      "type": "object",
+      "properties": {
+        "applications": {
+          "type": "array",
+          "description": "List of application",
+          "items": {
+            "$ref": "#/definitions/GetApplicationsResponse"
+          }
+        },
+        "eventIds": {
+          "type": "array",
+          "description": "Events ids",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "threatsHunting": {
+          "type": "array",
+          "description": "List of 'Threat Hunting'",
+          "items": {
+            "$ref": "#/definitions/ThreatHuntingResponse"
+          }
+        }
+      },
+      "title": "SearchHashResponse"
+    },
+    "ThreatHuntingResponse": {
+      "type": "object",
+      "properties": {
+        "deviceName": {
+          "type": "string",
+          "description": "Device name"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "File name"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path"
+        }
+      },
+      "title": "ThreatHuntingResponse"
+    }
+  }
+}

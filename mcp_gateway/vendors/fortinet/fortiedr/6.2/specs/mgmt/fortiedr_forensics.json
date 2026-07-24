@@ -1,0 +1,395 @@
+{
+  "components": {
+    "schemas": {
+      "InputStream": {
+        "title": "InputStream",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/forensics/get-event-file": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call retrieves a file or memory",
+        "operationId": "forensics_get_event_file",
+        "parameters": [
+          {
+            "description": "A true/false parameter indicating whether find in the disk",
+            "in": "query",
+            "name": "disk",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the memory end range, in Hexadecimal format",
+            "in": "query",
+            "name": "endRange",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of file paths",
+            "explode": true,
+            "in": "query",
+            "name": "filePaths",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "A true/false parameter indicating whether find in the memory",
+            "in": "query",
+            "name": "memory",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the ID of the process from which to take a memory image. required for memory base action",
+            "in": "query",
+            "name": "processId",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the ID of the raw event on which to perform the memory retrieval",
+            "in": "query",
+            "name": "rawEventId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the memory start range, in Hexadecimal format",
+            "in": "query",
+            "name": "startRange",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputStream"
+                }
+              }
+            },
+            "description": "This operation results in a file stream (binary data), which is a .zip file"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-event-file",
+        "tags": [
+          "Forensics"
+        ]
+      }
+    },
+    "/management-rest/forensics/get-file": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call retrieves a file or memory",
+        "operationId": "forensics_get_file",
+        "parameters": [
+          {
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
+            "in": "query",
+            "name": "device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the list of file paths",
+            "explode": true,
+            "in": "query",
+            "name": "filePaths",
+            "required": true,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the device parameter type used in the request : Name or ID",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "ID",
+                "NAME"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputStream"
+                }
+              }
+            },
+            "description": "This operation results in a file stream (binary data), which is a .zip file"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-file",
+        "tags": [
+          "Forensics"
+        ]
+      }
+    },
+    "/management-rest/forensics/remediate-device": {
+      "put": {
+        "deprecated": false,
+        "description": "This API kill process / delete file / clean persistence, File and persistence paths must be specified in a logical format",
+        "operationId": "forensics_remediate_device",
+        "parameters": [
+          {
+            "description": "FortiEDR entity name to filter by (collector/endpoint hostname; core or aggregator name on log endpoints). NOT the platform routing device — console routing is automatic. OMIT this unless filtering to one entity whose exact name was verified via the collector/inventory list; any other value silently matches nothing (HTTP 200, zero results).",
+            "in": "query",
+            "name": "device",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the unique identifier (ID) of the device to remediate. You must specify a value for either deviceId or device (see above)",
+            "in": "query",
+            "name": "deviceId",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the list of full paths of executable files (*.exe) to delete on the\ngiven device",
+            "explode": true,
+            "in": "query",
+            "name": "executablesToRemove",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "persistence data desired action",
+            "in": "query",
+            "name": "persistenceDataAction",
+            "required": false,
+            "schema": {
+              "enum": [
+                "DeleteKey",
+                "DeleteValue",
+                "Update"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "persistence data new content",
+            "in": "query",
+            "name": "persistenceDataNewContent",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "persistence data path",
+            "in": "query",
+            "name": "persistenceDataPath",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "persistence data value name",
+            "in": "query",
+            "name": "persistenceDataValueName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "persistence data value new type",
+            "in": "query",
+            "name": "persistenceDataValueNewType",
+            "required": false,
+            "schema": {
+              "enum": [
+                "REG_SZ",
+                "REG_EXPAND_SZ",
+                "REG_BINARY",
+                "REG_DWORD",
+                "REG_DWORD_BIG_ENDIAN",
+                "REG_LINK",
+                "REG_MULTI_SZ",
+                "REG_RESOURCE_LIST",
+                "REG_FULL_RESOURCE_DESCRIPTOR",
+                "REG_RESOURCE_REQUIREMENTS_LIST",
+                "REG_QWORD"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the process name",
+            "in": "query",
+            "name": "processName",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Represents the process ID to terminate on the device",
+            "in": "query",
+            "name": "terminatedProcessId",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Specifies the thread ID",
+            "in": "query",
+            "name": "threadId",
+            "required": false,
+            "schema": {
+              "exclusiveMinimum": false,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "remediate-device",
+        "tags": [
+          "Forensics"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "The Forensics module facilitates deep analysis into the actual internals of the communicating devices operating system that led up to an event.",
+      "name": "Forensics"
+    }
+  ]
+}

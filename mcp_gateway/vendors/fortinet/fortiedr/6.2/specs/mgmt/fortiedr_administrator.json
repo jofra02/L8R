@@ -1,0 +1,912 @@
+{
+  "components": {
+    "schemas": {
+      "ArchivedPasswordResponse": {
+        "properties": {
+          "password": {
+            "description": "password",
+            "type": "string"
+          },
+          "passwordId": {
+            "description": "password id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "registrationDate": {
+            "description": "password registration date",
+            "type": "string"
+          }
+        },
+        "title": "ArchivedPasswordResponse",
+        "type": "object"
+      },
+      "CollectorInstallerRequest": {
+        "properties": {
+          "allowDowngrade": {
+            "description": "allowDowngrade",
+            "type": "boolean"
+          },
+          "osFamily": {
+            "description": "OS",
+            "enum": [
+              "Windows",
+              "OSX",
+              "Linux"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "description": "version. Use 'None' to select the default option.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "allowDowngrade",
+          "osFamily",
+          "version"
+        ],
+        "title": "CollectorInstallerRequest",
+        "type": "object"
+      },
+      "CollectorInstallerResponse": {
+        "properties": {
+          "osFamily": {
+            "description": "OS",
+            "type": "string"
+          },
+          "version": {
+            "description": "version",
+            "type": "string"
+          }
+        },
+        "title": "CollectorInstallerResponse",
+        "type": "object"
+      },
+      "CreateRegistrationPasswordRequest": {
+        "properties": {
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          },
+          "password": {
+            "description": "New Registration Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "CreateRegistrationPasswordRequest",
+        "type": "object"
+      },
+      "ExactOrganizationNameRequest": {
+        "properties": {
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "title": "ExactOrganizationNameRequest",
+        "type": "object"
+      },
+      "GetCollectorInstallersResponse": {
+        "properties": {
+          "availableCollectorInstallers": {
+            "description": "available collector installers",
+            "items": {
+              "$ref": "#/components/schemas/CollectorInstallerResponse"
+            },
+            "type": "array"
+          }
+        },
+        "title": "GetCollectorInstallersResponse",
+        "type": "object"
+      },
+      "GetSystemSummaryResponse": {
+        "properties": {
+          "aggregators": {
+            "description": "Specifies the list of aggregators. Each aggregator holds the following parameters (supported in V2.7.3 and above):\n•\tname: Specifies the aggregator device name.\n•\taddress: Specifies the aggregator IP address.\n•\tversion: Specifies the aggregator version.\n•\tstatus: Indicates the status of the aggregator: Enabled/Degraded",
+            "items": {
+              "$ref": "#/components/schemas/Map"
+            },
+            "type": "array"
+          },
+          "collectorVersions": {
+            "description": "Specifies the collector versions",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "collectorVersionsV2": {
+            "description": "Specifies the collector versions with counts per version",
+            "items": {
+              "$ref": "#/components/schemas/Map"
+            },
+            "type": "array"
+          },
+          "collectorsDegradedState": {
+            "additionalProperties": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "description": "Specifies the collector’s degraded state: FailedConfigurationUpdate, GatewayUnreachable, PAEDisabled, ContentUpdateError, unsupportedOSVersion, DriverLoadFailure, ApproveKernelExtensions, NoConfiguration, NoDiskSpace, MissingMiniFilterSupport, OTIFailed, LostConnection, MissingPolicyEngine, UsingPreviousPolicyEngineFailedToUpgrade, BSOD, DriverVerifierDetected, OsxNetworkExtensionNotApproved, OsxEndpointSecurityExtensionNotApproved, OsxNeitherExtensionIsApproved, OsxFortiEdrWasNotGrantedFullDiskAccess, OsxEndpointSecurityExtensionWasNotGrantedFullDiskAccess and provides a count for each of them",
+            "type": "object"
+          },
+          "collectorsDisconnectedState": {
+            "additionalProperties": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "description": "Specifies the collector’s disconnected state: disconnected, expired, migrated, pending migrated and provides a count for each of them",
+            "type": "object"
+          },
+          "collectorsRunningState": {
+            "additionalProperties": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "description": "Specifies the collector’s running state: autonomously, core and provides a count for each of them",
+            "type": "object"
+          },
+          "collectorsState": {
+            "additionalProperties": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "description": "Specifies the collector’s state: Running, Disconnected, Disabled, Degraded or RebootPending, and provides a count for each of them",
+            "type": "object"
+          },
+          "collectorsWithDumps": {
+            "additionalProperties": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "description": "Specifies the collector’s that has crash dumps: NsloCollectorService, NsloCollector, WindowsKernelMini, WindowsKernelFull, LinuxKernelPanic, MacOSKernelPanic, and provides a count for each of them",
+            "type": "object"
+          },
+          "contentVersion": {
+            "description": "Specifies the content version",
+            "type": "string"
+          },
+          "cores": {
+            "description": "Specifies the list of cores. Each core holds the following parameters (supported in V2.7.3 and above):\n•\tname: Specifies the core device name.\n•\taddress: Specifies the core IP address.\n•\tversion: Specifies the core version.\n•\tstatus: Indicates the status of the core: Enabled/Degraded.",
+            "items": {
+              "$ref": "#/components/schemas/Map"
+            },
+            "type": "array"
+          },
+          "customerName": {
+            "description": "Specifies the customer name",
+            "type": "string"
+          },
+          "ecsRegistrationURL": {
+            "description": "Specifies the ECS registration URL",
+            "type": "string"
+          },
+          "ecsStatus": {
+            "description": "Specifies the ECS status. Possible values are: Disabled, Enabled, Degraded, Down",
+            "type": "string"
+          },
+          "ecsStatusMessage": {
+            "description": "Specifies the ECS status details.",
+            "type": "string"
+          },
+          "environmentUniqueId": {
+            "description": "Specifies the management ID as defined in ECS",
+            "type": "string"
+          },
+          "installationId": {
+            "description": "Specifies the installation ID",
+            "format": "int64",
+            "type": "integer"
+          },
+          "iotDevicesInUse": {
+            "description": "Specifies the IoT devices in use",
+            "format": "int32",
+            "type": "integer"
+          },
+          "iotDevicesLicenseCapacity": {
+            "description": "Specifies the IoT device’s license capacity",
+            "format": "int32",
+            "type": "integer"
+          },
+          "licenseBlob": {
+            "description": "License blob",
+            "type": "string"
+          },
+          "licenseExpirationDate": {
+            "description": "Specifies the license expiration date",
+            "type": "string"
+          },
+          "licenseFeatures": {
+            "description": "Specifies the license features assigned to you, which can include the following:\n•\tThreat Hunting\n•\tForensics\n•\tCommunication Control\n•\tProtect Anywhere \n•\tVulnerability\n•\tIoT\n•\teXtended Detection\n",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "licenseType": {
+            "description": "Specifies the license type. Possible values are (separated by ;): Discover, Protect and Response; Discover, Protect and Response [On-Premise]; Discover and Protect; Protect and Response",
+            "type": "string"
+          },
+          "managementExternalIP": {
+            "description": "Specifies the management external IP",
+            "type": "string"
+          },
+          "managementHostname": {
+            "description": "Specifies the management host name",
+            "type": "string"
+          },
+          "managementInternalIP": {
+            "description": "Specifies the management internal IP",
+            "type": "string"
+          },
+          "managementVersion": {
+            "description": "Specifies the management version",
+            "type": "string"
+          },
+          "maxAccountCount": {
+            "description": "Specifies the max number of organizations limit",
+            "format": "int32",
+            "type": "integer"
+          },
+          "registeredCollectors": {
+            "description": "Specifies the registered collectors",
+            "format": "int32",
+            "type": "integer"
+          },
+          "repositories": {
+            "description": "Specifies the list of repositories. Each repository holds the following parameters (supported in V3.5.0 and above):\n•\taddress: Specifies the repository IP address.\n•\tstatus: Indicates the status of the repository: Running/Disconnected",
+            "items": {
+              "$ref": "#/components/schemas/Map"
+            },
+            "type": "array"
+          },
+          "repositoryAddOns": {
+            "description": "Specifies the number of repository add-ons",
+            "format": "int32",
+            "type": "integer"
+          },
+          "serialNumber": {
+            "description": "Specifies the serial number",
+            "type": "string"
+          },
+          "serverCollectorsInUse": {
+            "description": "Specifies the server collectors in use",
+            "format": "int32",
+            "type": "integer"
+          },
+          "serverCollectorsLicenseCapacity": {
+            "description": "Specifies the server collector’s license capacity",
+            "format": "int32",
+            "type": "integer"
+          },
+          "systemState": {
+            "description": "Indicates the system state: Protection/Simulation (supported in V2.7.3 and above)",
+            "type": "string"
+          },
+          "time": {
+            "description": "The current server time",
+            "type": "string"
+          },
+          "timeZone": {
+            "description": "The current server time zone",
+            "type": "string"
+          },
+          "workstationCollectorsLicenseCapacity": {
+            "description": "Specifies the workstation collector’s license capacity",
+            "format": "int32",
+            "type": "integer"
+          },
+          "workstationsCollectorsInUse": {
+            "description": "Specifies the workstation collectors in use",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "title": "GetSystemSummaryResponse",
+        "type": "object"
+      },
+      "Map": {
+        "additionalProperties": {
+          "type": "object"
+        },
+        "title": "Map",
+        "type": "object"
+      },
+      "SetTargetVersionBodyRequest": {
+        "properties": {
+          "updateVersions": {
+            "description": "List of installer versions that should be applied in the collector groups.",
+            "items": {
+              "$ref": "#/components/schemas/CollectorInstallerRequest"
+            },
+            "type": "array"
+          }
+        },
+        "title": "SetTargetVersionBodyRequest",
+        "type": "object"
+      },
+      "SystemReadinessResponse": {
+        "properties": {
+          "FCS": {
+            "description": "Specifies FCS status: up | down | degraded | disabled",
+            "enum": [
+              "Enabled",
+              "Disabled",
+              "Down",
+              "Degraded",
+              "RebootPending",
+              "Registered",
+              "Uninstalling"
+            ],
+            "type": "string"
+          },
+          "LicenseExist": {
+            "description": "Specifies License Existences: true | false",
+            "type": "boolean"
+          },
+          "Repository": {
+            "description": "Specifies repository status: up | down | degraded | disabled",
+            "enum": [
+              "Enabled",
+              "Disabled",
+              "Down",
+              "Degraded",
+              "RebootPending",
+              "Registered",
+              "Uninstalling"
+            ],
+            "type": "string"
+          },
+          "managementVersion": {
+            "description": "Specifies management version",
+            "type": "string"
+          }
+        },
+        "title": "SystemReadinessResponse",
+        "type": "object"
+      },
+      "UpdateLicenseRequest": {
+        "properties": {
+          "licenseBlob": {
+            "description": "License blob",
+            "type": "string"
+          }
+        },
+        "title": "UpdateLicenseRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/admin/list-collector-installers": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call output the available collectors installers",
+        "operationId": "get_admin_list_collector_installers",
+        "parameters": [
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCollectorInstallersResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-collector-installers",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/list-system-summary": {
+      "get": {
+        "deprecated": false,
+        "description": "Get System Summary",
+        "operationId": "get_admin_list_system_summary",
+        "parameters": [
+          {
+            "description": "Indicates whether to put license blob to response. By default addLicenseBlob is false",
+            "in": "query",
+            "name": "addLicenseBlob",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetSystemSummaryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-system-summary",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/previous-registration-passwords": {
+      "get": {
+        "deprecated": false,
+        "description": "This API retrieve previous registration passwords for given organization",
+        "operationId": "get_admin_previous_registration_passwords",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExactOrganizationNameRequest"
+              }
+            }
+          },
+          "description": "organizationRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ArchivedPasswordResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "previous-registration-passwords",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/previous-registration-passwords/{passwordId}": {
+      "delete": {
+        "deprecated": false,
+        "description": "This API deletes previous registration password for given id",
+        "operationId": "delete_admin_previous_registration_passwords_password_id",
+        "parameters": [
+          {
+            "description": "passwordId",
+            "in": "path",
+            "name": "passwordId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExactOrganizationNameRequest"
+              }
+            }
+          },
+          "description": "organizationRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "previous-registration-passwords",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/ready": {
+      "get": {
+        "deprecated": false,
+        "description": "Get System Readiness",
+        "operationId": "get_admin_ready",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemReadinessResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "ready",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/registration-password": {
+      "post": {
+        "deprecated": false,
+        "description": "This API creates new registration password for given organization",
+        "operationId": "create_admin_registration_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRegistrationPasswordRequest"
+              }
+            }
+          },
+          "description": "request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "registration-password",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/set-system-mode": {
+      "put": {
+        "deprecated": false,
+        "description": "Set system modeThis API call enables you to switch the system to Simulation mode",
+        "operationId": "admin_set_system_mode",
+        "parameters": [
+          {
+            "description": "Indicates whether to force set all the policies in 'Prevention' mode",
+            "in": "query",
+            "name": "forceAll",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Operation mode",
+            "in": "query",
+            "name": "mode",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Simulation",
+                "Prevention"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "set-system-mode",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/update-collector-installer": {
+      "post": {
+        "deprecated": false,
+        "description": "This API update collectors target version for collector groups",
+        "operationId": "admin_update_collector_installer",
+        "parameters": [
+          {
+            "description": "Specifies the list of IDs of all the collector groups which should be updated.",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroupIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the list of all the collector groups which should be updated.",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroups",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetTargetVersionBodyRequest"
+              }
+            }
+          },
+          "description": "requestUpdateData",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update-collector-installer",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/upload-content": {
+      "post": {
+        "deprecated": false,
+        "description": "Upload content to the system",
+        "operationId": "admin_upload_content",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "file": {
+                    "description": "file",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "upload-content",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    },
+    "/management-rest/admin/upload-license": {
+      "put": {
+        "deprecated": false,
+        "description": "Upload license to the system",
+        "operationId": "admin_upload_license",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLicenseRequest"
+              }
+            }
+          },
+          "description": "license",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "upload-license",
+        "tags": [
+          "Administrator"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "The Administrator module enables administrators to perform administrative operations, such as handling licenses and users.",
+      "name": "Administrator"
+    }
+  ]
+}

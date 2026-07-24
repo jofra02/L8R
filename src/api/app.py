@@ -47,6 +47,22 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to load MCP tools during startup: {e}")
     index_task = asyncio.create_task(_index_tools_background(app))
+
+    # Device Assessment module: sync YAML definitions to their immutable DB
+    # snapshots and fail runs orphaned by a previous process (in-memory task
+    # registry cannot resume them). Best-effort: a down DB must not block boot.
+    if settings.ASSESSMENT_ENABLED:
+        try:
+            from src.assessments.registry import sync_definitions
+            from src.assessments.runner import sweep_stale_runs
+            from src.core.database import async_session_factory
+            async with async_session_factory() as session:
+                outcome = await sync_definitions(session)
+            logger.info(f"Assessment definitions synced: {outcome}")
+            await sweep_stale_runs()
+        except Exception as e:
+            logger.error(f"Assessment startup (definition sync / stale sweep) failed: {e}")
+
     yield
     # Shutdown: stop indexing if still running, flush Langfuse
     if not index_task.done():
@@ -103,6 +119,10 @@ def create_app() -> FastAPI:
     from src.api.routers.tenants import router as tenants_router
     from src.api.routers.assignments import router as assignments_router
     from src.api.routers.inventory import router as inventory_router
+    from src.api.routers.assessments import (
+        router as assessments_router,
+        definitions_router as assessment_definitions_router,
+    )
 
     application.include_router(auth_router, prefix="/api/v1")
     application.include_router(tickets_router, prefix="/api/v1")
@@ -113,6 +133,9 @@ def create_app() -> FastAPI:
     application.include_router(tenants_router, prefix="/api/v1")
     application.include_router(assignments_router, prefix="/api/v1")
     application.include_router(inventory_router, prefix="/api/v1")
+    if settings.ASSESSMENT_ENABLED:
+        application.include_router(assessments_router, prefix="/api/v1")
+        application.include_router(assessment_definitions_router, prefix="/api/v1")
 
     # --- Legacy webhook (backward compat with X-Customer-ID header) ---
     _mount_legacy_webhook(application)

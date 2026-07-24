@@ -37,4 +37,14 @@ asyncio_mode = "auto"
 pythonpath = ["."]
 # Only self-contained tests; the other src/testing/*.py are integration
 # scripts that need live Qdrant/LLM services (run them as python -m modules).
-testpaths = ["src/testing/test_inventory_gateway_sync.py"]
+testpaths = [
+    "src/testing/test_inventory_gateway_sync.py",
+    "src/testing/test_tenant_header_injection.py",
+    "src/testing/test_mcp_executor.py",
+    "src/testing/test_assessment_definitions.py",
+    "src/testing/test_assessment_scoring.py",
+    "src/testing/test_assessment_state_machine.py",
+    "src/testing/test_assessment_evaluation.py",
+    "src/testing/test_assessment_collector.py",
+    "src/testing/test_assessment_api.py",
+]

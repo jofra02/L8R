@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { SEVERITY_COLORS, STATUS_COLORS, DECISION_COLORS, ROLE_COLORS } from "@/lib/constants";
+import { SEVERITY_COLORS, STATUS_COLORS, DECISION_COLORS, ROLE_COLORS, CONTROL_STATUS_COLORS } from "@/lib/constants";
 
-type BadgeType = "severity" | "status" | "decision" | "role";
+type BadgeType = "severity" | "status" | "decision" | "role" | "control";
 
 interface StatusBadgeProps {
   value: string | null | undefined;
@@ -14,6 +14,7 @@ const COLOR_MAPS: Record<BadgeType, Record<string, string>> = {
   status: STATUS_COLORS,
   decision: DECISION_COLORS,
   role: ROLE_COLORS,
+  control: CONTROL_STATUS_COLORS,
 };
 
 export function StatusBadge({ value, type, className }: StatusBadgeProps) {

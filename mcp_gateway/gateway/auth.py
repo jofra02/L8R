@@ -8,6 +8,7 @@ another device. Adding a new style is one class + one registry entry.
 
 from __future__ import annotations
 
+import base64
 from typing import Dict, Protocol
 
 
@@ -27,8 +28,29 @@ class BearerHeaderAuth:
         return {"Authorization": f"Bearer {token}"}
 
 
+class BasicHeaderAuth:
+    """``Authorization: Basic base64(token)`` from ``connection.token``.
+
+    The token holds the raw ``user:password`` pair — for FortiEDR multi-tenancy
+    that is ``organization\\api_user:password`` (org as a backslash prefix, e.g.
+    ``Acme\\apiuser:secret``; the ``user@organization`` form is rejected).
+    The API user must hold the REST API role. Sent as HTTP Basic on every call:
+    FortiEDR's ``X-Auth-Token`` is bound to the TCP session (60s idle / 4h max),
+    so per-call Basic is the reliable path. Fernet-encrypted at rest like any
+    other token.
+    """
+
+    def headers(self, connection: Dict[str, object]) -> Dict[str, str]:
+        token = str(connection.get("token", "") or "")
+        if not token:
+            return {}
+        encoded = base64.b64encode(token.encode("utf-8")).decode("ascii")
+        return {"Authorization": f"Basic {encoded}"}
+
+
 _STRATEGIES: Dict[str, AuthStrategy] = {
     "bearer_header": BearerHeaderAuth(),
+    "basic_header": BasicHeaderAuth(),
 }
 
 

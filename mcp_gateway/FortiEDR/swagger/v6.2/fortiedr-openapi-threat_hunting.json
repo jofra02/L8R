@@ -1,0 +1,1332 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Threat Hunting",
+      "description": "API for Activity events"
+    }
+  ],
+  "paths": {
+    "/management-rest/threat-hunting/counts": {
+      "post": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "counts",
+        "description": "This API call outputs EDR total events for every EDR category",
+        "operationId": "counts",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "edrRequest",
+            "description": "edrRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EDRRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/create-or-edit-tag": {
+      "post": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "create-or-edit-tag",
+        "description": "This API creates or edits the saved queries tag",
+        "operationId": "create-or-edit-tag",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "createOrEditTagRequest",
+            "description": "createOrEditTagRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOrEditTagRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/customize-fortinet-query": {
+      "post": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "customize-fortinet-query",
+        "description": "This API customizes the scheduling properties of a Fortinet query",
+        "operationId": "customize-fortinet-query",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Specifies the query ID to edit",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "in": "body",
+            "name": "ootbQueryCustomizeRequest",
+            "description": "ootbQueryCustomizeRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OotbQueryCustomizeRequest"
+            }
+          },
+          {
+            "name": "queryToEdit",
+            "in": "query",
+            "description": "Specifies the query name to edit",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/delete-saved-queries": {
+      "delete": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "delete-saved-queries",
+        "description": "This API deletes the saved queries",
+        "operationId": "delete-saved-queries",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "deleteAll",
+            "in": "query",
+            "description": "A true/false parameter indicating whether all queries should be deleted. False by default",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "deleteFromCommunity",
+            "in": "query",
+            "description": "A true/false parameter indicating if whether to delete a query from the FortiEDR Community also",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "queryIds",
+            "in": "query",
+            "description": "Specifies the query IDs list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "queryNames",
+            "in": "query",
+            "description": "Specifies the query names list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "scheduled",
+            "in": "query",
+            "description": "A true/false parameter indicating whether the query is scheduled",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Specifies the query source list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "User",
+              "Community",
+              "Fortinet",
+              "Feed"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/delete-tags": {
+      "delete": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "delete-tags",
+        "description": "This API deletes the saved queries tags",
+        "operationId": "delete-tags",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "tagIds",
+            "in": "query",
+            "description": "Specifies the tag ID list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "tagNames",
+            "in": "query",
+            "description": "Specifies the tag name list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/facets": {
+      "post": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "facets",
+        "description": "This API retrieves EDR total events for every EDR facet item",
+        "operationId": "facets",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "facetsRequest",
+            "description": "facetsRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/FacetsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/list-saved-queries": {
+      "get": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "list-saved-queries",
+        "description": "This API retrieves the existing saved queries list",
+        "operationId": "list-saved-queries",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "scheduled",
+            "in": "query",
+            "description": "A true/false parameter indicating whether the query is scheduled",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Specifies the query source list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "User",
+              "Community",
+              "Fortinet",
+              "Feed"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SavedQueryResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/list-tags": {
+      "get": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "list-tags",
+        "description": "This API retrieves the existing saved queries tag list",
+        "operationId": "list-tags",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SavedQueryTagResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/save-query": {
+      "post": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "save-query",
+        "description": "This API saves the query",
+        "operationId": "save-query",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Specifies the query ID to edit",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "queryToEdit",
+            "in": "query",
+            "description": "Specifies the query name to edit",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "saveQueryRequest",
+            "description": "saveQueryRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SaveQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/search": {
+      "post": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "search",
+        "description": "This API call outputs a list of Activity events from middleware.",
+        "operationId": "search",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "edrRequest",
+            "description": "edrRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EDRRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/threat-hunting/set-query-state": {
+      "put": {
+        "tags": [
+          "Threat Hunting"
+        ],
+        "summary": "set-query-state",
+        "description": "This API updates the scheduled saved query state",
+        "operationId": "set-query-state",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "markAll",
+            "in": "query",
+            "description": "A true/false parameter indicating whether all queries should be marked with the same value as 'state' property. False by default",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "queryIds",
+            "in": "query",
+            "description": "Specifies the query ID list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "queryNames",
+            "in": "query",
+            "description": "Specifies the query name list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Specifies the query source list",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "enum": [
+              "User",
+              "Community",
+              "Fortinet",
+              "Feed"
+            ]
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "A true/false parameter indicating whether to save the query as enabled",
+            "required": true,
+            "type": "boolean"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "CreateOrEditTagRequest": {
+      "type": "object",
+      "required": [
+        "newTagName"
+      ],
+      "properties": {
+        "newTagName": {
+          "type": "string",
+          "description": "Specifies the new tag name"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations."
+        },
+        "tagId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the tag ID for editing."
+        },
+        "tagName": {
+          "type": "string",
+          "description": "Specifies the tag name for editing."
+        }
+      },
+      "title": "CreateOrEditTagRequest"
+    },
+    "EDRFacetsRequest": {
+      "type": "object",
+      "properties": {
+        "fieldName": {
+          "type": "string",
+          "description": "Specifies the facet field name"
+        },
+        "numOfDisplayedItems": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the number of items to retrieve"
+        },
+        "order": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the sort order the list will be based on, ascending (1) ro descending (-1)"
+        }
+      },
+      "title": "EDRFacetsRequest"
+    },
+    "EDRFiltersRequest": {
+      "type": "object",
+      "properties": {
+        "fieldName": {
+          "type": "string",
+          "description": "Specifies the filter field name"
+        },
+        "includeValues": {
+          "type": "boolean",
+          "description": "Specifies whether the values list should to be included or excluded from the query"
+        },
+        "values": {
+          "type": "array",
+          "description": "Specifies the values list should to be included or excluded from the query",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "EDRFiltersRequest"
+    },
+    "EDRRequest": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Account ID"
+        },
+        "category": {
+          "type": "string",
+          "description": "Specifies the category name. All is the default value",
+          "enum": [
+            "Process",
+            "File",
+            "Registry",
+            "Network",
+            "Event Log",
+            "All"
+          ]
+        },
+        "devices": {
+          "type": "array",
+          "description": "Specifies the devices name list",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filters": {
+          "type": "array",
+          "description": "Specifies the filters list that available for the user based on the category selected 2. Specifies filters to add to the query.",
+          "items": {
+            "$ref": "#/definitions/EDRFiltersRequest"
+          }
+        },
+        "fromTime": {
+          "type": "string",
+          "description": "Specifies events start at creation time. Specify the date using the yyyy-MM-dd HH:mm:ss format. The 'time' filed must be 'custom'"
+        },
+        "itemsPerPage": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the Threat Hunting chunck size to retrieve with each call. The default value is 100"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations."
+        },
+        "pageNumber": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the Threat Hunting start index number to retrieve from. The default value is 0"
+        },
+        "query": {
+          "type": "string",
+          "description": "Specifies the search lucene like query"
+        },
+        "sorting": {
+          "type": "array",
+          "description": "Specifies the Threat Hunting sorting",
+          "items": {
+            "$ref": "#/definitions/EDRSortRequest"
+          }
+        },
+        "time": {
+          "type": "string",
+          "description": "Specifies the time period of the events",
+          "enum": [
+            "lastHour",
+            "last12hours",
+            "last24hours",
+            "last7days",
+            "last30days",
+            "custom"
+          ]
+        },
+        "toTime": {
+          "type": "string",
+          "description": "Specifies events up to a creation time. Specify the date using the yyyy-MM-dd HH:mm:ss format. The 'time' filed must be 'custom'"
+        }
+      },
+      "title": "EDRRequest"
+    },
+    "EDRSortRequest": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Specifies the field to sort by"
+        },
+        "order": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the sort order the list will be based on, ascending (1) ro descending (-1)"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the priority of the sort"
+        }
+      },
+      "title": "EDRSortRequest"
+    },
+    "FacetsRequest": {
+      "type": "object",
+      "required": [
+        "facets"
+      ],
+      "properties": {
+        "accountId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Account ID"
+        },
+        "category": {
+          "type": "string",
+          "description": "Specifies the category name. All is the default value",
+          "enum": [
+            "Process",
+            "File",
+            "Registry",
+            "Network",
+            "Event Log",
+            "All"
+          ]
+        },
+        "devices": {
+          "type": "array",
+          "description": "Specifies the devices name list",
+          "items": {
+            "type": "string"
+          }
+        },
+        "facets": {
+          "type": "array",
+          "description": "Specifies the facets list that available for the user based on the category selected 2. Specifies facets to add to the query.",
+          "items": {
+            "$ref": "#/definitions/EDRFacetsRequest"
+          }
+        },
+        "filters": {
+          "type": "array",
+          "description": "Specifies the filters list that available for the user based on the category selected 2. Specifies filters to add to the query.",
+          "items": {
+            "$ref": "#/definitions/EDRFiltersRequest"
+          }
+        },
+        "fromTime": {
+          "type": "string",
+          "description": "Specifies events start at creation time. Specify the date using the yyyy-MM-dd HH:mm:ss format. The 'time' filed must be 'custom'"
+        },
+        "itemsPerPage": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the Threat Hunting chunck size to retrieve with each call. The default value is 100"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations."
+        },
+        "pageNumber": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the Threat Hunting start index number to retrieve from. The default value is 0"
+        },
+        "query": {
+          "type": "string",
+          "description": "Specifies the search lucene like query"
+        },
+        "sorting": {
+          "type": "array",
+          "description": "Specifies the Threat Hunting sorting",
+          "items": {
+            "$ref": "#/definitions/EDRSortRequest"
+          }
+        },
+        "time": {
+          "type": "string",
+          "description": "Specifies the time period of the events",
+          "enum": [
+            "lastHour",
+            "last12hours",
+            "last24hours",
+            "last7days",
+            "last30days",
+            "custom"
+          ]
+        },
+        "toTime": {
+          "type": "string",
+          "description": "Specifies events up to a creation time. Specify the date using the yyyy-MM-dd HH:mm:ss format. The 'time' filed must be 'custom'"
+        }
+      },
+      "title": "FacetsRequest"
+    },
+    "MapOfstringAndobject": {
+      "type": "object",
+      "title": "MapOfstringAndobject",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "OotbQueryCustomizeRequest": {
+      "type": "object",
+      "properties": {
+        "dayOfMonth": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the day of the month for the scheduled query. The value must be between 1 and 28. The properties scheduled and frequencyUnit must be true and Month respectively",
+          "minimum": 1,
+          "maximum": 28,
+          "exclusiveMinimum": false,
+          "exclusiveMaximum": false
+        },
+        "dayOfWeek": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the day of the week for the scheduled query. The value must be between 0 and 6. 0 is Sunday and 6 is Saturday. The properties scheduled and frequencyUnit must be true and Week respectively",
+          "minimum": 0,
+          "maximum": 6,
+          "exclusiveMinimum": false,
+          "exclusiveMaximum": false
+        },
+        "forceSaving": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether to force the save, even when there is a large quantity of query results"
+        },
+        "frequency": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the query frequency for the scheduled query. The scheduled property must be true",
+          "minimum": 1,
+          "exclusiveMinimum": false
+        },
+        "frequencyUnit": {
+          "type": "string",
+          "description": "Specifies the query frequency unit. The scheduled property must be true",
+          "enum": [
+            "Minutes",
+            "Hours",
+            "Week",
+            "Day",
+            "Month"
+          ]
+        },
+        "fromTime": {
+          "type": "string",
+          "description": "Specifies events starting from this creation time. Specify the timestamp using the yyyy-MM-dd HH:mm:ss format. The 'time' value must be 'custom'"
+        },
+        "hour": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the hour of the week for the scheduled query. The value must be between 0 and 23. The properties scheduled and frequencyUnit must be true and Day/Week/Month respectively",
+          "minimum": 0,
+          "maximum": 23,
+          "exclusiveMinimum": false,
+          "exclusiveMaximum": false
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the name of a specific organization. The value that you specify here must match exactly"
+        },
+        "scheduled": {
+          "type": "boolean",
+          "description": "Specifies whether the query is scheduled. False by default"
+        },
+        "state": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether the query state is enabled. True by default"
+        },
+        "time": {
+          "type": "string",
+          "description": "Specifies the time period of the Threat Hunting events. The scheduled property must be false",
+          "enum": [
+            "lastHour",
+            "last12hours",
+            "last24hours",
+            "last7days",
+            "last30days",
+            "custom"
+          ]
+        },
+        "toTime": {
+          "type": "string",
+          "description": "Specifies events up to a creation time. Specify the date using the yyyy-MM-dd HH:mm:ss format. The 'time' filed must be 'custom'"
+        }
+      },
+      "title": "OotbQueryCustomizeRequest"
+    },
+    "SaveQueryRequest": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "Specifies the category name. All is the default value",
+          "enum": [
+            "Process",
+            "File",
+            "Registry",
+            "Network",
+            "Log",
+            "All"
+          ]
+        },
+        "classification": {
+          "type": "string",
+          "description": "Specifies the event classification. The scheduled property must be true",
+          "enum": [
+            "Malicious",
+            "Suspicious",
+            "Inconclusive",
+            "Likely Safe",
+            "PUP",
+            "Safe"
+          ]
+        },
+        "collectorNames": {
+          "type": "array",
+          "description": "Specifies the Collector names",
+          "items": {
+            "type": "string"
+          }
+        },
+        "community": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether the query is available to the entire FortiEDR Community. False by default"
+        },
+        "dayOfMonth": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the day of the month for the scheduled query. The value must be between 1 and 28. The properties scheduled and frequencyUnit must be true and Month respectively",
+          "minimum": 1,
+          "maximum": 28,
+          "exclusiveMinimum": false,
+          "exclusiveMaximum": false
+        },
+        "dayOfWeek": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the day of the week for the scheduled query. The value must be between 0 and 6. 0 is Sunday and 6 is Saturday. The properties scheduled and frequencyUnit must be true and Week respectively",
+          "minimum": 0,
+          "maximum": 6,
+          "exclusiveMinimum": false,
+          "exclusiveMaximum": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Specifies the description"
+        },
+        "forceSaving": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether to force the save, even when there is a large quantity of query results"
+        },
+        "frequency": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the query frequency for the scheduled query. The scheduled property must be true",
+          "minimum": 1,
+          "exclusiveMinimum": false
+        },
+        "frequencyUnit": {
+          "type": "string",
+          "description": "Specifies the query frequency unit. The scheduled property must be true",
+          "enum": [
+            "Minutes",
+            "Hours",
+            "Week",
+            "Day",
+            "Month"
+          ]
+        },
+        "fromTime": {
+          "type": "string",
+          "description": "Specifies events starting from this creation time. Specify the timestamp using the yyyy-MM-dd HH:mm:ss format. The 'time' value must be 'custom'"
+        },
+        "hour": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the hour of the day for the scheduled query. The value must be between 0 and 23. The properties scheduled and frequencyUnit must be true and Day/Week/Month respectively",
+          "minimum": 0,
+          "maximum": 23,
+          "exclusiveMinimum": false,
+          "exclusiveMaximum": false
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the name of the query being saved"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the name of a specific organization. The value that you specify here must match exactly"
+        },
+        "query": {
+          "type": "string",
+          "description": "Specifies the Lucene-like search query"
+        },
+        "scheduled": {
+          "type": "boolean",
+          "description": "Specifies whether the query is scheduled. False by default"
+        },
+        "state": {
+          "type": "boolean",
+          "description": "A true/false parameter indicating whether the query state is enabled. True by default"
+        },
+        "tagIds": {
+          "type": "array",
+          "description": "Specifies the query tag ids",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "tagNames": {
+          "type": "array",
+          "description": "Specifies the query tag names",
+          "items": {
+            "type": "string"
+          }
+        },
+        "time": {
+          "type": "string",
+          "description": "Specifies the time period of the Threat Hunting events. The scheduled property must be false",
+          "enum": [
+            "lastHour",
+            "last12hours",
+            "last24hours",
+            "last7days",
+            "last30days",
+            "custom"
+          ]
+        },
+        "toTime": {
+          "type": "string",
+          "description": "Specifies events up to a creation time. Specify the date using the yyyy-MM-dd HH:mm:ss format. The 'time' filed must be 'custom'"
+        }
+      },
+      "title": "SaveQueryRequest"
+    },
+    "SavedQueryResponse": {
+      "type": "object",
+      "properties": {
+        "affectedDevicesCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies how many devices were found in the last query run"
+        },
+        "category": {
+          "type": "string",
+          "description": "Specifies the category of the query"
+        },
+        "classification": {
+          "type": "string",
+          "description": "Specifies the saved query classification event"
+        },
+        "collectors": {
+          "type": "array",
+          "description": "Specifies the list of Collectors to which the query applies",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Specifies when the saved query was created"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Specifies who created the saved query"
+        },
+        "description": {
+          "type": "string",
+          "description": "Specifies the saved query description"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Specifies whether the saved query is enabled"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the saved query ID"
+        },
+        "lastRunFromTime": {
+          "type": "string",
+          "description": "Specifies when the last query run started"
+        },
+        "lastRunToTime": {
+          "type": "string",
+          "description": "Specifies when the last query run ended"
+        },
+        "matches": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the last query matches"
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the saved query name"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the organization of the saved query"
+        },
+        "organizationId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the organization ID of the saved query"
+        },
+        "origin": {
+          "type": "string",
+          "description": "Specifies the saved query origin"
+        },
+        "query": {
+          "type": "string",
+          "description": "Specifies the saved query search Lucene"
+        },
+        "repeatTime": {
+          "type": "string",
+          "description": "Specifies the repeat time of the scheduled query"
+        },
+        "scheduled": {
+          "type": "boolean",
+          "description": "Specifies whether the saved query is scheduled"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Specifies the tags of the saved query",
+          "items": {
+            "$ref": "#/definitions/SavedQueryTagResponse"
+          }
+        },
+        "updateAt": {
+          "type": "string",
+          "description": "Specifies when the saved query was updated"
+        },
+        "updateBy": {
+          "type": "string",
+          "description": "Specifies who updated the saved query"
+        }
+      },
+      "title": "SavedQueryResponse"
+    },
+    "SavedQueryTagResponse": {
+      "type": "object",
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "Specifies the organization of the tag"
+        },
+        "tagId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the tag ID"
+        },
+        "tagName": {
+          "type": "string",
+          "description": "Specifies the tag name"
+        }
+      },
+      "title": "SavedQueryTagResponse"
+    }
+  }
+}

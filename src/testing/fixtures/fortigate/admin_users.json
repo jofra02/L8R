@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "name": "admin",
+      "remote-auth": "disable",
+      "trusthost1": "10.10.0.0 255.255.255.0",
+      "trusthost2": "0.0.0.0 0.0.0.0",
+      "trusthost3": "0.0.0.0 0.0.0.0",
+      "password": "[REDACTED]"
+    },
+    {
+      "name": "backup-admin",
+      "remote-auth": "disable",
+      "trusthost1": "0.0.0.0 0.0.0.0",
+      "trusthost2": "0.0.0.0 0.0.0.0",
+      "trusthost3": "0.0.0.0 0.0.0.0",
+      "password": "[REDACTED]"
+    }
+  ],
+  "vdom": "root",
+  "status": "success",
+  "version": "v7.4.5"
+}

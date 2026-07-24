@@ -85,6 +85,15 @@ class Settings(BaseSettings):
     ENGINEER_MAX_TOOL_CALLS: int = 30
     ENGINEER_MAX_ITERATIONS: int = 50
     ENGINEER_TIMEOUT_SECONDS: int = 600
+
+    # Device Assessment module
+    ASSESSMENT_ENABLED: bool = True
+    ASSESSMENT_GLOBAL_CONCURRENCY: int = 8    # max concurrent collection steps overall
+    ASSESSMENT_DEVICE_CONCURRENCY: int = 3    # max concurrent steps per device
+    ASSESSMENT_STEP_TIMEOUT_S: int = 60       # default per-step timeout (YAML can override)
+    ASSESSMENT_STEP_MAX_ATTEMPTS: int = 2     # default attempts for retryable errors
+    ASSESSMENT_MAX_EVIDENCE_BYTES: int = 524288  # 512 KiB cap on stored evidence payloads
+    LLM_MODEL_ASSESSMENT_EVALUATOR: str = "gpt-5-mini"
     
     # Database (Postgres)
     DB_HOST: str = "localhost"
@@ -160,6 +169,16 @@ class Settings(BaseSettings):
         "execute", "configure", "set ", "edit ", "delete", "rm ", "shutdown", "reboot",
         "drop database", "truncate", "format", "destroy", "purge", "kill ",
         "deploy", "push", "publish", "migrate", "alter ", "grant ", "revoke "
+    ]
+    # Mutating-verb keywords blocked in TOOL NAMES only. Kept separate from
+    # SAFETY_BLOCKED_KEYWORDS because that list is also scanned against string
+    # argument values, where substrings like "createdBy"/"lastUpdateTime" are
+    # legitimate. Mirrored in mcp_gateway/scripts/convert_fortiedr_specs.py
+    # (BLOCKED_NAME_KEYWORDS) — keep in sync.
+    SAFETY_BLOCKED_NAME_KEYWORDS: List[str] = [
+        "update", "create", "upload", "upgrade", "isolate", "uninstall",
+        "remediate", "terminate", "set_", "reset", "assign", "clone",
+        "transfer", "import", "toggle", "release", "move", "stop",
     ]
 
     # Langfuse Observability

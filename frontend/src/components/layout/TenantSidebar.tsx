@@ -8,6 +8,7 @@ import {
   Users,
   ShieldCheck,
   Boxes,
+  ClipboardCheck,
 } from "lucide-react";
 import { SidebarBase, type NavGroup } from "./SidebarBase";
 import { useMemo } from "react";
@@ -29,6 +30,7 @@ export function TenantSidebar({ collapsed, onToggle, hasPermission, tenantId }: 
           { label: "Dashboard", path: p, icon: <LayoutDashboard size={20} />, permission: "tickets:read" },
           { label: "Tickets", path: `${p}/tickets`, icon: <Ticket size={20} />, permission: "tickets:read" },
           { label: "Runs", path: `${p}/runs`, icon: <Play size={20} />, permission: "runs:read" },
+          { label: "Assessments", path: `${p}/assessments`, icon: <ClipboardCheck size={20} />, permission: "assessments:read" },
         ],
       },
       {

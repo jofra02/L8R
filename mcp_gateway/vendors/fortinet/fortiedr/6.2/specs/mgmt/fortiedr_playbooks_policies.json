@@ -1,0 +1,862 @@
+{
+  "components": {
+    "schemas": {
+      "ActionToConnectorsMap": {
+        "properties": {
+          "actionName": {
+            "description": "AIR action name (in the translated/technical form). Applicable only to actions associated with Connectors.",
+            "type": "string"
+          },
+          "connectors": {
+            "description": "List of connectors to be mapped to the action. Missing connectors will be unmapped for the specified action. Empty list will unselect all connectors.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "actionName",
+          "connectors"
+        ],
+        "title": "ActionToConnectorsMap",
+        "type": "object"
+      },
+      "ActionsToClassificationMap": {
+        "properties": {
+          "actionName": {
+            "description": "AIR action name (in the translated/technical form).",
+            "example": "Block address on Firewall, BlockAddressOnFirewall, Custom Action Name, etc.",
+            "type": "string"
+          },
+          "classifications": {
+            "description": "List of classifications (in the translated/technical form) to be enabled. Missing classifications will be disabled for the specified action.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "actionName",
+          "classifications"
+        ],
+        "title": "ActionsToClassificationMap",
+        "type": "object"
+      },
+      "AgentGroupEntity": {
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "collectorsAwaitingUpgradeCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "excludeFromIotScans": {
+            "type": "boolean"
+          },
+          "highSecurity": {
+            "type": "boolean"
+          },
+          "isolated": {
+            "type": "boolean"
+          },
+          "linuxDowngradeAllowed": {
+            "type": "boolean"
+          },
+          "linuxTargetVersion": {
+            "type": "string"
+          },
+          "linuxTargetVersionUpdateTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nameLocalizationKey": {
+            "type": "string"
+          },
+          "osxDowngradeAllowed": {
+            "type": "boolean"
+          },
+          "osxTargetVersion": {
+            "type": "string"
+          },
+          "osxTargetVersionUpdateTime": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requestPolicyEngineLibUpdates": {
+            "type": "boolean"
+          },
+          "updateTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "winDowngradeAllowed": {
+            "type": "boolean"
+          },
+          "winTargetVersion": {
+            "type": "string"
+          },
+          "winTargetVersionUpdateTime": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "title": "AgentGroupEntity",
+        "type": "object"
+      },
+      "AssignAIRActionsWithConnectorsRequest": {
+        "properties": {
+          "customActionsToConnectorsMaps": {
+            "description": "Specifies which connectors are to be used during a custom action invocation.",
+            "items": {
+              "$ref": "#/components/schemas/ActionToConnectorsMap"
+            },
+            "type": "array"
+          },
+          "fortinetActionsToConnectorsMaps": {
+            "description": "Specifies which connectors are to be used during an Fortinet action invocation.",
+            "items": {
+              "$ref": "#/components/schemas/ActionToConnectorsMap"
+            },
+            "type": "array"
+          },
+          "policyName": {
+            "description": "Specifies the policy name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policyName"
+        ],
+        "title": "AssignAIRActionsWithConnectorsRequest",
+        "type": "object"
+      },
+      "AssignAIRActionsWithConnectorsResponse": {
+        "properties": {
+          "actionsToConnectorsMap": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "The mapping between action and connectors.",
+            "type": "object"
+          },
+          "policyName": {
+            "description": "The policy name.",
+            "type": "string"
+          }
+        },
+        "title": "AssignAIRActionsWithConnectorsResponse",
+        "type": "object"
+      },
+      "AssignCollectorsToPolicyResponse": {
+        "properties": {
+          "ignoredCollectorGroupNames": {
+            "description": "Specifies the list of collector groups that were already assigned to the policy",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "title": "AssignCollectorsToPolicyResponse",
+        "type": "object"
+      },
+      "GetPlaybooksResponse": {
+        "properties": {
+          "actionsToConnectorsMap": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "List of connectors for each action (if applicable).",
+            "type": "object"
+          },
+          "classificationActions": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "List of actions for each classification",
+            "type": "object"
+          },
+          "collectorGroups": {
+            "description": "List of collector group names that the policy apply to",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": {
+            "description": "The description of the policy",
+            "type": "string"
+          },
+          "id": {
+            "description": "The policy ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "The policy name",
+            "type": "string"
+          },
+          "operationMode": {
+            "description": "The policy mode",
+            "enum": [
+              "Simulation",
+              "Prevention"
+            ],
+            "type": "string"
+          },
+          "organization": {
+            "description": "The organization of the policy",
+            "type": "string"
+          }
+        },
+        "title": "GetPlaybooksResponse",
+        "type": "object"
+      },
+      "PolicyEntity": {
+        "properties": {
+          "agentGroups": {
+            "items": {
+              "$ref": "#/components/schemas/AgentGroupEntity"
+            },
+            "type": "array"
+          },
+          "creationDate": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "defaultItem": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "dn": {
+            "type": "string"
+          },
+          "licenseLevel": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "localizedName": {
+            "type": "string"
+          },
+          "maxContentVersion": {
+            "type": "string"
+          },
+          "minContentVersion": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "operationMode": {
+            "enum": [
+              "Simulation",
+              "Prevention"
+            ],
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "OOTB",
+              "UserCloned",
+              "FromField",
+              "UserCreated"
+            ],
+            "type": "string"
+          },
+          "policyToAgentGroupAssociations": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyToAgentGroupAssociationEntity"
+            },
+            "type": "array"
+          },
+          "policyToWorkloadGroupAssociation": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyToWorkloadGroupAssociationEntity"
+            },
+            "type": "array"
+          },
+          "policyType": {
+            "enum": [
+              "Exfiltration",
+              "Ransomware",
+              "Whitelisting",
+              "AV",
+              "AIR",
+              "DeviceControl",
+              "ApplicationControl",
+              "ThreatHuntingSetting",
+              "Exclusion",
+              "XDR",
+              "SecurityExclusion",
+              "HostFirewall",
+              "DiskEncryption"
+            ],
+            "type": "string"
+          },
+          "preventionInSnapshot": {
+            "type": "boolean"
+          },
+          "updateTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workloadDefaultItem": {
+            "type": "boolean"
+          },
+          "workloadGroups": {
+            "items": {
+              "$ref": "#/components/schemas/WorkloadsGroupEntity"
+            },
+            "type": "array"
+          }
+        },
+        "title": "PolicyEntity",
+        "type": "object"
+      },
+      "PolicyToAgentGroupAssociationEntity": {
+        "properties": {
+          "agentGroup": {
+            "$ref": "#/components/schemas/AgentGroupEntity"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/PolicyEntity"
+          },
+          "updateTime": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "title": "PolicyToAgentGroupAssociationEntity",
+        "type": "object"
+      },
+      "PolicyToWorkloadGroupAssociationEntity": {
+        "properties": {
+          "policy": {
+            "$ref": "#/components/schemas/PolicyEntity"
+          },
+          "updateTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workloadsGroup": {
+            "$ref": "#/components/schemas/WorkloadsGroupEntity"
+          }
+        },
+        "title": "PolicyToWorkloadGroupAssociationEntity",
+        "type": "object"
+      },
+      "SetActionsClassificationRequest": {
+        "properties": {
+          "customActionsToClassificationMaps": {
+            "description": "Specifies which custom actions' classifications should be enabled. Missing classifications are disabled.",
+            "items": {
+              "$ref": "#/components/schemas/ActionsToClassificationMap"
+            },
+            "type": "array"
+          },
+          "fortinetActionsToClassificationMaps": {
+            "description": "Specifies which Fortinet actions' classifications should be enabled. Missing classifications are disabled.",
+            "items": {
+              "$ref": "#/components/schemas/ActionsToClassificationMap"
+            },
+            "type": "array"
+          },
+          "policyName": {
+            "description": "Specifies the policy name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "policyName"
+        ],
+        "title": "SetActionsClassificationRequest",
+        "type": "object"
+      },
+      "SetActionsClassificationResponse": {
+        "properties": {
+          "actionsToClassificationsMap": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "The mapping between action and its classification.",
+            "type": "object"
+          },
+          "policyName": {
+            "description": "Specifies the policy name.",
+            "type": "string"
+          }
+        },
+        "title": "SetActionsClassificationResponse",
+        "type": "object"
+      },
+      "WorkloadsGroupEntity": {
+        "properties": {
+          "attributes": {
+            "type": "string"
+          },
+          "dn": {
+            "type": "string"
+          },
+          "lastUpdated": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "licenseLevel": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "maxContentVersion": {
+            "type": "string"
+          },
+          "minContentVersion": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameLocalizationKey": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "OOTB",
+              "UserCloned",
+              "FromField",
+              "UserCreated"
+            ],
+            "type": "string"
+          },
+          "rank": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "updateTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          }
+        },
+        "title": "WorkloadsGroupEntity",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/playbooks-policies/assign-collector-group": {
+      "put": {
+        "deprecated": false,
+        "description": "Assign collector group to air policy",
+        "operationId": "playbooks_policies_assign_collector_group",
+        "parameters": [
+          {
+            "description": "Specifies the list of collector group names",
+            "explode": true,
+            "in": "query",
+            "name": "collectorGroupNames",
+            "required": true,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Indicates whether to force the assignment even if the group is assigned to similar policies",
+            "in": "query",
+            "name": "forceAssign",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies policy name",
+            "in": "query",
+            "name": "policyName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignCollectorsToPolicyResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "assign-collector-group",
+        "tags": [
+          "Playbooks-policies"
+        ]
+      }
+    },
+    "/management-rest/playbooks-policies/clone": {
+      "post": {
+        "deprecated": false,
+        "description": "clone policy",
+        "operationId": "playbooks_policies_clone",
+        "parameters": [
+          {
+            "description": "Specifies security policy target name.",
+            "in": "query",
+            "name": "newPolicyName",
+            "required": true,
+            "schema": {
+              "maxLength": 50,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies security policy source name",
+            "in": "query",
+            "name": "sourcePolicyName",
+            "required": true,
+            "schema": {
+              "maxLength": 50,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PolicyEntity"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "clone",
+        "tags": [
+          "Playbooks-policies"
+        ]
+      }
+    },
+    "/management-rest/playbooks-policies/list-policies": {
+      "get": {
+        "deprecated": false,
+        "description": "List policies",
+        "operationId": "get_playbooks_policies_list_policies",
+        "parameters": [
+          {
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GetPlaybooksResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-policies",
+        "tags": [
+          "Playbooks-policies"
+        ]
+      }
+    },
+    "/management-rest/playbooks-policies/map-connectors-to-actions": {
+      "put": {
+        "deprecated": false,
+        "description": "Assign policy actions with connectors.",
+        "operationId": "update_playbooks_policies_map_connectors_to_actions",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignAIRActionsWithConnectorsRequest"
+              }
+            }
+          },
+          "description": "assignAIRActionsWithConnectorsRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignAIRActionsWithConnectorsResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "map-connectors-to-actions",
+        "tags": [
+          "Playbooks-policies"
+        ]
+      }
+    },
+    "/management-rest/playbooks-policies/set-action-classification": {
+      "put": {
+        "deprecated": false,
+        "description": "Set the air policy actions' classifications.",
+        "operationId": "playbooks_policies_set_action_classification",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetActionsClassificationRequest"
+              }
+            }
+          },
+          "description": "setActionsClassificationRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetActionsClassificationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "set-action-classification",
+        "tags": [
+          "Playbooks-policies"
+        ]
+      }
+    },
+    "/management-rest/playbooks-policies/set-mode": {
+      "put": {
+        "deprecated": false,
+        "description": "Set playbook to simulation/prevention",
+        "operationId": "playbooks_policies_set_mode",
+        "parameters": [
+          {
+            "description": "Operation mode",
+            "in": "query",
+            "name": "mode",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Simulation",
+                "Prevention"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies security policy name",
+            "in": "query",
+            "name": "policyName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "set-mode",
+        "tags": [
+          "Playbooks-policies"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Playbooks-policies API",
+      "name": "Playbooks-policies"
+    }
+  ]
+}

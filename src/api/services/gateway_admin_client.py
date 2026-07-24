@@ -86,6 +86,26 @@ class GatewayAdminClient:
             warnings=body.get("warnings") or [],
         )
 
+    async def list_packs(self) -> List[Dict[str, Any]]:
+        """Appliance packs mounted on the gateway (vendor/appliance/version).
+
+        Returns ``[]`` on any error — pack metadata is an enrichment (catalog
+        partitioning), never a hard dependency.
+        """
+        try:
+            response = await self._request("GET", "/admin/packs")
+            if response.status_code >= 400:
+                logger.warning(
+                    f"Gateway pack listing failed: HTTP {response.status_code}: "
+                    f"{self._error_detail(response)}"
+                )
+                return []
+            body = response.json()
+            return body if isinstance(body, list) else []
+        except Exception as e:
+            logger.warning(f"Gateway pack listing failed: {e}")
+            return []
+
     async def _create_device(self, customer_id: str, payload: Dict[str, Any]) -> httpx.Response:
         """Device POST with tenant self-heal.
 

@@ -1,0 +1,605 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Exceptions",
+      "description": "This API call outputs all exceptions in the system"
+    }
+  ],
+  "paths": {
+    "/management-rest/exceptions/create-or-edit-exception": {
+      "post": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "create-or-edit-exception",
+        "description": "This API call creates a new exception or updates an existing exception based on the given exception JSON body parameter",
+        "operationId": "create-exception_2",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "confirmEdit",
+            "in": "query",
+            "description": "Confirm editing an existing exception in case of providing an exception ID in the body JSON. By default confirmEdit is false",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "in": "body",
+            "name": "exceptionJSON",
+            "description": "exceptionJSON",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/exceptions/delete": {
+      "delete": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "delete",
+        "description": "Delete exceptions",
+        "operationId": "delete",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the list of all the collector groups to which the exception applied",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "comment",
+            "in": "query",
+            "description": "Specifies a comment attach to the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "createdAfter",
+            "in": "query",
+            "description": "Specifies the date after which the exception was created. Specify the date using the yyyy-MM-dd HH:mm:ss format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "createdBefore",
+            "in": "query",
+            "description": "Specifies the date before which the exception was created. Specify the date using the yyyy-MM-dd HH:mm:ss format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "deleteAll",
+            "in": "query",
+            "description": "A true/false parameter indicating if all exception should be deleted",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "destination",
+            "in": "query",
+            "description": "Specifies a destination IP of the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "exceptionId",
+            "in": "query",
+            "description": "Specifies the required exception ID",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "exceptionIds",
+            "in": "query",
+            "description": "Specifies a list of exception ids",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "description": "Specifies the path of the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "process",
+            "in": "query",
+            "description": "Specifies the process of the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rules",
+            "in": "query",
+            "description": "Specifies a list of rule names",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "updatedAfter",
+            "in": "query",
+            "description": "Specifies the date after which the exception was updated. Specify the date using the yyyy-MM-dd HH:mm:ss format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "updatedBefore",
+            "in": "query",
+            "description": "Specifies the date before which the exception was updated. Specify the date using the yyyy-MM-dd HH:mm:ss format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Specifies a user of the exception",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/exceptions/get-event-exceptions": {
+      "get": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "get-event-exceptions",
+        "description": "Show exceptions",
+        "operationId": "get-event-exceptions",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "query",
+            "description": "Specifies the required event ID",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/EventExceptionsResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/exceptions/list-exceptions": {
+      "get": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "list-exceptions",
+        "description": "List of exceptions",
+        "operationId": "list-exceptions",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "collectorGroups",
+            "in": "query",
+            "description": "Specifies the list of all the collector groups to which the exception applied",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "comment",
+            "in": "query",
+            "description": "Specifies a comment attach to the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "createdAfter",
+            "in": "query",
+            "description": "Specifies the date after which the exception was created. Specify the date using the yyyy-MM-dd HH:mm:ss format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "createdBefore",
+            "in": "query",
+            "description": "Specifies the date before which the exception was created. Specify the date using the yyyy-MM-dd HH:mm:ss format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "destination",
+            "in": "query",
+            "description": "Specifies a destination IP of the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "exceptionIds",
+            "in": "query",
+            "description": "Specifies a list of exception ids",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "description": "Specifies the path of the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "process",
+            "in": "query",
+            "description": "Specifies the process of the exception",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rules",
+            "in": "query",
+            "description": "Specifies a list of rule names",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "updatedAfter",
+            "in": "query",
+            "description": "Specifies the date after which the exception was updated. Specify the date using the yyyy-MM-dd HH:mm:ss format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "updatedBefore",
+            "in": "query",
+            "description": "Specifies the date before which the exception was updated. Specify the date using the yyyy-MM-dd HH:mm:ss format",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Specifies a user of the exception",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/EventExceptionsResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/exceptions/update-exceptions-to-all-accounts-groups-coverage": {
+      "post": {
+        "tags": [
+          "Exceptions"
+        ],
+        "summary": "update-exceptions-to-all-accounts-groups-coverage",
+        "description": "This API call set an exception to a 'All organizations agents groups'",
+        "operationId": "update-exceptions-to-all-accounts-groups-coverage",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "AlertProcess": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Specifies the process name"
+        },
+        "path": {
+          "type": "string",
+          "description": "Specifies the procrss path"
+        },
+        "signed": {
+          "type": "boolean",
+          "description": "A true/false, indicating the process is signed"
+        },
+        "useAnyPath": {
+          "type": "boolean",
+          "description": "A true/false, indicating the process is used by the exception in advanced configuration"
+        },
+        "usedInException": {
+          "type": "boolean",
+          "description": "A true/false, indicating the process is used by the exception in advanced configuration"
+        }
+      },
+      "title": "AlertProcess",
+      "description": "Specifies the process"
+    },
+    "AlertResponse": {
+      "type": "object",
+      "properties": {
+        "process": {
+          "description": "Specifies the process - 1",
+          "$ref": "#/definitions/AlertProcess"
+        },
+        "process2": {
+          "description": "Specifies the process - 2",
+          "$ref": "#/definitions/AlertProcess"
+        },
+        "process2Script": {
+          "description": "Specifies the script for process - 2",
+          "$ref": "#/definitions/AlertProcess"
+        },
+        "ruleName": {
+          "type": "string",
+          "description": "Specifies the rule name"
+        },
+        "script": {
+          "description": "Specifies the script for process - 1",
+          "$ref": "#/definitions/AlertProcess"
+        }
+      },
+      "title": "AlertResponse"
+    },
+    "EventExceptionsResponse": {
+      "type": "object",
+      "properties": {
+        "alerts": {
+          "type": "array",
+          "description": "Specifies the list of alerts",
+          "items": {
+            "$ref": "#/definitions/AlertResponse"
+          }
+        },
+        "comment": {
+          "type": "string",
+          "description": "Specifies a user-defined string attached to the exception"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Specifies when the exception was created"
+        },
+        "exceptionId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the exception ID"
+        },
+        "optionalCollectorGroups": {
+          "type": "array",
+          "description": "Specifies the list of unselected collector groups",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optionalDestinations": {
+          "type": "array",
+          "description": "Specifies the list of destination which not selected",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optionalUsers": {
+          "type": "array",
+          "description": "Specifies the list of users which not selected",
+          "items": {
+            "type": "string"
+          }
+        },
+        "organization": {
+          "type": "string",
+          "description": "The organization of the exception"
+        },
+        "originEventId": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the event ID"
+        },
+        "selectedCollectorGroups": {
+          "type": "array",
+          "description": "Specifies the list of selected collector groups",
+          "items": {
+            "type": "string"
+          }
+        },
+        "selectedDestinations": {
+          "type": "array",
+          "description": "Specifies the list of selected destinations",
+          "items": {
+            "type": "string"
+          }
+        },
+        "selectedUsers": {
+          "type": "array",
+          "description": "Specifies the list of selected users",
+          "items": {
+            "type": "string"
+          }
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Specifies when the exception was last updated"
+        },
+        "userName": {
+          "type": "string",
+          "description": "Specifies the user who created the exception"
+        }
+      },
+      "title": "EventExceptionsResponse"
+    }
+  }
+}

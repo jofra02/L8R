@@ -1,0 +1,2099 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "dashboard-rest-api-controller",
+      "description": "Dashboard Rest Api Controller"
+    }
+  ],
+  "paths": {
+    "/api/dashboard/collectors": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "collectors",
+        "description": "Return collectors according to group by field",
+        "operationId": "collectors",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "os",
+            "in": "query",
+            "description": "Specifies the OS of the return data",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/collectors-by-os": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "collectors-by-os",
+        "description": "Return collectors according to group by field",
+        "operationId": "collectors-by-os",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "os",
+            "in": "query",
+            "description": "Specifies the OS of the return data",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/collectors-by-policies": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "collectors-by-policies",
+        "description": "Return collectors by policies",
+        "operationId": "collectors-by-policies",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "os",
+            "in": "query",
+            "description": "Specifies the OS of the return data",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/collectors-by-version": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "collectors-by-version",
+        "description": "Return collectors according to group by field",
+        "operationId": "collectors-by-version",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "os",
+            "in": "query",
+            "description": "Specifies the OS of the return data",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/com-control-policies": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "com-control-policies",
+        "description": "Return com control policies",
+        "operationId": "com-control-policies",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "operationMode",
+            "in": "query",
+            "description": "Specifies the operation mode.",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Presentation",
+              "Simulation"
+            ]
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/detection-activity": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "detection-activity",
+        "description": "Return detection activity",
+        "operationId": "detection-activity",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "classification",
+            "in": "query",
+            "description": "Specifies the event classification.",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "All",
+              "ClassificationMalicious",
+              "ClassificationProbablyMalicious",
+              "ClassificationPup",
+              "ClassificationInconclusive",
+              "ClassificationProbablyGood",
+              "ClassificationGood"
+            ]
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/event-classification-distribution": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "event-classification-distribution",
+        "description": "Return event classification distribution",
+        "operationId": "event-classification-distribution",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/generate-report": {
+      "post": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "generate-report",
+        "description": "Export to csv",
+        "operationId": "generate-report",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "request",
+            "description": "request",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ProgressBarBean"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/get-progress": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "get-progress",
+        "description": "Get progress",
+        "operationId": "get-progress",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "progressBarId",
+            "in": "query",
+            "description": "progressBarId",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ProgressBarBean"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/layout-config": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "layout-config",
+        "description": "Return dashboard layout config",
+        "operationId": "layout-config",
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/license-capacity-per-organization": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "license-capacity-per-organization",
+        "description": "Return license capacity per organization",
+        "operationId": "license-capacity-per-organization",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "selectedOrganization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/license-status-per-organization": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "license-status-per-organization",
+        "description": "Return license status per organization",
+        "operationId": "license-status-per-organization",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "selectedOrganization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/most-targeted-items": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "most-targeted-items",
+        "description": "Returns most targeted devices or most targeted processes, depending on the itemType parameter",
+        "operationId": "most-targeted-items",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "itemType",
+            "in": "query",
+            "description": "Specifies the type of items",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "process",
+              "device"
+            ]
+          },
+          {
+            "name": "numOfColumns",
+            "in": "query",
+            "description": "Specifies the number of columns to present",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "numOfDays",
+            "in": "query",
+            "description": "Specifies the number of days to present",
+            "required": false,
+            "type": "integer",
+            "minimum": 1,
+            "exclusiveMinimum": false,
+            "format": "int32"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DashboardMostTargetedItemsResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/my-events": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "my-events",
+        "description": "Return my events",
+        "operationId": "my-events",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/new-detections": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "new-detections",
+        "description": "Return new detections",
+        "operationId": "new-detections",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "classification",
+            "in": "query",
+            "description": "Specifies the event classification.",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "All",
+              "ClassificationMalicious",
+              "ClassificationProbablyMalicious",
+              "ClassificationPup",
+              "ClassificationInconclusive",
+              "ClassificationProbablyGood",
+              "ClassificationGood"
+            ]
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/system-components": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "system-components",
+        "description": "Return system components",
+        "operationId": "system-components",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/team-workload-overview": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "team-workload-overview",
+        "description": "Return team workload overview",
+        "operationId": "team-workload-overview",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "incidentHandlingState",
+            "in": "query",
+            "description": "Specifies the incident handling state.",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Handled",
+              "Unhandled",
+              "InProgress"
+            ]
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/top-affected-devices": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "top-affected-devices",
+        "description": "Return top affected devices",
+        "operationId": "top-affected-devices",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "numDaysToDisplay",
+            "in": "query",
+            "description": "Specifies the number of days to display their data",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/top-detection-rule-by-occurrence": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "top-detection-rule-by-occurrence",
+        "description": "Return top detection rule by occurrence",
+        "operationId": "top-detection-rule-by-occurrence",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "numOfResultsToDisplay",
+            "in": "query",
+            "description": "Specifies the num of results to display.",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              5,
+              7,
+              12
+            ]
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/top-response-action": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "top-response-action",
+        "description": "Return top response action",
+        "operationId": "top-response-action",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Specifies the time filter end date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Specifies the chart key",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Specifies the chart number axis items to display",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sortByField",
+            "in": "query",
+            "description": "Specifies the sort by field",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortDirection",
+            "in": "query",
+            "description": "Specifies the sort direction",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Specifies the time filter start date",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "timeFilter",
+            "in": "query",
+            "description": "Specifies the time filter",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "Last1days",
+              "Last7days",
+              "Last14days",
+              "Last30days",
+              "Custom"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/MapOfstringAndobject"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/dashboard/unhandled-items": {
+      "get": {
+        "tags": [
+          "dashboard-rest-api-controller"
+        ],
+        "summary": "unhandled-items",
+        "description": "Returns unhandled devices or unhandled processes, depending on the itemType parameter",
+        "operationId": "unhandled-items",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "itemType",
+            "in": "query",
+            "description": "Specifies the type of items",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "process",
+              "device"
+            ]
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DashboardUnhandledItemsResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "DashboardMostTargetedItemsResponse": {
+      "type": "object",
+      "properties": {
+        "mostTargetedItems": {
+          "type": "array",
+          "description": "Specifies the list of items",
+          "items": {
+            "$ref": "#/definitions/MapOfstringAndobject"
+          }
+        }
+      },
+      "title": "DashboardMostTargetedItemsResponse"
+    },
+    "DashboardUnhandledItem": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the amount of items"
+        },
+        "classification": {
+          "type": "string",
+          "description": "Specifies the classification name",
+          "enum": [
+            "Malicious",
+            "Suspicious",
+            "Inconclusive",
+            "Likely Safe",
+            "PUP",
+            "Safe"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "description": "Specifies the severity name",
+          "enum": [
+            "Critical",
+            "High",
+            "Medium"
+          ]
+        }
+      },
+      "title": "DashboardUnhandledItem"
+    },
+    "DashboardUnhandledItemsResponse": {
+      "type": "object",
+      "properties": {
+        "unhandledItems": {
+          "type": "array",
+          "description": "Specifies the list of items",
+          "items": {
+            "$ref": "#/definitions/DashboardUnhandledItem"
+          }
+        }
+      },
+      "title": "DashboardUnhandledItemsResponse"
+    },
+    "MapOfstringAndobject": {
+      "type": "object",
+      "title": "MapOfstringAndobject",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "ProgressBarBean": {
+      "type": "object",
+      "properties": {
+        "childrenProgressPrecentage": {
+          "type": "number",
+          "format": "double",
+          "description": "Specifies the children progress percentage"
+        },
+        "data": {
+          "type": "object",
+          "description": "Specifies the data "
+        },
+        "errorsInfos": {
+          "type": "object",
+          "description": "Specifies the errors infos",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/MapOfstringAndobject"
+            }
+          }
+        },
+        "failedChildren": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the number of failed children"
+        },
+        "finishedChildren": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the number of finished children"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the Progress Bar Bean ID"
+        },
+        "lastActivityTime": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Specifies the last activity time"
+        },
+        "message": {
+          "type": "string",
+          "description": "Specifies the message"
+        },
+        "messageIsFinal": {
+          "type": "boolean",
+          "description": "Specifies if the message is final "
+        },
+        "numberOfChildren": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the number of children "
+        },
+        "optionalMessage": {
+          "type": "string",
+          "description": "Specifies the optional message"
+        },
+        "percentage": {
+          "type": "number",
+          "format": "double",
+          "description": "Specifies the Progress Bar Bean Percentage"
+        },
+        "status": {
+          "type": "string",
+          "description": "Specifies the Progress Bar Bean ID",
+          "enum": [
+            "InProgress",
+            "FinishedSuccessfully",
+            "FinishedWithWarning",
+            "Failed",
+            "Cancelled"
+          ]
+        },
+        "successChildren": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Specifies the number of success children"
+        }
+      },
+      "title": "ProgressBarBean"
+    }
+  }
+}

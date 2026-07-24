@@ -1,0 +1,661 @@
+{
+  "components": {
+    "schemas": {
+      "ActionProperty": {
+        "properties": {
+          "identifierName": {
+            "description": "Specifies the property identifier name (see connector-types for valid inputs).",
+            "type": "string"
+          },
+          "value": {
+            "description": "Specifies the property value.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifierName",
+          "value"
+        ],
+        "title": "ActionProperty",
+        "type": "object"
+      },
+      "ConnectorAction": {
+        "properties": {
+          "actionProperties": {
+            "description": "Specifies the action's property list (see /connector-types for mandatory properties).",
+            "items": {
+              "$ref": "#/components/schemas/ActionProperty"
+            },
+            "type": "array"
+          },
+          "identifierName": {
+            "description": "Specifies the action's identifier name (see /connector-types for valid inputs).",
+            "type": "string"
+          },
+          "scriptName": {
+            "description": "Specifies the action's script name. Action script must correspond the connector's vendor (see /connector-types for valid inputs).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "actionProperties",
+          "identifierName",
+          "scriptName"
+        ],
+        "title": "ConnectorAction",
+        "type": "object"
+      },
+      "ConnectorContainer": {
+        "properties": {
+          "apiKey": {
+            "description": "Specifies the connector's API key (API key authentication mode). Should be empty if username and passwords are used.",
+            "type": "string"
+          },
+          "connectorActions": {
+            "description": "Specifies the connector's actions' definition. Use connectors-metadata API for supported values",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorAction"
+            },
+            "type": "array"
+          },
+          "coreId": {
+            "description": "Specifies the ID of the connector's on-premise core",
+            "format": "int32",
+            "type": "integer"
+          },
+          "enabled": {
+            "description": "Specifies whether or not the connector is enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "host": {
+            "description": "Specifies the connector host address.",
+            "example": "127.0.0.1",
+            "type": "string"
+          },
+          "name": {
+            "description": "Specifies the connector name.",
+            "example": "Connector Name",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          },
+          "password": {
+            "description": "Specifies the connector's user's password (credentials authentication mode). Should be empty if apiKey is used.",
+            "type": "string"
+          },
+          "port": {
+            "description": "Specifies the connector port.",
+            "example": 443,
+            "type": "string"
+          },
+          "type": {
+            "description": "Specifies the connector type. See /connectors-metadata for valid types.",
+            "example": "Firewall",
+            "type": "string"
+          },
+          "username": {
+            "description": "Specifies the connector's user's username (credentials authentication mode). Should be empty if apiKey is used.",
+            "type": "string"
+          },
+          "vendor": {
+            "description": "Specifies the connector's vendor. See /connectors-metadata for valid values.",
+            "example": "FortiGate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectorActions",
+          "enabled",
+          "host",
+          "name",
+          "organization",
+          "port",
+          "type",
+          "vendor"
+        ],
+        "title": "ConnectorContainer",
+        "type": "object"
+      },
+      "CreateConnectorRequest": {
+        "properties": {
+          "apiKey": {
+            "description": "Specifies the connector's API key (API key authentication mode). Should be empty if username and passwords are used.",
+            "type": "string"
+          },
+          "connectorActions": {
+            "description": "Specifies the connector's actions' definition. Use connectors-metadata API for supported values",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorAction"
+            },
+            "type": "array"
+          },
+          "coreId": {
+            "description": "Specifies the ID of the connector's on-premise core",
+            "format": "int32",
+            "type": "integer"
+          },
+          "enabled": {
+            "description": "Specifies whether or not the connector is enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "host": {
+            "description": "Specifies the connector host address.",
+            "example": "127.0.0.1",
+            "type": "string"
+          },
+          "name": {
+            "description": "Specifies the connector name.",
+            "example": "Connector Name",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          },
+          "password": {
+            "description": "Specifies the connector's user's password (credentials authentication mode). Should be empty if apiKey is used.",
+            "type": "string"
+          },
+          "port": {
+            "description": "Specifies the connector port.",
+            "example": 443,
+            "type": "string"
+          },
+          "type": {
+            "description": "Specifies the connector type. See /connectors-metadata for valid types.",
+            "example": "Firewall",
+            "type": "string"
+          },
+          "username": {
+            "description": "Specifies the connector's user's username (credentials authentication mode). Should be empty if apiKey is used.",
+            "type": "string"
+          },
+          "vendor": {
+            "description": "Specifies the connector's vendor. See /connectors-metadata for valid values.",
+            "example": "FortiGate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectorActions",
+          "enabled",
+          "host",
+          "name",
+          "organization",
+          "port",
+          "type",
+          "vendor"
+        ],
+        "title": "CreateConnectorRequest",
+        "type": "object"
+      },
+      "GetConnectorsMetadataResponse": {
+        "properties": {
+          "connectorsMetadata": {
+            "description": "Specifies various general connectors metadata, including vendors, mandatory actions, scripts and properties",
+            "type": "object"
+          },
+          "jumpBoxes": {
+            "description": "Specifies the list of Jumpboxes available for connectors configuration.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "onPremiseCores": {
+            "description": "(Deprecated, use jumpBoxes instead) Specifies the list of on-premise cores available for connectors configuration.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "connectorsMetadata",
+          "jumpBoxes"
+        ],
+        "title": "GetConnectorsMetadataResponse",
+        "type": "object"
+      },
+      "TestConnectorResponse": {
+        "properties": {
+          "connectorTestResult": {
+            "description": "Connector test result",
+            "enum": [
+              "GENERAL_FAILURE",
+              "UNAUTHORIZED",
+              "BAD_GROUP_NAME",
+              "TEST_OK",
+              "DEVICE_UNKNOWN_AT_NAC",
+              "UNKNOWN_PROJECT_ID",
+              "UNKNOWN_ORG_ID",
+              "INVALID_REGION",
+              "SERVICE_UNAVAILABLE",
+              "SUCCESSFUL_SCRIPT_EXECUTION",
+              "EXCEPTION_THROWN_DURING_SCRIPT_EXECUTION"
+            ],
+            "type": "string"
+          },
+          "testResultMessage": {
+            "description": "Test result description",
+            "type": "string"
+          }
+        },
+        "title": "TestConnectorResponse",
+        "type": "object"
+      },
+      "UpdateConnectorRequest": {
+        "properties": {
+          "apiKey": {
+            "description": "Specifies the connector's API key (API key authentication mode). Should be empty if username and passwords are used.",
+            "type": "string"
+          },
+          "connectorActions": {
+            "description": "Specifies the connector's actions' definition. Use connectors-metadata API for supported values",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorAction"
+            },
+            "type": "array"
+          },
+          "coreId": {
+            "description": "Specifies the ID of the connector's on-premise core",
+            "format": "int32",
+            "type": "integer"
+          },
+          "enabled": {
+            "description": "Specifies whether or not the connector is enabled.",
+            "example": true,
+            "type": "boolean"
+          },
+          "host": {
+            "description": "Specifies the connector host address.",
+            "example": "127.0.0.1",
+            "type": "string"
+          },
+          "name": {
+            "description": "Specifies the connector name.",
+            "example": "Connector Name",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          },
+          "password": {
+            "description": "Specifies the connector's user's password (credentials authentication mode). Should be empty if apiKey is used.",
+            "type": "string"
+          },
+          "port": {
+            "description": "Specifies the connector port.",
+            "example": 443,
+            "type": "string"
+          },
+          "type": {
+            "description": "Specifies the connector type. See /connectors-metadata for valid types.",
+            "example": "Firewall",
+            "type": "string"
+          },
+          "username": {
+            "description": "Specifies the connector's user's username (credentials authentication mode). Should be empty if apiKey is used.",
+            "type": "string"
+          },
+          "vendor": {
+            "description": "Specifies the connector's vendor. See /connectors-metadata for valid values.",
+            "example": "FortiGate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectorActions",
+          "enabled",
+          "host",
+          "name",
+          "organization",
+          "port",
+          "type",
+          "vendor"
+        ],
+        "title": "UpdateConnectorRequest",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/management-rest/integrations/connectors-metadata": {
+      "get": {
+        "deprecated": false,
+        "description": "Get connectors metadata, describing the valid values for connector fields definition and on-premise cores.",
+        "operationId": "get_integrations_connectors_metadata",
+        "parameters": [
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetConnectorsMetadataResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "connectors-metadata",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/management-rest/integrations/create-connector": {
+      "post": {
+        "deprecated": false,
+        "description": "Creates a new connector. Please note: Creation of Custom connectors/actions is not yet support.",
+        "operationId": "integrations_create_connector",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConnectorRequest"
+              }
+            }
+          },
+          "description": "createConnectorRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorContainer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "create-connector",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/management-rest/integrations/delete-connector": {
+      "delete": {
+        "deprecated": false,
+        "description": "Deletes a connector",
+        "operationId": "integrations_delete_connector",
+        "parameters": [
+          {
+            "description": "Specifies the connector's name (case sensitive)",
+            "in": "query",
+            "name": "connectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the connector's type.",
+            "in": "query",
+            "name": "connectorType",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "delete-connector",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/management-rest/integrations/list-connectors": {
+      "get": {
+        "deprecated": false,
+        "description": "List all organization connectors",
+        "operationId": "get_integrations_list_connectors",
+        "parameters": [
+          {
+            "description": "Set to true to retrieve enabled, non-failing connectors.",
+            "in": "query",
+            "name": "onlyValidConnectors",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorContainer"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-connectors",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/management-rest/integrations/test-connector": {
+      "get": {
+        "deprecated": false,
+        "description": "Tests a connector",
+        "operationId": "get_integrations_test_connector",
+        "parameters": [
+          {
+            "description": "Specifies the connector's name (case sensitive)",
+            "in": "query",
+            "name": "connectorName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the connector's type.",
+            "in": "query",
+            "name": "connectorType",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestConnectorResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "test-connector",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/management-rest/integrations/update-connector": {
+      "put": {
+        "deprecated": false,
+        "description": "Updates an existing connector based on (name, type, organization). Please note: Modification of Custom connectors/actions is not yet support.",
+        "operationId": "integrations_update_connector",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConnectorRequest"
+              }
+            }
+          },
+          "description": "updateConnectorRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorContainer"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update-connector",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "API to create and test connectors.",
+      "name": "Integrations"
+    }
+  ]
+}

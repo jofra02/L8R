@@ -1,0 +1,100 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "Audit",
+      "description": "The Audit module enables you to retrieve system audit based on given dates"
+    }
+  ],
+  "paths": {
+    "/management-rest/audit/get-audit": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "get-audit",
+        "description": "This API retrieve the audit between 2 dates",
+        "operationId": "get-audit",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "fromTime",
+            "in": "query",
+            "description": "Retrieves audit that were written after the given date. Date Format: yyyy-MM-dd (Default is current date)",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "toTime",
+            "in": "query",
+            "description": "Retrieves audit that were written before the given date. Date Format: yyyy-MM-dd (Default is current date)",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AuditReportItem"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "AuditReportItem": {
+      "type": "object",
+      "properties": {
+        "dateAndTime": {
+          "type": "string",
+          "description": "Date and Time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description"
+        },
+        "subSystem": {
+          "type": "string",
+          "description": "Sub System"
+        },
+        "userName": {
+          "type": "string",
+          "description": "User Name"
+        }
+      },
+      "title": "AuditReportItem"
+    }
+  }
+}

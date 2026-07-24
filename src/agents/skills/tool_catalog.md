@@ -15,9 +15,9 @@ Tools follow a vendor-prefixed pattern:
 ```
 
 Examples:
-- `fgt_monitor_fw_get_firewall_policy` — FortiGate, monitor subsystem, read, firewall policy runtime stats
-- `fgt_monitor_sys_get_status` — FortiGate, monitor subsystem, read, system status
-- `fgt_monitor_router_get_ipv4` — FortiGate, monitor subsystem, read, IPv4 routing table
+- `fgt74_monitor_fw_get_firewall_policy` — FortiGate, monitor subsystem, read, firewall policy runtime stats
+- `fgt74_monitor_sys_get_status` — FortiGate, monitor subsystem, read, system status
+- `fgt74_monitor_router_get_ipv4` — FortiGate, monitor subsystem, read, IPv4 routing table
 
 You don't need to guess the name. The search matches on description content.
 
@@ -46,7 +46,7 @@ Good:
   "DHCP lease table with assigned addresses"
 
 Bad:
-  "fgt_get_interface"       — don't guess tool names
+  "fgt74_get_interface"       — don't guess tool names
   "show ip route"           — don't use CLI syntax
   "get fortigate stuff"     — too vague
   "tunnel status"           — ambiguous without domain context

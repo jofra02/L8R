@@ -1,0 +1,316 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "3",
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API"
+  },
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "IP sets",
+      "description": "API to define IPs sets and use them for exceptions"
+    }
+  ],
+  "paths": {
+    "/management-rest/ip-sets/create-ip-set": {
+      "post": {
+        "tags": [
+          "IP sets"
+        ],
+        "summary": "create-ip-set",
+        "description": "This API create IP sets in the system.\nUse the input parameter organization=All organizations to create for all the organization. (only for Admin role",
+        "operationId": "create-ip-set",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "ipGroupsRequest",
+            "description": "ipGroupsRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetIpGroupsOrganizationBodyRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/ip-sets/delete-ip-set": {
+      "delete": {
+        "tags": [
+          "IP sets"
+        ],
+        "summary": "delete-ip-set",
+        "description": "This API delete IP sets from the system. Use the input parameters to filter organization",
+        "operationId": "delete-ip-set",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ipSets",
+            "in": "query",
+            "description": "Specifies the list of IP name to delete",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/ip-sets/list-ip-sets": {
+      "get": {
+        "tags": [
+          "IP sets"
+        ],
+        "summary": "list-ip-sets",
+        "description": "This API call outputs a list of the IP sets in the system. Use the input parameters to filter the list",
+        "operationId": "list-ip-sets",
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ip",
+            "in": "query",
+            "description": "Specifies the IP of the requested sets",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/GetIpGroupsResponse"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/management-rest/ip-sets/update-ip-set": {
+      "put": {
+        "tags": [
+          "IP sets"
+        ],
+        "summary": "update-ip-set",
+        "description": "This API update IP sets in the system. Use the input parameters to filter organization",
+        "operationId": "update-ip-set",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "ipGroupsRequest",
+            "description": "ipGroupsRequest",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GetIpGroupsRequest"
+            }
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non-shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.\n•\teach – Indicates that the operation applies independently to each organization. For example, let's assume that the same user exists in multiple organizations. When each is specified in the organization parameter, then each organization can update this user separately.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "definitions": {
+    "GetIpGroupsOrganizationBodyRequest": {
+      "type": "object",
+      "required": [
+        "include",
+        "name"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Specifies the IP set description"
+        },
+        "exclude": {
+          "type": "array",
+          "description": "List of IPs, ranges and mask that excluded in the IP set",
+          "items": {
+            "type": "string"
+          }
+        },
+        "include": {
+          "type": "array",
+          "description": "Specifies List of IPs, ranges and mask that included in the IP set",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the IP set name"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Specifies the organization. The value that you specify for this parameter indicates how the operation applies to an organization(s). Some parts of the Fortinet Endpoint Protection and Response Platform system have separate, non-shared data that is organization-specific. Other parts of the system have data that is shared by all organizations. The value that you specify for the organization parameter, as described below, determines to which organization(s) an operation applies:\n•\tExact organization name – Specifies the name of a specific organization. The value that you specify here must match exactly.\n•\tAll organizations – Indicates that the operation applies to all organizations. In this case, the same data is shared by all organizations.\n•\teach – Indicates that the operation applies independently to each organization. For example, let's assume that the same user exists in multiple organizations. When each is specified in the organization parameter, then each organization can update this user separately."
+        }
+      },
+      "title": "GetIpGroupsOrganizationBodyRequest"
+    },
+    "GetIpGroupsRequest": {
+      "type": "object",
+      "required": [
+        "include",
+        "name"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Specifies the IP set description"
+        },
+        "exclude": {
+          "type": "array",
+          "description": "List of IPs, ranges and mask that excluded in the IP set",
+          "items": {
+            "type": "string"
+          }
+        },
+        "include": {
+          "type": "array",
+          "description": "Specifies List of IPs, ranges and mask that included in the IP set",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string",
+          "description": "Specifies the IP set name"
+        }
+      },
+      "title": "GetIpGroupsRequest"
+    },
+    "GetIpGroupsResponse": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "IP set description"
+        },
+        "exclude": {
+          "type": "array",
+          "description": "List of IPs, ranges and mask that excluded in the IP set",
+          "items": {
+            "type": "string"
+          }
+        },
+        "include": {
+          "type": "array",
+          "description": "List of IPs, ranges and mask that included in the IP set",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string",
+          "description": "IP set name"
+        },
+        "organization": {
+          "type": "string",
+          "description": "The organization of the IP set"
+        }
+      },
+      "title": "GetIpGroupsResponse"
+    }
+  }
+}

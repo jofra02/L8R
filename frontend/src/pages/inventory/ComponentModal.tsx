@@ -15,7 +15,23 @@ const ROLES = [
 
 // Appliance packs available in the MCP gateway (extend as packs are added)
 const MCP_PACKS = [
-  { label: "Fortinet / FortiGate", vendor: "fortinet", appliance: "fortigate", device_type: "fortios" },
+  {
+    label: "Fortinet / FortiGate",
+    vendor: "fortinet",
+    appliance: "fortigate",
+    device_type: "fortios",
+    tokenPlaceholder: "FortiOS REST API key",
+    tokenHint: "FortiOS REST API key (sent as HTTP Bearer).",
+  },
+  {
+    label: "Fortinet / FortiEDR",
+    vendor: "fortinet",
+    appliance: "fortiedr",
+    device_type: "fortiedr",
+    tokenPlaceholder: "organization\\user:password",
+    tokenHint:
+      "HTTP Basic credential in multi-tenancy format organization\\user:password (e.g. Acme\\apiuser:secret). The user needs the REST API role in FortiEDR.",
+  },
 ];
 
 const inputClass =
@@ -63,6 +79,7 @@ export function ComponentModal({
   });
   const [mcpHost, setMcpHost] = useState(existingMcp?.host ?? "");
   const [mcpPort, setMcpPort] = useState(existingMcp?.port ?? 443);
+  const [mcpOsVersion, setMcpOsVersion] = useState(existingMcp?.os_version ?? "");
   const [mcpToken, setMcpToken] = useState("");
   const [mcpVerifySsl, setMcpVerifySsl] = useState(!!existingMcp?.verify_ssl);
   const [mcpPrimary, setMcpPrimary] = useState(!!existingMcp?.primary);
@@ -95,6 +112,7 @@ export function ComponentModal({
       vendor: pack.vendor,
       appliance: pack.appliance,
       device_type: pack.device_type,
+      os_version: mcpOsVersion.trim() || undefined,
       host: mcpHost.trim(),
       port: mcpPort,
       token: mcpToken.trim() || undefined,
@@ -268,17 +286,35 @@ export function ComponentModal({
                   </div>
                 </div>
                 <div>
+                  <label className="block text-xs text-text-secondary mb-1">OS / firmware version</label>
+                  <input
+                    type="text"
+                    value={mcpOsVersion}
+                    onChange={(e) => setMcpOsVersion(e.target.value)}
+                    className={inputClass}
+                    placeholder="7.4.5"
+                  />
+                  <p className="text-[11px] text-text-muted mt-1">
+                    Used to match the device to the right versioned tool set during investigations.
+                  </p>
+                </div>
+                <div>
                   <label className="block text-xs text-text-secondary mb-1">API token</label>
                   <input
                     type="password"
                     value={mcpToken}
                     onChange={(e) => setMcpToken(e.target.value)}
                     className={inputClass}
-                    placeholder={isEdit && existingMcp?.managed ? "Unchanged" : "Device API token"}
+                    placeholder={
+                      isEdit && existingMcp?.managed
+                        ? "Unchanged"
+                        : (MCP_PACKS[mcpPack] ?? MCP_PACKS[0])?.tokenPlaceholder ?? "Device API token"
+                    }
                     autoComplete="new-password"
                   />
                   <p className="text-[11px] text-text-muted mt-1">
-                    Encrypted and stored only in the gateway. If a sync fails, re-enter the token and save again.
+                    {(MCP_PACKS[mcpPack] ?? MCP_PACKS[0])?.tokenHint} Encrypted and stored only in the
+                    gateway. If a sync fails, re-enter the token and save again.
                   </p>
                 </div>
                 <div className="flex items-center gap-5">

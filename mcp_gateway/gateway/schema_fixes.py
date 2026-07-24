@@ -23,6 +23,30 @@ def apply_fixes(spec: dict, extra_fixes: Sequence[SpecFix] = ()) -> dict:
     spec = _enrich_summaries(spec)
     for fix in extra_fixes:
         spec = fix(spec)
+    spec = _strip_response_content(spec)
+    return spec
+
+
+def _strip_response_content(spec: dict) -> dict:
+    """Drop response body schemas so FastMCP generates no tool output schema.
+
+    The gateway is a read-only evidence proxy: appliance responses must reach
+    the caller verbatim. Vendor response schemas mis-declare reality —
+    Springfox (FortiEDR) omits nullability, so a valid 200 payload with a null
+    in a declared-integer field is discarded whole by FastMCP's output
+    validation ("Output validation error: None is not of type 'integer'").
+    The platform consumes text content only, so output schemas add nothing.
+    Response descriptions are kept; operationIds are untouched (name-freeze
+    safe). Runs last so vendor hooks still see the full spec.
+    """
+    for path_item in spec.get("paths", {}).values():
+        for method, op in path_item.items():
+            if not isinstance(op, dict):
+                continue
+            for resp in (op.get("responses") or {}).values():
+                if isinstance(resp, dict):
+                    resp.pop("schema", None)   # Swagger 2.0
+                    resp.pop("content", None)  # OpenAPI 3.x
     return spec
 
 
@@ -36,7 +60,7 @@ def sanitize_operation_ids(spec: dict, prefix: str, stopwords: Iterable[str] = (
 
     NAME-FREEZE WARNING: the 64-char budget is computed against
     ``prefix + "_" + opId`` where ``prefix`` is only the spec-level mount name
-    (e.g. ``firewall``), NOT the full mounted chain (``fgt_cmdb_firewall_...``).
+    (e.g. ``firewall``), NOT the full mounted chain (``fgt74_cmdb_firewall_...``).
     Final tool names can therefore exceed 64 chars — that is the historical
     behavior the Qdrant tool_catalog was indexed against. Do NOT "fix" this
     budget: it would rename every hash-truncated tool and force a re-index.

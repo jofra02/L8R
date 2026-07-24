@@ -1,0 +1,25 @@
+{
+  "results": [
+    {
+      "name": "wan1",
+      "role": "wan",
+      "status": "up",
+      "allowaccess": "ping https ssh"
+    },
+    {
+      "name": "internal",
+      "role": "lan",
+      "status": "up",
+      "allowaccess": "ping https ssh http"
+    },
+    {
+      "name": "mgmt",
+      "role": "dmz",
+      "status": "up",
+      "allowaccess": "https ssh"
+    }
+  ],
+  "vdom": "root",
+  "status": "success",
+  "version": "v7.4.5"
+}

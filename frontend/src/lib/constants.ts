@@ -12,6 +12,28 @@ export const STATUS_COLORS: Record<string, string> = {
   failed: "bg-status-failed/15 text-status-failed border-status-failed/30",
   error: "bg-status-failed/15 text-status-failed border-status-failed/30",
   cancelled: "bg-severity-medium/15 text-severity-medium border-severity-medium/30",
+  // Assessment run / target / step statuses
+  draft: "bg-text-secondary/15 text-text-secondary border-text-secondary/30",
+  queued: "bg-status-pending/15 text-status-pending border-status-pending/30",
+  collecting: "bg-status-running/15 text-status-running border-status-running/30",
+  evaluating: "bg-status-running/15 text-status-running border-status-running/30",
+  completed_with_errors: "bg-severity-medium/15 text-severity-medium border-severity-medium/30",
+  collected: "bg-status-completed/15 text-status-completed border-status-completed/30",
+  partial: "bg-severity-medium/15 text-severity-medium border-severity-medium/30",
+  success: "bg-status-completed/15 text-status-completed border-status-completed/30",
+  timeout: "bg-status-failed/15 text-status-failed border-status-failed/30",
+  skipped: "bg-text-secondary/15 text-text-secondary border-text-secondary/30",
+};
+
+// Assessment control evaluation outcomes
+export const CONTROL_STATUS_COLORS: Record<string, string> = {
+  pass: "bg-status-completed/15 text-status-completed border-status-completed/30",
+  fail: "bg-status-failed/15 text-status-failed border-status-failed/30",
+  warning: "bg-severity-medium/15 text-severity-medium border-severity-medium/30",
+  not_applicable: "bg-text-secondary/15 text-text-secondary border-text-secondary/30",
+  not_evaluated: "bg-text-secondary/15 text-text-secondary border-text-secondary/30",
+  insufficient_evidence: "bg-status-pending/15 text-status-pending border-status-pending/30",
+  error: "bg-status-failed/15 text-status-failed border-status-failed/30",
 };
 
 export const DECISION_COLORS: Record<string, string> = {
@@ -53,6 +75,9 @@ export const ROUTES = {
   RUNS: "/runs",
   RUN_STATS: "/runs/stats",
   RUN_DETAIL: "/runs/:id",
+  ASSESSMENTS: "/assessments",
+  ASSESSMENT_NEW: "/assessments/new",
+  ASSESSMENT_DETAIL: "/assessments/:id",
   AUDIT_LOGS: "/audit/logs",
   TOOL_CALLS: "/audit/tool-calls",
   INVENTORY: "/inventory",

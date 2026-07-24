@@ -18,12 +18,20 @@ logger = logging.getLogger(__name__)
 class ExternalToolWrapper(MCPToolInterface):
     """
     Wraps an external MCP tool result into our internal interface.
+
+    ``input_schema`` is the raw MCP inputSchema (JSON Schema) exactly as the
+    server advertises it — types, formats, enums, and per-parameter
+    descriptions included. ``args_schema`` is a permissive pydantic shell
+    (every field ``Any``) kept for interface compatibility; it must NOT be
+    used as a schema source because its round-trip drops all constraints.
     """
-    def __init__(self, name: str, description: str, args_schema: Any, server_name: str):
+    def __init__(self, name: str, description: str, args_schema: Any, server_name: str,
+                 input_schema: Optional[Dict[str, Any]] = None):
         self.name = name
         self.description = description
         self.args_schema = args_schema
         self.server_name = server_name
+        self.input_schema = input_schema or {}
 
     async def run(self, **kwargs) -> str:
         # Delegate back to the client to execute
@@ -67,7 +75,8 @@ class MCPClient:
                         name=t.name,
                         description=t.description or "",
                         args_schema=dummy_schema,
-                        server_name=name
+                        server_name=name,
+                        input_schema=schema,
                     )
                     wrappers.append(wrapper)
                     logger.info(f"MCP: Found tool {t.name} on {name}")

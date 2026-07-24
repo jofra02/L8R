@@ -26,6 +26,29 @@ log = logging.getLogger("gateway.http")
 _UNCONFIGURED_HOST = "unconfigured.invalid"
 
 
+def _strip_blank_query_params(request: httpx.Request) -> None:
+    """Drop query parameters whose value is an empty string.
+
+    FastMCP's OpenAPI layer serializes optional query parameters the caller
+    left unset as ``name=`` (blank). The Fortinet REST APIs reject blanks:
+    enum-constrained filters answer 400 (``Invalid value [] to parameter
+    [typeFilter]``) and blank numeric params surface as server-side SQL errors
+    (``organizationId=`` -> ``SQLGrammarException``). An absent parameter, by
+    contrast, lets the appliance apply its own default. These are read-only
+    GETs, so a blank filter and an omitted filter are semantically identical —
+    dropping the blank is safe and restores the appliance default path.
+    """
+    params = request.url.params
+    if not params:
+        return
+    kept = [(k, v) for k, v in params.multi_items() if v != ""]
+    if len(kept) == len(params.multi_items()):
+        return
+    dropped = [k for k, v in params.multi_items() if v == ""]
+    request.url = request.url.copy_with(query=str(httpx.QueryParams(kept)).encode("ascii") or None)
+    log.debug("Stripped blank query params: %s", ", ".join(sorted(set(dropped))))
+
+
 async def _log_request(req: httpx.Request):
     log.info("--> %s %s", req.method, req.url)
 
@@ -74,6 +97,8 @@ class RoutingClient(httpx.AsyncClient):
         primary changes — take effect without rebuilding the client; base_url
         only remains as the no-route fallback (unconfigured.invalid).
         """
+        _strip_blank_query_params(request)
+
         # Tenant selector (in: header). Alt spelling kept for manual use.
         target_tenant = None
         if "tenant" in request.headers:

@@ -4,6 +4,7 @@ from src.config import settings
 from langchain_openai import OpenAIEmbeddings
 from src.core.rag_telemetry import rag_telemetry
 from datetime import datetime, timezone
+import hashlib
 import uuid
 import json
 import logging
@@ -12,6 +13,17 @@ logger = logging.getLogger(__name__)
 
 # Project-specific namespace for deterministic UUIDs
 _NAMESPACE = uuid.UUID("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+
+
+def tool_schema_hash(args_schema_json: Optional[dict]) -> str:
+    """Stable fingerprint of a tool's args schema for startup drift detection.
+
+    Stored in the tool_catalog payload as ``schema_hash`` so index_tools can
+    re-index a tool whose schema changed (e.g. a gateway pack enriched an enum
+    or description) even when the tool-level description is identical.
+    """
+    canonical = json.dumps(args_schema_json or {}, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 # Collections and their required payload indexes
 COLLECTION_INDEXES: Dict[str, List[tuple]] = {
@@ -60,6 +72,12 @@ COLLECTION_INDEXES: Dict[str, List[tuple]] = {
         ("tier", models.PayloadSchemaType.INTEGER),
         ("provides_identifiers", models.PayloadSchemaType.KEYWORD),
         ("source_type", models.PayloadSchemaType.KEYWORD),
+        # Pack identity (logical catalog partition per appliance pack version).
+        ("pack_vendor", models.PayloadSchemaType.KEYWORD),
+        ("pack_product", models.PayloadSchemaType.KEYWORD),
+        ("pack_version", models.PayloadSchemaType.KEYWORD),
+        ("pack_key", models.PayloadSchemaType.KEYWORD),
+        ("device_type", models.PayloadSchemaType.KEYWORD),
     ],
 }
 
@@ -549,6 +567,7 @@ class VectorStore:
                 "description": description,
                 "server_name": server_name,
                 "args_schema": args_schema_json,
+                "schema_hash": tool_schema_hash(args_schema_json),
                 "vendor": vendor,
                 "method": method,
                 "read_only": "true" if read_only else "false",
@@ -589,15 +608,17 @@ class VectorStore:
         """
         return set(await self.get_indexed_tool_descriptions(customer_id))
 
-    async def get_indexed_tool_descriptions(self, customer_id: str) -> Dict[str, str]:
+    async def get_indexed_tool_descriptions(self, customer_id: str) -> Dict[str, Dict[str, str]]:
         """
-        Return tool_name -> stored description for a tenant's indexed catalog.
-        Uses scroll (no embedding call) — cheap and fast. Lets the registry diff
-        detect description changes, not just missing names.
+        Return tool_name -> {"description", "schema_hash"} for a tenant's
+        indexed catalog. Uses scroll (no embedding call) — cheap and fast.
+        Lets the registry diff detect description AND schema changes, not just
+        missing names. ``schema_hash`` is "" for points indexed before the
+        field existed.
         """
         await self.ensure_collection("tool_catalog")
 
-        indexed: Dict[str, str] = {}
+        indexed: Dict[str, Dict[str, str]] = {}
         offset = None
         tenant_filter = self._build_tenant_filter(customer_id)
 
@@ -607,13 +628,16 @@ class VectorStore:
                 scroll_filter=tenant_filter,
                 limit=250,
                 offset=offset,
-                with_payload=["tool_name", "description"],
+                with_payload=["tool_name", "description", "schema_hash"],
                 with_vectors=False,
             )
             for pt in results:
                 name = pt.payload.get("tool_name")
                 if name:
-                    indexed[name] = pt.payload.get("description") or ""
+                    indexed[name] = {
+                        "description": pt.payload.get("description") or "",
+                        "schema_hash": pt.payload.get("schema_hash") or "",
+                    }
 
             if next_offset is None:
                 break
@@ -635,11 +659,16 @@ class VectorStore:
         categories: List[str] = None,
         tier: int = None,
         provides_identifiers: List[str] = None,
+        allowed_pack_keys: List[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Semantic search for tools by INTENT description.
         Returns tool payloads sorted by relevance.
         Optional keyword filters narrow results before vector scoring.
+
+        allowed_pack_keys scopes appliance-pack tools to the given
+        vendor/product/version keys while still admitting tools that carry no
+        pack identity (generic/non-gateway tools).
         """
         # Tool catalog is global — override per-tenant customer_id
         customer_id = self.TOOL_CATALOG_GLOBAL_ID
@@ -672,8 +701,17 @@ class VectorStore:
                 key="provides_identifiers",
                 match=models.MatchAny(any=[p.lower() for p in provides_identifiers]),
             ))
+        if allowed_pack_keys:
+            # Nested should-filter: pack tools must match an allowed pack_key;
+            # tools without pack identity (no pack_key payload) always pass.
+            extra_filter.append(models.Filter(should=[
+                models.IsEmptyCondition(is_empty=models.PayloadField(key="pack_key")),
+                models.FieldCondition(
+                    key="pack_key", match=models.MatchAny(any=list(allowed_pack_keys))
+                ),
+            ]))
 
-        logger.debug(f"search_tool_catalog: query='{intent}', vendor={vendor}, read_only={read_only}, categories={categories}, tier={tier}")
+        logger.debug(f"search_tool_catalog: query='{intent}', vendor={vendor}, read_only={read_only}, categories={categories}, tier={tier}, allowed_pack_keys={allowed_pack_keys}")
         results = await self.search(
             "tool_catalog", intent, customer_id, limit,
             score_threshold=threshold,
@@ -701,6 +739,29 @@ class VectorStore:
         if "categories" not in payload or isinstance(payload.get("categories"), str):
             return True
         if "tier" not in payload or payload.get("tier") == 0:
+            return True
+        # Pack-identity probe: sample a GATEWAY point (generic tools legitimately
+        # carry no pack_key) — if it predates the pack-partition payload, force
+        # a full re-index.
+        gw_results, _ = await self.client.scroll(
+            collection_name="tool_catalog",
+            scroll_filter=self._build_tenant_filter(customer_id, extra_must=[
+                models.FieldCondition(
+                    key="server_name", match=models.MatchValue(value="mcp-gateway")
+                ),
+            ]),
+            limit=1,
+            with_payload=["pack_key", "schema_hash"],
+            with_vectors=False,
+        )
+        if gw_results and "pack_key" not in gw_results[0].payload:
+            return True
+        # Schema-fidelity probe: points indexed before schema_hash existed also
+        # predate the raw-inputSchema capture — their args_schema payloads are
+        # typeless pydantic shells (Any | None), useless to the agent. Force a
+        # full re-index once so real types/enums/descriptions land in the
+        # catalog.
+        if gw_results and "schema_hash" not in gw_results[0].payload:
             return True
         return False
 

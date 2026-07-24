@@ -26,7 +26,7 @@ The system uses a single **Engineer ReAct agent** that reasons through IT suppor
 |:---|:---|
 | `query_client_db` | Retrieve tenant context, topology, configuration from PostgreSQL |
 | `load_domain_skill` | Inject domain-specific investigation methodology into the agent's context |
-| `search_tool_catalog` | Semantic search across the indexed MCP tool catalog (2182 safety-filtered tools of the 2546 the gateway exposes) |
+| `search_tool_catalog` | Semantic search across the indexed MCP tool catalog (2220 safety-filtered tools of the 2776 the gateway exposes) |
 | `search_knowledge_base` | Query Qdrant for runbooks, KB articles, past resolutions |
 | `execute_tool` | Run a read-only MCP tool against an external system |
 | `submit_findings` | Emit structured diagnosis, remediation plan, and report |
@@ -51,7 +51,7 @@ Defined in `src/agent_graph_v2.py`. The Engineer node runs the full ReAct loop i
 
 - **Single ReAct Reasoning Loop.** One LLM, one chain of thought. No inter-agent coordination overhead. The Engineer reasons, gathers evidence, and produces a structured report in a single pass.
 - **Skills System.** Domain-specific investigation methodologies injected on-demand. Base methodology always loaded. Extensible to any IT domain.
-- **Semantic Tool Catalog Search.** The MCP Gateway exposes 2546 tools; the registry safety-filters them to 2182, indexed by description in Qdrant. The agent searches for relevant tools by intent rather than memorizing tool names.
+- **Semantic Tool Catalog Search.** The MCP Gateway exposes 2776 tools; the registry safety-filters them to 2220, indexed by description in Qdrant. The agent searches for relevant tools by intent rather than memorizing tool names.
 - **Content-Addressable Evidence Store.** Immutable evidence snapshots stored on disk, indexed in Qdrant, tracked in PostgreSQL. Deduplicated by content hash.
 - **Multi-Tenant Isolation.** All database queries, Qdrant searches, and evidence storage are scoped by `customer_id`. No cross-tenant data leakage.
 - **Read-Only Tool Governance.** The agent can query, get, and list but never modify external systems: mutating tools are blocked by a keyword safety filter at both registration and execution time. (Human-in-the-loop approval for write actions is planned, not yet implemented.)
@@ -86,7 +86,7 @@ Content-addressable, immutable snapshots. Each piece of evidence is hashed and s
 
 ### MCP (Tool Execution)
 
-Tools are served by MCP servers (stdio or SSE transport). The platform bundles its own: the **MCP Gateway** (`mcp_gateway/`), a generic OpenAPI→MCP service whose first appliance pack converts 62 FortiOS specs into 2546 tools; the agent's registry safety-filters these to 2182 registered and indexed for semantic catalog search at startup. See [MCP Integration Guide](docs/integrations/mcp_tools.md) and [MCP Gateway](docs/architecture/mcp_gateway.md).
+Tools are served by MCP servers (stdio or SSE transport). The platform bundles its own: the **MCP Gateway** (`mcp_gateway/`), a generic OpenAPI→MCP service whose appliance packs (62 FortiOS specs, 26 FortiEDR specs) convert into 2776 tools; the agent's registry safety-filters these to 2220 registered and indexed for semantic catalog search at startup. See [MCP Integration Guide](docs/integrations/mcp_tools.md) and [MCP Gateway](docs/architecture/mcp_gateway.md).
 
 ---
 
@@ -148,7 +148,7 @@ src/
 frontend/                    # React dashboard
 mcp_gateway/                 # Generic OpenAPI→MCP gateway service (tool execution)
 ├── gateway/                 # Vendor-agnostic engine
-├── vendors/                 # Appliance packs: vendors/<vendor>/<appliance>/
+├── vendors/                 # Appliance packs: vendors/<vendor>/<appliance>/<version>/
 │   └── fortinet/fortigate/  # FortiGate pack (manifest + FortiOS specs + hooks)
 └── inventory/               # Per-tenant device inventory (gitignored, encrypted tokens)
 docs/

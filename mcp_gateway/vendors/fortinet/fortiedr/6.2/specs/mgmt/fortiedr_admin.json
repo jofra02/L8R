@@ -1,0 +1,1780 @@
+{
+  "components": {
+    "schemas": {
+      "AdminIotLastDiscoveryGetResponse": {
+        "properties": {
+          "lastDiscovery": {
+            "description": "Last discovery time",
+            "type": "string"
+          }
+        },
+        "title": "AdminIotLastDiscoveryGetResponse",
+        "type": "object"
+      },
+      "AdminIotScanPostRequest": {
+        "properties": {
+          "collectorId": {
+            "description": "Collector ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "collectorName": {
+            "description": "Collector name",
+            "type": "string"
+          }
+        },
+        "title": "AdminIotScanPostRequest",
+        "type": "object"
+      },
+      "AdminIotSettingsPutRequest": {
+        "properties": {
+          "autoGroupingOption": {
+            "description": "Auto grouping options: None / DeviceType",
+            "type": "string"
+          },
+          "compareExternalIpWhenMatchDeviceToCollectors": {
+            "description": "Compare External Ip When Match Device To Collectors",
+            "type": "boolean"
+          },
+          "excludeGroupsIds": {
+            "description": "Group IDs to exclude from ongoing scan",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "iotEnable": {
+            "description": "Ongoing scan enabled",
+            "type": "boolean"
+          },
+          "isExcludeGroupsChanged": {
+            "description": "Is excluded groups changed",
+            "type": "boolean"
+          }
+        },
+        "title": "AdminIotSettingsPutRequest",
+        "type": "object"
+      },
+      "AdminSetEnableDefaultApplicationControlPostRequest": {
+        "properties": {
+          "isDefault": {
+            "description": "Set Enable Default Application Control ",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "isDefault"
+        ],
+        "title": "AdminSetEnableDefaultApplicationControlPostRequest",
+        "type": "object"
+      },
+      "AdminSetEnableDefaultApplicationControlRequest": {
+        "properties": {
+          "isEnableDefaultApplicationControl": {
+            "description": "Set Enable Default Application Control ",
+            "type": "boolean"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          }
+        },
+        "required": [
+          "isEnableDefaultApplicationControl",
+          "organization"
+        ],
+        "title": "AdminSetEnableDefaultApplicationControlRequest",
+        "type": "object"
+      },
+      "AdminSetTrayNotificationSettingsRequest": {
+        "properties": {
+          "enableFortiClientNotification": {
+            "description": "Enable notification pipe to FortiClient",
+            "type": "boolean"
+          },
+          "enabledPopup": {
+            "description": "Enable popup",
+            "type": "boolean"
+          },
+          "enabledTrayNotification": {
+            "description": "Enable tray notification",
+            "type": "boolean"
+          },
+          "message": {
+            "description": "Specifies the message",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Specifies the name of a specific organization. The value that you specify here must match exactly",
+            "type": "string"
+          },
+          "showNotificationOnFileReadAttempt": {
+            "description": "Show notification on file read attempt",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabledPopup",
+          "enabledTrayNotification",
+          "message",
+          "organization"
+        ],
+        "title": "AdminSetTrayNotificationSettingsRequest",
+        "type": "object"
+      },
+      "AvScanDisplayItem": {
+        "properties": {
+          "allowedGuid": {
+            "description": "Is allowed GUID",
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "day": {
+            "description": "AV scan day",
+            "format": "int32",
+            "type": "integer"
+          },
+          "dayOptionsList": {
+            "description": "AV scan day option list",
+            "items": {
+              "$ref": "#/components/schemas/Map"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "description": "Is AV scan enabled",
+            "type": "boolean"
+          },
+          "executableOnly": {
+            "description": "Is AV scan executable only",
+            "type": "boolean"
+          },
+          "frequency": {
+            "description": "AV scan frequency",
+            "type": "string"
+          },
+          "frequencyOptionsList": {
+            "description": "AV scan frequency option list",
+            "items": {
+              "$ref": "#/components/schemas/Map"
+            },
+            "type": "array"
+          },
+          "hour": {
+            "description": "AV scan hour",
+            "format": "int32",
+            "type": "integer"
+          },
+          "hourOptionsList": {
+            "description": "AV scan hour option list",
+            "items": {
+              "$ref": "#/components/schemas/Map"
+            },
+            "type": "array"
+          },
+          "interval": {
+            "description": "AV scan interval",
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastScan": {
+            "description": "Last time of AV scan",
+            "type": "string"
+          },
+          "scanBy": {
+            "description": "AV scan scan destination option",
+            "type": "string"
+          },
+          "scanSelection": {
+            "description": "AV scan selected destinations",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "title": "AvScanDisplayItem",
+        "type": "object"
+      },
+      "AvScanFilesDisplayItem": {
+        "properties": {
+          "applyRecursiveScan": {
+            "description": "Is AV scan recursive",
+            "type": "boolean"
+          },
+          "executableOnly": {
+            "description": "Is AV scan executable only",
+            "type": "boolean"
+          },
+          "filePaths": {
+            "description": "AV scan file paths",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "origin": {
+            "description": "Origin of AV scan",
+            "enum": [
+              "PeriodicScan",
+              "AdHocScan"
+            ],
+            "type": "string"
+          },
+          "scanBy": {
+            "description": "AV scan scan destination option",
+            "type": "string"
+          },
+          "scanSelection": {
+            "description": "AV scan selected destinations",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "title": "AvScanFilesDisplayItem",
+        "type": "object"
+      },
+      "BaseSearchResultOfListOfMapOfstringAndobject": {
+        "properties": {
+          "result": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/MapOfstringAndobject"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "totalCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "title": "BaseSearchResultOfListOfMapOfstringAndobject",
+        "type": "object"
+      },
+      "EnableDefaultAppControlStatePostResponse": {
+        "properties": {
+          "registrationPassword": {
+            "description": "Enable default application control state",
+            "type": "boolean"
+          }
+        },
+        "title": "EnableDefaultAppControlStatePostResponse",
+        "type": "object"
+      },
+      "FeatureItem": {
+        "properties": {
+          "feature": {
+            "description": "Feature name",
+            "type": "string"
+          },
+          "state": {
+            "description": "Feature state",
+            "items": {
+              "$ref": "#/components/schemas/FeatureState"
+            },
+            "type": "array"
+          }
+        },
+        "title": "FeatureItem",
+        "type": "object"
+      },
+      "FeatureRestItem": {
+        "properties": {
+          "enabled": {
+            "description": "if feature is enabled",
+            "type": "string"
+          },
+          "name": {
+            "description": "Unique feature name",
+            "type": "string"
+          },
+          "parameters": {
+            "description": "A list of parameters of the strategy",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "strategy": {
+            "description": "The name of feature strategy",
+            "type": "string"
+          }
+        },
+        "title": "FeatureRestItem",
+        "type": "object"
+      },
+      "FeatureState": {
+        "properties": {
+          "accountId": {
+            "description": "Account id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "enabled": {
+            "description": "is active",
+            "type": "boolean"
+          }
+        },
+        "title": "FeatureState",
+        "type": "object"
+      },
+      "FeaturesStateByAccountResponse": {
+        "properties": {
+          "features": {
+            "description": "Features",
+            "items": {
+              "$ref": "#/components/schemas/FeatureItem"
+            },
+            "type": "array"
+          }
+        },
+        "title": "FeaturesStateByAccountResponse",
+        "type": "object"
+      },
+      "Map": {
+        "additionalProperties": {
+          "type": "object"
+        },
+        "title": "Map",
+        "type": "object"
+      },
+      "MapOfstringAndobject": {
+        "additionalProperties": {
+          "type": "object"
+        },
+        "title": "MapOfstringAndobject",
+        "type": "object"
+      },
+      "ProgressBarBean": {
+        "properties": {
+          "childrenProgressPrecentage": {
+            "description": "Specifies the children progress percentage",
+            "format": "double",
+            "type": "number"
+          },
+          "data": {
+            "description": "Specifies the data ",
+            "type": "object"
+          },
+          "errorsInfos": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/MapOfstringAndobject"
+              },
+              "type": "array"
+            },
+            "description": "Specifies the errors infos",
+            "type": "object"
+          },
+          "failedChildren": {
+            "description": "Specifies the number of failed children",
+            "format": "int32",
+            "type": "integer"
+          },
+          "finishedChildren": {
+            "description": "Specifies the number of finished children",
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Specifies the Progress Bar Bean ID",
+            "format": "int32",
+            "type": "integer"
+          },
+          "lastActivityTime": {
+            "description": "Specifies the last activity time",
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "description": "Specifies the message",
+            "type": "string"
+          },
+          "messageIsFinal": {
+            "description": "Specifies if the message is final ",
+            "type": "boolean"
+          },
+          "numberOfChildren": {
+            "description": "Specifies the number of children ",
+            "format": "int32",
+            "type": "integer"
+          },
+          "optionalMessage": {
+            "description": "Specifies the optional message",
+            "type": "string"
+          },
+          "percentage": {
+            "description": "Specifies the Progress Bar Bean Percentage",
+            "format": "double",
+            "type": "number"
+          },
+          "status": {
+            "description": "Specifies the Progress Bar Bean ID",
+            "enum": [
+              "InProgress",
+              "FinishedSuccessfully",
+              "FinishedWithWarning",
+              "Failed",
+              "Cancelled"
+            ],
+            "type": "string"
+          },
+          "successChildren": {
+            "description": "Specifies the number of success children",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "title": "ProgressBarBean",
+        "type": "object"
+      },
+      "SearchResult": {
+        "properties": {
+          "count": {
+            "description": "Count",
+            "format": "int32",
+            "type": "integer"
+          },
+          "searchValueType": {
+            "description": "Search value type",
+            "enum": [
+              "AUDIT",
+              "SYSTEM_EVENT",
+              "RAW_DATA_ITEM",
+              "LDAP_USER",
+              "LOCAL_USER",
+              "AGENT",
+              "EXCEPTION",
+              "SECURITY_EVENT",
+              "IOT"
+            ],
+            "type": "string"
+          }
+        },
+        "title": "SearchResult",
+        "type": "object"
+      },
+      "UrlItem": {
+        "properties": {
+          "controller": {
+            "description": "The name of the controller of the Url",
+            "type": "string"
+          },
+          "features": {
+            "description": "The list of features",
+            "items": {
+              "$ref": "#/components/schemas/FeatureItem"
+            },
+            "type": "array"
+          },
+          "method": {
+            "description": "The name of the method of the Url",
+            "type": "string"
+          },
+          "path": {
+            "description": "The url path",
+            "type": "string"
+          }
+        },
+        "title": "UrlItem",
+        "type": "object"
+      },
+      "UrlToFeatureResponse": {
+        "properties": {
+          "urls": {
+            "description": "A list of urls associated with feature",
+            "items": {
+              "$ref": "#/components/schemas/UrlItem"
+            },
+            "type": "array"
+          }
+        },
+        "title": "UrlToFeatureResponse",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "basicAuth": {
+        "scheme": "basic",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Fortinet Endpoint Protection and Response Platform RESTful API",
+    "version": "6.2"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/admin/features": {
+      "get": {
+        "deprecated": false,
+        "description": "This API call outputs a list of the features in the system.",
+        "operationId": "get_admin_features",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FeatureRestItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "list-features",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "deprecated": false,
+        "description": "This API create feature in the system.",
+        "operationId": "create_admin_features",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureRestItem"
+              }
+            }
+          },
+          "description": "item",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureRestItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "create-feature",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/features-state": {
+      "get": {
+        "deprecated": false,
+        "description": "This API retrieve feature state by account.",
+        "operationId": "get_admin_features_state",
+        "parameters": [
+          {
+            "description": "accountId",
+            "in": "query",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeaturesStateByAccountResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "features-state",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/features-url": {
+      "get": {
+        "deprecated": false,
+        "description": "This API retrieve urls associated with feature.",
+        "operationId": "get_admin_features_url",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UrlToFeatureResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "features-url",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/features/{featureName}": {
+      "delete": {
+        "deprecated": false,
+        "description": "This API delete feature in the system.",
+        "operationId": "delete_admin_features_feature_name",
+        "parameters": [
+          {
+            "description": "featureName",
+            "in": "path",
+            "name": "featureName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "delete-feature",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "get": {
+        "deprecated": false,
+        "description": "This API call outputs a feature by feature name",
+        "operationId": "get_admin_features_feature_name",
+        "parameters": [
+          {
+            "description": "featureName",
+            "in": "path",
+            "name": "featureName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureRestItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-feature",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "deprecated": false,
+        "description": "This API update feature in the system.",
+        "operationId": "update_admin_features_feature_name",
+        "parameters": [
+          {
+            "description": "featureName",
+            "in": "path",
+            "name": "featureName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureRestItem"
+              }
+            }
+          },
+          "description": "item",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureRestItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "update-feature",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/features/{featureName}/parameters": {
+      "delete": {
+        "deprecated": false,
+        "description": "This API removes parameters from feature.",
+        "operationId": "delete_admin_features_feature_name_parameters",
+        "parameters": [
+          {
+            "description": "featureName",
+            "in": "path",
+            "name": "featureName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureRestItem"
+              }
+            }
+          },
+          "description": "item",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureRestItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "remove-feature-parameters",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "deprecated": false,
+        "description": "This API update feature with an additional parameters.",
+        "operationId": "update_admin_features_feature_name_parameters",
+        "parameters": [
+          {
+            "description": "featureName",
+            "in": "path",
+            "name": "featureName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureRestItem"
+              }
+            }
+          },
+          "description": "item",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureRestItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "add-feature-parameters",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/set-enable-default-application-control-state": {
+      "put": {
+        "deprecated": false,
+        "description": "Update default application control state",
+        "operationId": "admin_set_enable_default_application_control_state",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSetEnableDefaultApplicationControlRequest"
+              }
+            }
+          },
+          "description": "adminSetEnableDefaultApplicationControlRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "set-enable-default-application-control-state",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/set-tray-notification-settings": {
+      "post": {
+        "deprecated": false,
+        "description": "Update tray notification settings",
+        "operationId": "admin_set_tray_notification_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSetTrayNotificationSettingsRequest"
+              }
+            }
+          },
+          "description": "adminSetTrayNotificationSettingsRequest",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "set-tray-notification-settings",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/av-scan": {
+      "put": {
+        "deprecated": false,
+        "description": "av-scan",
+        "operationId": "update_admin_settings_av_scan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvScanDisplayItem"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "av-scan",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/av-scan-collectors-and-groups-options": {
+      "get": {
+        "deprecated": false,
+        "description": "av-scan-collectors-and-groups-options",
+        "operationId": "get_admin_settings_av_scan_collectors_and_groups_options",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MapOfstringAndobject"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "av-scan-collectors-and-groups-options",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/av-scan-mobile": {
+      "get": {
+        "deprecated": false,
+        "description": "av-scan-mobile",
+        "operationId": "get_admin_settings_av_scan_mobile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "av-scan-mobile",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "deprecated": false,
+        "description": "av-scan-mobile",
+        "operationId": "update_admin_settings_av_scan_mobile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "av-scan-mobile",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/av-scan-mobile-collectors-and-groups-options": {
+      "get": {
+        "deprecated": false,
+        "description": "av-scan-mobile-collectors-and-groups-options",
+        "operationId": "get_admin_settings_av_scan_mobile_collectors_and_groups_options",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "av-scan-mobile-collectors-and-groups-options",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/av-scan-trigger": {
+      "post": {
+        "deprecated": false,
+        "description": "trigger-scan",
+        "operationId": "create_admin_settings_av_scan_trigger",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "202": {
+            "description": "Accepted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "trigger-scan",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/default-application-control-state": {
+      "put": {
+        "deprecated": false,
+        "description": "default-application-control-state",
+        "operationId": "update_admin_settings_default_application_control_state",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnableDefaultAppControlStatePostResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "default-application-control-state",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/gdpr-data": {
+      "delete": {
+        "deprecated": false,
+        "description": "delete-gdpr-data",
+        "operationId": "delete_admin_settings_gdpr_data",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "delete-gdpr-data",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "get": {
+        "deprecated": false,
+        "description": "get-gdpr-data",
+        "operationId": "get_admin_settings_gdpr_data",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "$ref": "#/components/schemas/SearchResult"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "get-gdpr-data",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/gdpr-data-report": {
+      "get": {
+        "deprecated": false,
+        "description": "gdpr-data-report",
+        "operationId": "get_admin_settings_gdpr_data_report",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressBarBean"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "gdpr-data-report",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/gdpr-types": {
+      "get": {
+        "deprecated": false,
+        "description": "gdpr-types",
+        "operationId": "get_admin_settings_gdpr_types",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Map"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "gdpr-types",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/gdpr-users-report": {
+      "get": {
+        "deprecated": false,
+        "description": "gdpr-users-report",
+        "operationId": "get_admin_settings_gdpr_users_report",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressBarBean"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "gdpr-users-report",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/iot-collectors": {
+      "get": {
+        "deprecated": false,
+        "description": "iot-discovery-collectors",
+        "operationId": "get_admin_settings_iot_collectors",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseSearchResultOfListOfMapOfstringAndobject"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "iot-discovery-collectors",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/iot-last-discovery": {
+      "get": {
+        "deprecated": false,
+        "description": "stop-last-discovery",
+        "operationId": "stop_last_discovery",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminIotLastDiscoveryGetResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "stop-last-discovery",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/iot-settings": {
+      "put": {
+        "deprecated": false,
+        "description": "iot-settings",
+        "operationId": "update_admin_settings_iot_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressBarBean"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "iot-settings",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/iot-stop-test-scan": {
+      "get": {
+        "deprecated": false,
+        "description": "stop-test-scan",
+        "operationId": "get_admin_settings_iot_stop_test_scan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "202": {
+            "description": "Accepted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "stop-test-scan",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/iot-test-scan": {
+      "post": {
+        "deprecated": false,
+        "description": "iot-test-scan",
+        "operationId": "create_admin_settings_iot_test_scan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "202": {
+            "description": "Accepted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "iot-test-scan",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/admin/settings/iot-test-scan-info": {
+      "get": {
+        "deprecated": false,
+        "description": "iot-scan-test-info",
+        "operationId": "get_admin_settings_iot_test_scan_info",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "format": "int32",
+                "type": "integer"
+              }
+            }
+          },
+          "description": "accountId"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "iot-scan-test-info",
+        "tags": [
+          "Admin"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "basicAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Admin Rest Api Controller",
+      "name": "Admin"
+    }
+  ]
+}

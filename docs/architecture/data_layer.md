@@ -97,7 +97,7 @@ Tool allowlists and rate limits per tenant. Used by `is_tool_allowed_for_tenant(
 | `id` | Integer (PK) | Auto-increment |
 | `customer_id` | FK → `platform_tenants` | |
 | `scope_name` | String | e.g., `network_read`, `default` |
-| `allowed_tools` | JSON | Glob patterns: `["fgt_*", "ping", "dns*"]` |
+| `allowed_tools` | JSON | Glob patterns: `["fgt74_*", "ping", "dns*"]` |
 | `rate_limit` | Integer (optional) | Max calls per period |
 
 **Seeded via:** `data/tenants/<id>/tenant.yaml` → `seed_tenant()` CLI
@@ -155,7 +155,7 @@ Every MCP tool execution with timing and results.
 |---|---|---|
 | `id` | String (PK) | Call UUID |
 | `run_id` | FK → `agent_runs` | |
-| `tool_name` | String | e.g., `fgt_monitor_router_get_ipv4` |
+| `tool_name` | String | e.g., `fgt74_monitor_router_get_ipv4` |
 | `args_redacted` | JSON | Arguments (sensitive values masked) |
 | `result_meta` | JSON | Summary of result |
 | `status` | String | `success` / `error` / `skipped` |
