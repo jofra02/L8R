@@ -292,6 +292,7 @@ Source: `src/api/routers/inventory.py`, schemas in `src/api/schemas/inventory.py
   "id": "fw_branch_2", "ref": "Branch 2 FortiGate", "role": "firewall",
   "mcp_connection": {
     "vendor": "fortinet", "appliance": "fortigate", "device_type": "fortios",
+    "os_version": "7.4.5",
     "host": "10.0.2.1", "port": 443,
     "token": "<plaintext — write-only, encrypted and stored by the gateway>",
     "verify_ssl": false, "primary": false
@@ -299,7 +300,7 @@ Source: `src/api/routers/inventory.py`, schemas in `src/api/schemas/inventory.py
 }
 ```
 
-Valid `device_type` values come from the loaded gateway packs (`GET /admin/packs`): `fortios` (FortiGate, `token` = REST API key) and `fortiedr` (FortiEDR management server, `token` = `api_user@organization:password` for HTTP Basic auth).
+Valid `device_type` values come from the loaded gateway packs (`GET /admin/packs`): `fortios` (FortiGate, `token` = REST API key) and `fortiedr` (FortiEDR management server, `token` = `organization\api_user:password` for HTTP Basic auth — multi-tenancy format with the org as a backslash prefix, e.g. `Acme\apiuser:secret`; the user must hold the REST API role. The `user@organization` form is rejected with 401). `os_version` (optional, e.g. `"7.4.5"`) records the device firmware version — the Engineer uses it to scope tool-catalog searches to the matching pack version.
 
 - The component is saved locally first; the gateway outcome comes back as `gateway_sync` (`status`: `synced` | `error` | `skipped`) and is persisted in `metadata.mcp.sync`. The token is never stored or returned by the Platform API.
 - `PATCH` with `"mcp_managed": false` detaches the device from the gateway.
@@ -333,7 +334,7 @@ REST routes on the MCP Gateway (`mcp_gateway/gateway/admin_api.py`), mounted via
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/admin/health` | Liveness + `admin_enabled` flag (**no auth**) |
-| GET | `/admin/packs` | Discovered appliance packs: `{vendor, appliance, device_type, prefix}` |
+| GET | `/admin/packs` | Discovered appliance packs: `{vendor, appliance, version, display_name, device_type, prefix, pack_key}` |
 | POST | `/admin/tenants` | Provision a tenant inventory dir + `tenant.yaml` → 201 (`TenantWrite`) |
 | DELETE | `/admin/tenants/{cid}` | Remove a tenant's inventory tree (409 `manual_devices_present` while hand-maintained device files exist) |
 | GET | `/admin/tenants/{cid}/devices` | All devices, manual + managed; tokens redacted as `***` |
@@ -345,7 +346,7 @@ REST routes on the MCP Gateway (`mcp_gateway/gateway/admin_api.py`), mounted via
 **Models** (Pydantic, in `admin_api.py`):
 
 - `TenantWrite`: `id` (slug `[a-zA-Z0-9_-]+` — becomes a directory name), `name`, `description?`
-- `DeviceWrite`: `id`, `name`, `type` (must match a pack's `device_type`, else 422 `unknown_device_type`), `description?`, `tags[]`, `primary=false`, `connection`
+- `DeviceWrite`: `id`, `name`, `type` (must match a pack's `device_type`, else 422 `unknown_device_type`), `os_version?`, `description?`, `tags[]`, `primary=false`, `connection`
 - `ConnectionWrite`: `host`, `port=443`, `token?` (plaintext, **write-only**), `verify_ssl=false`
 - `DevicePatch` / `ConnectionPatch`: all-optional variants
 

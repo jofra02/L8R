@@ -32,7 +32,7 @@ src/
 frontend/         # React dashboard (Vite + TypeScript)
 mcp_gateway/      # Generic OpenAPI→MCP gateway service (own uv project + Dockerfile)
   gateway/        # Vendor-agnostic engine (spec pipeline, routing client, inventory)
-  vendors/        # Appliance packs: vendors/<vendor>/<appliance>/ (fortinet/fortigate: manifest + 62 FortiOS specs + hooks)
+  vendors/        # Appliance packs: vendors/<vendor>/<appliance>/<version>/ (fortinet/fortigate/7.4: manifest + 62 FortiOS specs + hooks)
   inventory/      # Device inventory per customer_id (gitignored; Fernet-encrypted tokens)
 docs/
   agents/         # Engineer agent documentation
@@ -61,7 +61,7 @@ The Engineer agent replaces the previous 13-agent supervisor pipeline with a sin
 
 **Mandatory sequence:** `query_client_db → load_domain_skill → search_tool_catalog → execute_tool (1+) → submit_findings`
 
-**Skills system:** Base skill (`base_investigation.md`, "Logical Investigation Method" — causal process steps + attribution/exoneration rules + metacognitive Pre-Closure Check) always embedded in system prompt; the Output Contract lives in `engineer_prompts.py`, not in the skill. Domain skills loaded on-demand via `load_domain_skill`. 64 keyword mappings in `DOMAIN_SKILL_MAP`; domain skill files: `networking.md`, `tool_catalog.md`, `fortigate_licensing.md`, `fortigate_logs.md`, `flow_verification.md`, `lateral_thinking.md`. Authoring guide/template: `docs/agents/skill_authoring.md`.
+**Skills system:** Base skill (`base_investigation.md`, "Logical Investigation Method" — causal process steps + attribution/exoneration rules + metacognitive Pre-Closure Check) always embedded in system prompt; the Output Contract lives in `engineer_prompts.py`, not in the skill. Domain skills loaded on-demand via `load_domain_skill`. 87 keyword mappings in `DOMAIN_SKILL_MAP`; domain skill files: `networking.md`, `tool_catalog.md`, `fortigate_licensing.md`, `fortigate_logs.md`, `flow_verification.md`, `fortiedr.md`, `lateral_thinking.md`. Authoring guide/template: `docs/agents/skill_authoring.md`.
 
 ## Current Implementation State
 
@@ -73,7 +73,8 @@ Completed:
 - Langfuse v4 observability fix (import, API, callback propagation)
 - AdaptiveExecutor bypass in engineer mode (direct tool execution)
 - submit_findings tool (structured output within reasoning chain, no post-hoc extraction)
-- **MCP Gateway merge**: former `fortinet_ai_suite` repo absorbed as `mcp_gateway/` — generic OpenAPI→MCP gateway, appliance packs at `vendors/<vendor>/<appliance>/` (fortinet/fortigate: 62 FortiOS specs; fortinet/fortiedr: 26 generated OpenAPI 3 specs). Gateway exposes 2776 tools; the registry safety-filters to 2220 indexed in Qdrant `tool_catalog`. Tool names are frozen (fastmcp pinned + `baseline_tools.txt` + name-freeze test)
+- **MCP Gateway merge**: former `fortinet_ai_suite` repo absorbed as `mcp_gateway/` — generic OpenAPI→MCP gateway, appliance packs at `vendors/<vendor>/<appliance>/<version>/` (fortinet/fortigate/7.4: 62 FortiOS specs, prefix `fgt74`; fortinet/fortiedr/6.2: 26 generated OpenAPI 3 specs, prefix `fedr62`). Gateway exposes 2776 tools; the registry safety-filters to 2220 indexed in Qdrant `tool_catalog`. Tool names are frozen (fastmcp pinned + `baseline_tools.txt` + name-freeze test)
+- **Version-aware tool catalog**: `tool_catalog` stays a single Qdrant collection logically partitioned by pack identity — payload fields `pack_vendor`/`pack_product`/`pack_version`/`device_type`/`pack_key` fed from `GET /admin/packs`. Managed devices carry `os_version` (app `McpConnection` → `metadata["mcp"]` → gateway `Device`/managed.yaml); `search_tool_catalog` scopes results to the tenant's device-matching pack versions via `src/core/pack_matching.py` (exact → major.minor → over-inclusive fallback); generic tools always pass, no managed devices → unscoped
 - **Multi-tenant gateway routing**: the gateway routes `(tenant, device)` per request via injected `tenant`/`device` header params (name-freeze safe). `tenant` is framework-injected by the app from the run `customer_id` (`engineer_tools.py:execute_tool`), never LLM-supplied; `TenantRegistries` (gateway `config.py`) lazily builds a per-tenant `DeviceRegistry`. No `ACTIVE_CUSTOMER_ID` — replaced by optional `DEFAULT_TENANT` fallback. Many tenants routable concurrently in one process
 - Documentation overhaul (ops runbooks in `docs/operations/`, components guide, legacy docs archived)
 - **Inventory sync app↔gateway**: gateway admin REST API (`/admin/*`, `X-Admin-Token`/`GATEWAY_ADMIN_TOKEN`, writes `devices/managed.yaml`, hot reload via `DeviceRegistry.reload()`); `InventoryService` propagates Component CRUD with `mcp_connection` via `gateway_admin_client.py` (token write-only, never persisted app-side; sync status in `Component.metadata["mcp"]`); frontend "MCP managed device" toggle in `ComponentModal`
@@ -120,7 +121,8 @@ Completed:
 | `src/api/app.py` | Platform API (FastAPI) |
 | `src/ingestion/service.py` | Ingestion + background execution service |
 | `mcp_gateway/gateway/spec_pipeline.py` | OpenAPI→MCP build pipeline (tool-name freeze contract) |
-| `mcp_gateway/vendors/fortinet/fortigate/manifest.yaml` | FortiGate appliance pack definition |
+| `mcp_gateway/vendors/fortinet/fortigate/7.4/manifest.yaml` | FortiGate appliance pack definition (FortiOS 7.4, prefix fgt74) |
+| `src/core/pack_matching.py` | Device os_version → pack version matching (catalog scoping) |
 | `docs/architecture/mcp_gateway.md` | MCP Gateway architecture + vendor pack contract |
 | `scripts/deploy/redeploy.sh` | Production redeploy (backup → build → name-freeze gate → deploy → rollback); runbook in `docs/operations/production_redeploy.md` |
 | `docs/README.md` | Master documentation index |

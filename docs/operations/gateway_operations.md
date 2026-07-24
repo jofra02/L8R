@@ -81,7 +81,7 @@ chown -R 1000:1000 mcp_gateway/inventory
    ```
 3. Restart the gateway, or `POST /admin/reload` if the admin API is enabled.
 
-**Verification**: call the `fgt_get_inventory_tree` tool (or check startup log `Loaded N 'fortios' devices`), then a read-only call with `device: fw_branch_2`.
+**Verification**: call the `fgt74_get_inventory_tree` tool (or check startup log `Loaded N 'fortios' devices`), then a read-only call with `device: fw_branch_2`.
 
 ## Gotchas
 

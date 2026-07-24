@@ -18,7 +18,7 @@ graph TD
     E --> L2["LLM turn 2"]
     L2 --> C2["Tool call: search_tool_catalog"]
     E --> L3["LLM turn N"]
-    L3 --> C3["Tool call: execute_tool → fgt_..."]
+    L3 --> C3["Tool call: execute_tool → fgt74_..."]
     E --> LF["Final LLM turn → submit_findings"]
 ```
 

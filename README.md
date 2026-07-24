@@ -148,7 +148,7 @@ src/
 frontend/                    # React dashboard
 mcp_gateway/                 # Generic OpenAPI→MCP gateway service (tool execution)
 ├── gateway/                 # Vendor-agnostic engine
-├── vendors/                 # Appliance packs: vendors/<vendor>/<appliance>/
+├── vendors/                 # Appliance packs: vendors/<vendor>/<appliance>/<version>/
 │   └── fortinet/fortigate/  # FortiGate pack (manifest + FortiOS specs + hooks)
 └── inventory/               # Per-tenant device inventory (gitignored, encrypted tokens)
 docs/

@@ -53,8 +53,8 @@ Rules:
 Domain skills may reference exact gateway tool names so the Engineer can
 execute them without a catalog hit ("search is discovery, not permission"):
 
-- Write anchors in backticks: `` `fgt_monitor_system_status_get` ``.
-- A trailing `*` marks a prefix family: `` `fgt_cmdb_registration_post_forticare_*` ``.
+- Write anchors in backticks: `` `fgt74_monitor_system_status_get` ``.
+- A trailing `*` marks a prefix family: `` `fgt74_cmdb_registration_post_forticare_*` ``.
 - Every anchor must exist in `mcp_gateway/baseline_tools.txt`. Verify against
   the Qdrant `tool_catalog` too — an anchor filtered out by the safety
   keywords is executable-looking but blocked.

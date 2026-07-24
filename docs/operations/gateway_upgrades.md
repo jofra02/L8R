@@ -13,7 +13,7 @@ Both procedures end at the same gate: the **name-freeze check**. Tool names are 
    - `specs/<group>/*.json` — the OpenAPI/Swagger files, one directory per API group.
    - optional `hooks.py` — `SPEC_FIXES` / `PARAMETER_DOC_APPENDS`.
 2. Add devices of the new `device_type` to the inventory ([Gateway Operations](gateway_operations.md)).
-3. Build locally and inspect: `uv run python scripts/dump_tools.py --out new.txt` — new tools appear as `<prefix>_...`; existing `fgt_*` names must be unchanged (`diff <(grep '^fgt_' new.txt) <(grep '^fgt_' baseline_tools.txt)` → empty).
+3. Build locally and inspect: `uv run python scripts/dump_tools.py --out new.txt` — new tools appear as `<prefix>_...`; existing `fgt74_*` names must be unchanged (`diff <(grep '^fgt74_' new.txt) <(grep '^fgt74_' baseline_tools.txt)` → empty).
 4. Regenerate the baseline: `uv run python scripts/dump_tools.py --out baseline_tools.txt` and commit it (this is the intentional-change path of the name-freeze test).
 5. Restart the gateway; on the agent side the startup diff-indexing embeds+classifies **only the new tools** (batches of 15, OpenAI cost proportional to pack size).
 
