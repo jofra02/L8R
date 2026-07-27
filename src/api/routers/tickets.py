@@ -493,9 +493,11 @@ async def retry_ticket(
     trace_id = str(uuid.uuid4())
     job_id = await service.audit.create_run(ticket_id, trace_id, auth.customer_id)
 
-    # Reconstruct domain Ticket from ORM
+    # Reconstruct domain Ticket from ORM. external_id falls back to raw_payload
+    # for tickets ingested before the column was populated.
     ticket = TicketModel(
         id=ticket_orm.id,
+        external_id=ticket_orm.external_id or (ticket_orm.raw_payload or {}).get("external_id"),
         mode=ticket_orm.mode,
         text=ticket_orm.text,
         severity=ticket_orm.severity,

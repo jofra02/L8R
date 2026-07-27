@@ -270,6 +270,22 @@ export interface ToolCallResponse {
   ended_at: string | null;
 }
 
+// --- Notifications ---
+export interface NotificationDelivery {
+  id: string;
+  event_type: string;
+  ticket_id: string | null;
+  run_id: string | null;
+  payload: Record<string, unknown>;
+  status: string;
+  attempts: number;
+  last_attempt_at: string | null;
+  response_status: number | null;
+  response_body: string | null;
+  error: string | null;
+  created_at: string;
+}
+
 // --- Submit response ---
 export interface SubmitResponse {
   status: string;

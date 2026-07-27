@@ -500,3 +500,36 @@ class AssessmentReportORM(Base, TenantMixin):
     model: Mapped[Dict[str, Any]] = mapped_column(JSON)
     format_version: Mapped[str] = mapped_column(String, default="1.0")
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+# --- Outbound notifications ---
+
+class NotificationDeliveryORM(Base, TenantMixin):
+    """One outbound notification delivery (payload snapshot + attempt result).
+
+    payload is the exact JSON sent to the external endpoint; a manual resend
+    re-sends this snapshot unchanged. ticket_id/run_id are nullable so future
+    event types without an associated ticket or run fit the same table.
+    """
+    __tablename__ = "notification_deliveries"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    event_type: Mapped[str] = mapped_column(String, index=True)  # ticket.ingested | run.completed
+    ticket_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("tickets.id", ondelete="CASCADE"), index=True, nullable=True
+    )
+    run_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("agent_runs.id", ondelete="CASCADE"), index=True, nullable=True
+    )
+    payload: Mapped[Dict[str, Any]] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String, default="pending", index=True)  # pending|delivered|failed
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_attempt_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    response_status: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    response_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # truncated to 4000 chars
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_notification_deliveries_tenant_created", "customer_id", "created_at"),
+    )

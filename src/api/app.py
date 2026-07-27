@@ -119,6 +119,7 @@ def create_app() -> FastAPI:
     from src.api.routers.tenants import router as tenants_router
     from src.api.routers.assignments import router as assignments_router
     from src.api.routers.inventory import router as inventory_router
+    from src.api.routers.notifications import router as notifications_router
     from src.api.routers.assessments import (
         router as assessments_router,
         definitions_router as assessment_definitions_router,
@@ -133,6 +134,7 @@ def create_app() -> FastAPI:
     application.include_router(tenants_router, prefix="/api/v1")
     application.include_router(assignments_router, prefix="/api/v1")
     application.include_router(inventory_router, prefix="/api/v1")
+    application.include_router(notifications_router, prefix="/api/v1")
     if settings.ASSESSMENT_ENABLED:
         application.include_router(assessments_router, prefix="/api/v1")
         application.include_router(assessment_definitions_router, prefix="/api/v1")

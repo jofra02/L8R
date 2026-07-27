@@ -49,8 +49,10 @@ class GenericNormalizer:
         if not final_text:
              final_text = fallback_text.strip()
             
+        external_id = raw_data.get("external_id")
         return Ticket(
             id=raw_id,
+            external_id=str(external_id) if external_id else None,
             mode=mode,
             text=final_text,
             severity=severity,

@@ -76,6 +76,7 @@ docs/guidelines/
 
 # ─── Local Artifacts & Debug Debris ───
 *.docx
+*.pdf
 audit_logs.json
 audit_report.md
 verify_result.txt

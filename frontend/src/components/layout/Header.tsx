@@ -32,6 +32,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "/audit/logs": "Audit Logs",
   "/audit/tool-calls": "Tool Calls",
   "/inventory": "Inventory",
+  "/notifications": "Notifications",
   "/settings/keys": "API Keys",
   "/settings/users": "Users",
   "/settings/profiles": "Profiles",

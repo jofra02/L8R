@@ -31,6 +31,7 @@ import type {
   RunStats,
   AuditLogResponse,
   ToolCallResponse,
+  NotificationDelivery,
   HealthResponse,
   InventoryOverview,
   FullInventoryResponse,
@@ -312,6 +313,26 @@ interface ToolCallFilters {
 
 export async function queryToolCalls(filters: ToolCallFilters = {}): Promise<PaginatedResponse<ToolCallResponse>> {
   const { data } = await client.get<PaginatedResponse<ToolCallResponse>>("/audit/tool-calls", { params: filters });
+  return data;
+}
+
+// --- Notifications ---
+interface NotificationFilters {
+  page?: number;
+  page_size?: number;
+  status?: string;
+  event_type?: string;
+  ticket_id?: string;
+  run_id?: string;
+}
+
+export async function listNotifications(filters: NotificationFilters = {}): Promise<PaginatedResponse<NotificationDelivery>> {
+  const { data } = await client.get<PaginatedResponse<NotificationDelivery>>("/notifications", { params: filters });
+  return data;
+}
+
+export async function resendNotification(deliveryId: string): Promise<NotificationDelivery> {
+  const { data } = await client.post<NotificationDelivery>(`/notifications/${deliveryId}/resend`);
   return data;
 }
 

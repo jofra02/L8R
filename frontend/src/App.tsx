@@ -23,6 +23,7 @@ import { UsersPage } from "@/pages/settings/UsersPage";
 import { ProfilesPage } from "@/pages/settings/ProfilesPage";
 import { TenantDetailPage } from "@/pages/settings/TenantDetailPage";
 import { InventoryPage } from "@/pages/inventory/InventoryPage";
+import { NotificationsPage } from "@/pages/notifications/NotificationsPage";
 import { GlobalDashboardPage } from "@/pages/global/GlobalDashboardPage";
 import { TenantManagementPage } from "@/pages/global/TenantManagementPage";
 import { GlobalTicketsPage } from "@/pages/global/GlobalTicketsPage";
@@ -72,6 +73,7 @@ export default function App() {
               <Route path="audit/logs" element={<ProtectedRoute permission="audit:read"><AuditLogsPage /></ProtectedRoute>} />
               <Route path="audit/tool-calls" element={<ProtectedRoute permission="audit:read"><ToolCallsPage /></ProtectedRoute>} />
               <Route path="inventory" element={<ProtectedRoute permission="inventory:read"><InventoryPage /></ProtectedRoute>} />
+              <Route path="notifications" element={<ProtectedRoute permission="notifications:read"><NotificationsPage /></ProtectedRoute>} />
               <Route path="settings/keys" element={<ProtectedRoute permission="keys:read"><ApiKeysPage /></ProtectedRoute>} />
               <Route path="settings/users" element={<ProtectedRoute permission="users:read"><UsersPage /></ProtectedRoute>} />
               <Route path="settings/profiles" element={<ProtectedRoute permission="profiles:read"><ProfilesPage /></ProtectedRoute>} />
