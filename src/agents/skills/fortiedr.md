@@ -53,6 +53,7 @@ Organization scoping (both families): **omit** `organization`/`organizationId` â
 4. **Detail what matters**: raw data items per `eventId`; incident context via the incidents family when handling state matters.
 5. **Summarize wide questions** with the dashboard family instead of aggregating lists yourself.
 6. **Hunt** with the threat-hunting anchors only when the question concerns activity NOT surfaced as detections.
+7. **Verdict question?** If the ticket asks whether an event is malicious or a false positive, `load_domain_skill("fortiedr_triage")` for the adjudication method.
 
 ## Interpreting Events
 
