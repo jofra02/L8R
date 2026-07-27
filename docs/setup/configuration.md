@@ -15,7 +15,8 @@ All configuration is managed through environment variables, loaded via Pydantic 
 | `APP_NAME` | `str` | `SupportAI-Agent` | Application name (used in API title) |
 | `APP_ENV` | `str` | `development` | Environment identifier (`development` or `production`) |
 | `LOG_LEVEL` | `str` | `INFO` | Python logging level |
-| `TEST_MODE_FAST` | `bool` | `False` | Reduces iterations (8 vs 15) and retries (1 vs 2) for testing |
+| `LOG_DIR` | `str` | `logs` | Directory for application log files |
+| `TEST_MODE_FAST` | `bool` | `False` | Reduces iterations (8 vs 15) and retries (1 vs 2) for testing — affects the **legacy pipeline only**, not the Engineer |
 
 ### Engineer Agent (Single-Agent Mode)
 
@@ -23,9 +24,22 @@ All configuration is managed through environment variables, loaded via Pydantic 
 |---|---|---|---|
 | `PIPELINE_MODE` | `str` | `engineer` | `engineer` (current single-agent); `pipeline` is a **deprecated** legacy toggle |
 | `LLM_MODEL_ENGINEER` | `str` | `gpt-5.4` | LLM model for the Engineer ReAct agent |
+| `LLM_REASONING_EFFORT_ENGINEER` | `str?` | `None` | Engineer-specific reasoning effort (`None` = omit the parameter; some models need an explicit `"none"` to accept function tools) |
 | `ENGINEER_MAX_TOOL_CALLS` | `int` | `30` | Maximum tool executions per investigation |
 | `ENGINEER_MAX_ITERATIONS` | `int` | `50` | Maximum ReAct loop iterations (LangGraph recursion limit) |
 | `ENGINEER_TIMEOUT_SECONDS` | `int` | `600` | Total timeout for the investigation in seconds |
+
+### Device Assessments
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `ASSESSMENT_ENABLED` | `bool` | `True` | Enable the Device Assessment module |
+| `ASSESSMENT_GLOBAL_CONCURRENCY` | `int` | `8` | Max concurrent collection steps overall |
+| `ASSESSMENT_DEVICE_CONCURRENCY` | `int` | `3` | Max concurrent steps per device |
+| `ASSESSMENT_STEP_TIMEOUT_S` | `int` | `60` | Default per-step timeout (definition YAML can override) |
+| `ASSESSMENT_STEP_MAX_ATTEMPTS` | `int` | `2` | Default attempts for retryable errors |
+| `ASSESSMENT_MAX_EVIDENCE_BYTES` | `int` | `524288` | Cap on stored evidence payloads (512 KiB) |
+| `LLM_MODEL_ASSESSMENT_EVALUATOR` | `str` | `gpt-5-mini` | Model for hybrid/LLM control evaluation |
 
 ### PostgreSQL
 
@@ -122,6 +136,27 @@ servers:
 |---|---|---|---|
 | `MCP_SERVER_TIMEOUT` | `int` | `30` | Declared but **not enforced** — no per-tool-call timeout is applied today. The Engineer run is bounded by `ENGINEER_TIMEOUT_SECONDS`; assessments enforce per-step `timeout_s` (`ASSESSMENT_STEP_TIMEOUT_S`) via `execute_mcp_tool` |
 
+### MCP Gateway Admin API (inventory sync)
+
+Used by the app to propagate managed devices/tenants to the gateway. Disabled unless URL **and** token are set.
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `MCP_GATEWAY_ADMIN_URL` | `str?` | `http://localhost:8001` | Gateway admin API base URL (compose overrides to `http://mcp-gateway:8000`) |
+| `MCP_GATEWAY_ADMIN_TOKEN` | `str?` | `None` | `X-Admin-Token` shared secret (compose wires it from `GATEWAY_ADMIN_TOKEN`) |
+| `MCP_GATEWAY_ADMIN_TIMEOUT` | `float` | `10.0` | Admin API request timeout in seconds |
+
+### Outbound Notifications (n8n webhook)
+
+Disabled unless `N8N_WEBHOOK_URL` is set. See [Outbound Notifications](../notifications.md).
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `N8N_WEBHOOK_URL` | `str?` | `None` | n8n webhook endpoint for `ticket.ingested` / `run.completed` events |
+| `NOTIFICATION_TIMEOUT` | `float` | `10.0` | Webhook POST timeout in seconds |
+| `NOTIFICATION_AUTH_HEADER_NAME` | `str?` | `None` | Optional auth header name (e.g. `X-Webhook-Token`) |
+| `NOTIFICATION_AUTH_HEADER_VALUE` | `str?` | `None` | Optional auth header value |
+
 ### LLM Profiles (Legacy Multi-Agent Mode)
 
 > These settings only apply when `PIPELINE_MODE=pipeline`. In engineer mode, only `LLM_MODEL_ENGINEER` is used.
@@ -146,9 +181,20 @@ servers:
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| `SAFETY_BLOCKED_KEYWORDS` | `list[str]` | See below | Keywords that block tool execution |
+| `SAFETY_BLOCKED_KEYWORDS` | `list[str]` | See below | Keywords that block tool registration/execution (scanned against tool names **and** string argument values) |
+| `SAFETY_BLOCKED_NAME_KEYWORDS` | `list[str]` | See below | Mutating verbs blocked in **tool names only** (kept separate so substrings like `createdBy` in argument values stay legal); mirrored in `mcp_gateway/scripts/convert_fortiedr_specs.py` |
 
-Default blocked keywords include: `debug flow`, `sniffer`, `packet capture`, `pcap`, `tcpdump`, `wireshark`, `execute`, `configure`, `set`, `edit`, `delete`, `rm`, `shutdown`, `reboot`, `drop database`, `truncate`, `format`, `destroy`, `purge`, `kill`, `deploy`, `push`, `publish`, `migrate`, `alter`, `grant`, `revoke`.
+Default `SAFETY_BLOCKED_KEYWORDS`: `debug flow`, `sniffer`, `packet capture`, `pcap`, `tcpdump`, `wireshark`, `execute`, `configure`, `set `, `edit `, `delete`, `rm `, `shutdown`, `reboot`, `drop database`, `truncate`, `format`, `destroy`, `purge`, `kill `, `deploy`, `push`, `publish`, `migrate`, `alter `, `grant `, `revoke `. Note the **trailing space** on `set `, `edit `, `rm `, `kill `, `alter `, `grant `, `revoke ` — it prevents false positives on words like "settings" or "settle".
+
+Default `SAFETY_BLOCKED_NAME_KEYWORDS`: `update`, `create`, `upload`, `upgrade`, `isolate`, `uninstall`, `remediate`, `terminate`, `set_`, `reset`, `assign`, `clone`, `transfer`, `import`, `toggle`, `release`, `move`, `stop`.
+
+### Tool Catalog
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `TOOL_CATALOG_REINDEX_CAP` | `int` | `200` | Max CHANGED tools re-embedded/re-classified per startup; excess deferred to the next startup (see [Tool Catalog runbook](../operations/tool_catalog.md)) |
+| `TOOL_CATEGORY_TIER1_MIN` | `int` | `3` | Minimum tier-1 candidates in the legacy `ToolSelector` category search |
+| `TOOL_CATEGORY_TIER2_MIN` | `int` | `3` | Minimum tier-2 candidates in the legacy `ToolSelector` category search |
 
 ### Langfuse Observability
 
@@ -212,7 +258,7 @@ Inside containers, `DB_HOST` and `QDRANT_URL` are overridden to Docker service n
 ### Running the Stack
 
 ```bash
-# Basic stack (postgres, qdrant, app, frontend)
+# Basic stack (postgres, qdrant, mcp-gateway, app, frontend)
 docker compose up -d
 
 # With Langfuse observability
@@ -240,8 +286,12 @@ These variables only affect `docker-compose.yml` port mappings, not the applicat
 | `POSTGRES_PORT` | `5432` | PostgreSQL |
 | `QDRANT_PORT` | `6333` | Qdrant HTTP |
 | `QDRANT_GRPC_PORT` | `6334` | Qdrant gRPC |
+| `MCP_GATEWAY_PORT` | `8001` | MCP Gateway (SSE; container port 8000) |
+| `MCP_GATEWAY_LOG_LEVEL` | `info` | MCP Gateway log level |
 | `LANGFUSE_PORT` | `3000` | Langfuse |
 | `UVICORN_WORKERS` | `1` (dev) / `2` (prod) | Backend workers |
+
+The `mcp-gateway` service additionally reads `INVENTORY_MASTER_KEY`, `GATEWAY_ADMIN_TOKEN`, and optional `DEFAULT_TENANT` from `.env` (see [Deployment — MCP Servers](deployment.md#mcp-servers) and [Gateway Secrets](../operations/gateway_secrets.md)); the `cloudflared` service (profile `tunnel`) needs `CLOUDFLARE_TUNNEL_TOKEN`.
 
 ## See Also
 

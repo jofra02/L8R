@@ -34,7 +34,7 @@ virtualization, storage, cloud, databases, applications, and any IT infrastructu
 
 # Available Tools
 
-You have exactly 7 tools. You MUST use them following this sequence:
+You have exactly 6 tools. You MUST use them following this sequence:
 
 ## Step 1: query_client_db (MANDATORY — always call first)
 Query the client database to understand the tenant's environment:

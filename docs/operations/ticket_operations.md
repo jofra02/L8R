@@ -48,6 +48,8 @@ curl http://localhost:8000/api/v1/tickets/<id>/evidence    -H "Authorization: Be
 - **`plan`**: `diagnosis_steps` → `proposed_changes` → `validation` → `rollback`. Proposed changes are **never executed** by the platform; they are for a human to apply.
 - **`facts`**: discovered key/values with evidence provenance.
 
+If `N8N_WEBHOOK_URL` is configured, ticket ingestion and run completion also POST outbound notifications (`ticket.ingested`, `run.completed` with the full findings) to n8n; deliveries are persisted and manually resendable from the dashboard's Notifications page or `POST /api/v1/notifications/{id}/resend`. See [Outbound Notifications](../notifications.md).
+
 ## Triage a failed run
 
 1. `GET /runs/<run_id>` — `status=failed` + error field.

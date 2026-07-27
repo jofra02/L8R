@@ -30,6 +30,8 @@ If not using Docker Compose, ensure:
 - PostgreSQL running on `localhost:5432`
 - Qdrant running on `localhost:6333`
 
+> To run investigations end to end you also need the **MCP Gateway** (the API starts without it, but tool discovery/execution has nothing to call): `docker compose up -d mcp-gateway` (SSE on `localhost:8001`, needs `INVENTORY_MASTER_KEY` in `.env` for device credentials) or run it from `mcp_gateway/` as its own uv project.
+
 For full-stack Docker deployment (including app + frontend containers), see [Deployment Guide](deployment.md).
 
 ## 3. Configure Environment
@@ -116,9 +118,9 @@ SAVE THIS KEY — it will not be shown again.
 
 Copy the `Raw Key` value -- you will need it to authenticate programmatic API requests (step 9).
 
-### Option B: Platform Admin Key
+### Option B: Platform Key (cross-tenant)
 
-Creates a super-admin key that can impersonate any tenant via the `?customer_id=` query parameter. Only needed for multi-tenant management.
+Creates a key on the `__platform__` tenant. It carries the **same fixed permission set** as any key (`tickets:write/read`, `runs:read`) but can act on behalf of any tenant via the `?customer_id=` query parameter — a cross-tenant ingestion key, not an admin credential. Only needed when one integration submits tickets for multiple tenants.
 
 ```bash
 uv run python src/main.py create-admin-key
@@ -172,7 +174,7 @@ Open `http://localhost:5173` in your browser.
 ### Production Mode (Docker)
 
 ```bash
-docker compose up -d    # Starts postgres, qdrant, app, frontend
+docker compose up -d    # Starts postgres, qdrant, mcp-gateway, app, frontend
 ```
 
 Frontend available at `http://localhost:3001` (configurable via `FRONTEND_PORT` in `.env`).
@@ -226,22 +228,24 @@ Response (HTTP 202):
 ```json
 {
   "status": "accepted",
-  "ticket_id": "TKT-abc123",
+  "ticket_id": "9b2d3c4e5f6a7b8c9d0e1f2a3b4c5d6e",
   "job_id": "550e8400-..."
 }
 ```
 
+(The `ticket_id` is a content hash unless the payload carries its own `id`/`ticket_id`.)
+
 Poll the run status:
 
 ```bash
-curl http://localhost:8000/api/v1/runs?ticket_id=TKT-abc123 \
+curl "http://localhost:8000/api/v1/runs?ticket_id=<ticket_id>" \
   -H "Authorization: Bearer sk_live_YOUR_KEY_HERE"
 ```
 
 Retrieve the final report:
 
 ```bash
-curl http://localhost:8000/api/v1/tickets/TKT-abc123/report \
+curl http://localhost:8000/api/v1/tickets/<ticket_id>/report \
   -H "Authorization: Bearer sk_live_YOUR_KEY_HERE"
 ```
 

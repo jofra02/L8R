@@ -12,6 +12,7 @@
 | `app` | build `.` | `APP_PORT` 8000 | entrypoint runs migrations + init_qdrant, then uvicorn/gunicorn |
 | `frontend` | build `./frontend` | `FRONTEND_PORT` 3001 → 80 | nginx |
 | `langfuse` | langfuse/langfuse:2 | `LANGFUSE_PORT` 3000 | **profile `observability`** only |
+| `cloudflared` | cloudflare/cloudflared:latest | — (outbound tunnel) | **profile `tunnel`** only; needs `CLOUDFLARE_TUNNEL_TOKEN` |
 
 ## Base operations
 
@@ -48,4 +49,5 @@ Set `APP_ENV=production` for gunicorn with `UVICORN_WORKERS` workers per contain
 
 - In-flight ticket runs live in the API process — restarting `app` loses them (see [Ticket Operations](ticket_operations.md)).
 - Host port collisions with other stacks: every published port is env-overridable (table above).
-- The gateway healthcheck curls `/sse/`; `app` waits for `mcp-gateway` to be healthy before starting.
+- The gateway healthcheck probes `/sse/` (via python `urllib` — the image ships no curl); `app` waits for `mcp-gateway` to be healthy before starting.
+- Evidence blobs live in the `evidence_data` named volume (mounted at `/app/data/evidence`), not in the host `data/evidence/` directory — back them up through the app container ([Backup & Restore](backup_restore.md)).

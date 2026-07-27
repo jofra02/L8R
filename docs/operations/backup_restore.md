@@ -8,7 +8,7 @@
 |---|---|---|
 | PostgreSQL | Tenants, users/RBAC, tickets, runs, audit, contexts, evidence metadata | Total platform state |
 | Qdrant (6 collections) | KB, evidence vectors, tool catalog, resolved cases, legacy collections | KB/cases are irreplaceable; `tool_catalog` and `evidence` vectors are **rebuildable** |
-| `data/evidence/` | Raw evidence blobs (content-addressable JSON) | Report evidence links break |
+| Evidence blobs | Named volume `evidence_data` (`/app/data/evidence`) under compose; host `data/evidence/` when running on the host | Report evidence links break |
 | `mcp_gateway/inventory/` + `.env` files | Device credentials (encrypted) + master key | Gateway cannot reach devices |
 
 ## Backup procedure
@@ -29,8 +29,10 @@ for c in knowledge_base resolved_tickets evidence tool_catalog; do
 done
 # snapshots land in the qdrant_data volume: /qdrant/storage/snapshots/<collection>/
 
-# 3. Evidence blobs
-tar czf backup_evidence_$STAMP.tgz data/evidence/
+# 3. Evidence blobs — under compose they live in the evidence_data volume,
+#    so archive through the app container (this is what backup.sh does):
+docker compose exec -T app sh -c 'tar czf - -C /app data/evidence' > backup_evidence_$STAMP.tgz
+#    Host-run variant: tar czf backup_evidence_$STAMP.tgz data/evidence/
 
 # 4. Secrets/config (encrypted inventory + envs) — store separately/securely
 tar czf backup_secrets_$STAMP.tgz mcp_gateway/inventory/ .env mcp_gateway/.env
@@ -44,13 +46,17 @@ Priority if you must choose: **PostgreSQL + knowledge_base/resolved_tickets snap
 # 1. PostgreSQL
 docker compose exec -T postgres pg_restore -U ${DB_USER:-postgres} --clean --if-exists -d support_agent_db < backup_pg_<stamp>.dump
 
-# 2. Qdrant — upload/restore each snapshot
+# 2. Qdrant — downloaded snapshot files (backup.sh output, backups/<dir>/qdrant/*.snapshot):
+curl -X POST "http://localhost:6333/collections/<c>/snapshots/upload?priority=snapshot" \
+  -F "snapshot=@backups/<dir>/qdrant/<c>.snapshot"
+#    Server-side snapshots (manual variant above, still inside the qdrant_data volume):
 curl -X PUT "http://localhost:6333/collections/<c>/snapshots/recover" \
   -H "Content-Type: application/json" \
   -d '{"location": "file:///qdrant/storage/snapshots/<c>/<snapshot-name>"}'
 
 # 3. Evidence + secrets
-tar xzf backup_evidence_<stamp>.tgz
+docker compose exec -T app sh -c 'tar xzf - -C /app' < backup_evidence_<stamp>.tgz   # compose
+# Host-run variant: tar xzf backup_evidence_<stamp>.tgz
 tar xzf backup_secrets_<stamp>.tgz
 
 # 4. Restart everything
