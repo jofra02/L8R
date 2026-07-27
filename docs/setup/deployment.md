@@ -6,7 +6,7 @@ This guide covers the **first installation**. To update an already-running deplo
 
 ## Architecture
 
-The full stack consists of five services:
+The full stack consists of five core services plus two optional profile services:
 
 ```
     Browser
@@ -18,33 +18,35 @@ The full stack consists of five services:
 +----------+----------+
            |  /api, /health
            v
-+---------------------+
-|    app (:8000)      |    .env
-|  FastAPI + Agent    |<----------
-+---+-------------+---+
-    |             |
++---------------------+      +----------------------+
+|    app (:8000)      | SSE  | mcp-gateway (:8001)  |
+|  FastAPI + Agent    |----->| OpenAPI→MCP tools    |
++---+-------------+---+      | (device inventory)   |
+    |             |          +----------------------+
 +---v--------+  +-v--------------+
 | postgres   |  | qdrant         |
 | (:5432)    |  | (:6333/:6334)  |
 +------------+  +----------------+
 
-    Optional:
-+------------+
-| langfuse   |  (--profile observability)
-| (:3000)    |
-+------------+
+    Optional profiles:
++------------+                 +-------------+
+| langfuse   |  observability  | cloudflared |  tunnel
+| (:3000)    |                 | (no port)   |
++------------+                 +-------------+
 ```
 
 | Service | Port | Purpose |
 |---|---|---|
 | `frontend` | 3001 | React dashboard (nginx: SPA fallback + API proxy) |
 | `app` | 8000 | Platform API + LangGraph pipeline |
+| `mcp-gateway` | 8001 (host) → 8000 (container) | Bundled OpenAPI→MCP gateway (SSE) — appliance tools + device inventory; the `app` service waits for it to be healthy |
 | `postgres` | 5432 | Case state, audit logs, checkpoints |
 | `qdrant` | 6333 (HTTP), 6334 (gRPC) | Vector KB, evidence, tool catalog, CBR |
-| `langfuse` | 3000 | Observability traces (optional) |
+| `langfuse` | 3000 | Observability traces (`--profile observability`) |
+| `cloudflared` | — (outbound tunnel) | Cloudflare tunnel (`--profile tunnel`, needs `CLOUDFLARE_TUNNEL_TOKEN`) |
 
 External dependencies (not containerized):
-- **MCP servers** -- read-only tool providers, deployed near target infrastructure
+- **Additional MCP servers** (optional) -- extra read-only tool providers deployed near target infrastructure, registered alongside the bundled gateway in `data/mcp/servers.yaml`
 - **OpenAI-compatible API** -- LLM inference endpoint
 
 ## Quick Deploy (Docker Compose)
@@ -65,7 +67,9 @@ cd support_ai_agent
 
 # 2. Create .env from template
 cp .env.example .env
-# Edit .env: set OPENAI_API_KEY, POSTGRES_PASSWORD, DB_PASS
+# Edit .env: set OPENAI_API_KEY and DB_PASS (compose maps DB_* to the postgres
+# container — no separate POSTGRES_* vars). For gateway-managed devices also
+# set INVENTORY_MASTER_KEY and GATEWAY_ADMIN_TOKEN (see Gateway Secrets runbook).
 
 # 3. Start all services
 docker compose up -d
@@ -298,11 +302,12 @@ All services define Docker health checks:
 | Service | Check | Interval |
 |---|---|---|
 | `postgres` | `pg_isready` | 5s |
-| `qdrant` | `GET /readyz` | 5s |
+| `qdrant` | `GET /readyz` via bash `/dev/tcp` (the image ships neither wget nor curl) | 5s |
+| `mcp-gateway` | `GET /sse/` via python `urllib` (no curl in the image) | 30s (40s start period) |
 | `app` | `GET /health` | 10s (120s start period, covers Alembic migrations) |
 | `frontend` | `curl -sf http://localhost:80/` | 10s |
 
-The `app` service uses `depends_on` with `condition: service_healthy` for `postgres` and `qdrant`, ensuring migrations only run after dependencies are ready.
+The `app` service uses `depends_on` with `condition: service_healthy` for `postgres`, `qdrant`, and `mcp-gateway`, ensuring migrations only run after dependencies are ready.
 
 ### Manual Verification
 
@@ -357,7 +362,7 @@ services:
 
 ### Security
 
-- All tool execution is read-only; write actions require HITL approval via LangGraph interrupt
+- All tool execution is read-only — mutating tools are blocked at registration and execution by the safety keyword filters (HITL approval for write actions is planned, not implemented)
 - Tenant isolation is enforced at the query level -- every DB and Qdrant query filters by `customer_id`
 - Rotate API keys regularly (`OPENAI_API_KEY`, `LANGFUSE_SECRET_KEY`, `QDRANT_API_KEY`)
 
@@ -371,7 +376,7 @@ Each pipeline execution is independent per ticket -- no shared in-memory state b
 docker compose up -d --scale app=3
 ```
 
-Place a load balancer in front of the scaled instances.
+Place a load balancer in front of the scaled instances. Note: the compose file publishes `${APP_PORT}:8000` on the host, which only one replica can bind — remove the `ports` mapping from the `app` service (the frontend proxy and the LB reach it on the internal network) before scaling. Also note that a run in flight lives in the worker that accepted it: `POST /runs/{id}/cancel` and in-process background tasks only work on that instance, and runs are lost if it restarts.
 
 ### Database Scaling
 
