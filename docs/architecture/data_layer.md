@@ -17,11 +17,18 @@ erDiagram
     platform_tenants ||--o{ capability_scopes : "1:N"
     platform_tenants ||--o{ tickets : "1:N"
     platform_tenants ||--o{ client_contexts : "1:N"
+    platform_tenants ||--o{ assessment_runs : "1:N"
+    platform_tenants ||--o{ notification_deliveries : "1:N"
     tickets ||--o{ agent_runs : "1:N"
     tickets ||--o{ evidence_refs : "1:N"
     agent_runs ||--o{ agent_events : "1:N"
     agent_runs ||--o{ tool_calls_audit : "1:N"
     agent_runs ||--o{ audit_logs : "1:N"
+    assessment_definition_versions ||--o{ assessment_runs : "1:N"
+    assessment_runs ||--o{ assessment_targets : "1:N"
+    assessment_runs ||--o{ assessment_collection_executions : "1:N"
+    assessment_runs ||--o{ assessment_control_results : "1:N"
+    assessment_runs ||--o| assessment_reports : "1:1"
 
     platform_tenants {
         string customer_id PK
@@ -101,6 +108,21 @@ Tool allowlists and rate limits per tenant. Used by `is_tool_allowed_for_tenant(
 | `rate_limit` | Integer (optional) | Max calls per period |
 
 **Seeded via:** `data/tenants/<id>/tenant.yaml` → `seed_tenant()` CLI
+
+#### `assessment_definition_versions`
+Immutable snapshot of an assessment definition version. Authored as YAML in `src/assessments/definitions/`, synced by the `DefinitionRegistry`.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | String (PK) | Snapshot UUID |
+| `definition_id` | String (indexed) | e.g., `fortigate-security-baseline` |
+| `version` | String | Semver; unique per `definition_id` |
+| `vendor` / `product` | String | Target appliance |
+| `content` | JSON | Full parsed definition (collection steps, controls, scoring) |
+| `content_hash` | String(64) | Immutability guard — a changed file with the same version is rejected at sync |
+
+#### Auth & RBAC tables
+`users`, `api_keys`, `permissions`, `profiles`, `user_tenant_profiles`, `refresh_tokens` — JWT users, role hierarchy, fine-grained permission profiles, and machine API keys. Documented in the [API Reference](../integrations/api_reference.md) and the [API Keys & Users runbook](../operations/api_keys_and_users.md).
 
 ---
 
@@ -201,6 +223,33 @@ LangGraph state persistence for resume.
 | `checkpoint` | JSON | Serialized GlobalState |
 | `metadata` | JSON | |
 
+#### Assessment tables
+Device Assessment runs (migration `e6f7a8b9c0d1`). Full lifecycle detail in [Device Assessments](../assessments.md).
+
+| Table | Purpose | Key columns |
+|---|---|---|
+| `assessment_runs` | One assessment execution, pinned to a definition version | `status` (draft → queued → collecting → evaluating → completed \| completed_with_errors \| failed \| cancelled), `score`, `stats`, `progress` |
+| `assessment_targets` | A device evaluated within a run (inventory snapshot) | `component_id`, `device_name`, `status` |
+| `assessment_collection_executions` | Forensic record of one collection step on one target (the assessment counterpart of `tool_calls_audit`) | `step_id`, `tool_name`, `status`, `error_type`, `raw_evidence_sha`, `normalized` |
+| `assessment_control_results` | Evaluation outcome of one control on one target (fail/warning = finding) | `control_id`, `severity`, `status`, `method` (rule \| parser \| llm \| hybrid), `confidence`, `evidence_refs` |
+| `assessment_reports` | View-independent report model for a completed run (1:1 with `assessment_runs`) | `model`, `format_version` |
+
+All children of `assessment_runs` cascade on delete.
+
+#### `notification_deliveries`
+Outbound notification deliveries (migration `f7a8b9c0d1e2`) — payload snapshot persisted before the POST so a delivery can be resent unchanged.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | String (PK) | Delivery UUID (doubles as `event_id` in the payload) |
+| `event_type` | String (indexed) | `ticket.ingested` / `run.completed` |
+| `ticket_id` / `run_id` | FK (nullable, CASCADE) | Associated ticket/run when applicable |
+| `payload` | JSON | Exact JSON sent to the webhook; resend re-sends it unchanged |
+| `status` | String (indexed) | `pending` / `delivered` / `failed` |
+| `attempts` | Integer | Send attempts (initial + resends) |
+| `response_status` / `response_body` | Integer / Text | Webhook response (body truncated to 4000 chars) |
+| `error` | Text | Transport error if the POST failed |
+
 ---
 
 ## Qdrant — Vector Collections
@@ -214,7 +263,7 @@ All collections enforce tenant isolation via `customer_id` payload filter.
 | `resolved_tickets` | Past resolved cases for CBR | `customer_id`, `vendor`, `component_role`, `resolution_status` |
 | `adaptive_fixes` | Self-healing tool error → fix pairs (legacy pipeline) | `customer_id`, `tool_name` |
 | `tool_knowledge` | Per-tool usage knowledge (legacy pipeline) | `customer_id`, `tool_name` |
-| `tool_catalog` | Semantic tool search by intent (global: `customer_id="__global__"`) | `customer_id`, `tool_name`, `server_name` |
+| `tool_catalog` | Semantic tool search by intent (global: `customer_id="__global__"`; logically partitioned by appliance-pack identity for version-aware scoping) | `customer_id`, `tool_name`, `server_name`, `vendor`, `categories`, `tier`, `pack_vendor`, `pack_product`, `pack_version`, `pack_key`, `device_type` |
 
 ---
 
@@ -284,6 +333,7 @@ Ticket Ingested (POST /api/v1/tickets or webhook)
     ↓
 IngestionService → GenericNormalizer (mode/severity detection)
                  → TicketORM persisted, AgentRun created
+                 → ticket.ingested notification (if N8N_WEBHOOK_URL set)
                  → fire-and-forget asyncio background task
     ↓
 Engineer ReAct agent (single LangGraph node, src/agent_graph_v2.py)
@@ -294,6 +344,8 @@ Engineer ReAct agent (single LangGraph node, src/agent_graph_v2.py)
     └── submit_findings      → summary, hypotheses, facts, plan, case_status
     ↓
 Findings converted to GlobalState models → report persisted on the run row
+    ↓
+run.completed notification with full findings (if N8N_WEBHOOK_URL set)
 ```
 
 ---
@@ -332,6 +384,8 @@ Full command reference: [CLI Reference runbook](../operations/cli_reference.md).
 
 - [Architecture Overview](overview.md) - System-level design
 - [Components Guide](components.md) - How each component works
+- [Device Assessments](../assessments.md) - Assessment tables in context
+- [Notifications](../notifications.md) - Delivery payload contract
 - [Configuration Reference](../setup/configuration.md) - Database env vars
 - [Quickstart](../setup/quickstart.md) - Database initialization steps
 - [Backup & Restore runbook](../operations/backup_restore.md)

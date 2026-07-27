@@ -155,5 +155,5 @@ Operational procedures: [Gateway Operations](../operations/gateway_operations.md
 ## Future work
 
 - **SSE authentication**: the endpoint is currently unauthenticated — anyone who can reach the port can execute all tools. Acceptable only on trusted networks; add a bearer/API-key check before exposing beyond the compose network. This also means the per-request `tenant` header is **spoofable** by anything that can reach the port — cross-tenant isolation depends on the network boundary until SSE auth exists.
-- Second appliance pack (`vendors/fortinet/fortianalyzer/` or another vendor's product) to exercise the multi-pack path.
+- Third appliance pack (`vendors/fortinet/fortianalyzer/` or another vendor's product) to exercise the multi-pack path beyond the two Fortinet reference implementations, and a second concurrent version of an existing appliance (e.g. FortiOS 7.6 as `fgt76`) to exercise multi-version mounting.
 - Optional pagination/filtering of the tool listing for clients that can't handle ~2.5k tools.

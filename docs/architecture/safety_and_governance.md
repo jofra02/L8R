@@ -6,7 +6,7 @@
 
 The system enforces a multi-layer safety model to prevent unauthorized or dangerous tool execution. All tools accessed via MCP are read-only by design. Write actions (configuration changes, deployments, etc.) are never executed autonomously — the Engineer's `submit_findings` output *proposes* remediation steps in its plan; executing them is up to a human. (An in-band human-in-the-loop approval gate is planned, not yet implemented.)
 
-Safety is enforced at two active levels: keyword blocklist and per-tenant capability scopes. The blocklist applies twice — at tool registration (unsafe tools are never registered/indexed: 2776 gateway-exposed tools are filtered to 2220) and again at execution time inside `execute_tool`. The blocklist has two config lists: `SAFETY_BLOCKED_KEYWORDS` is matched against tool names **and** string argument values; `SAFETY_BLOCKED_NAME_KEYWORDS` (mutating verbs: `update`, `create`, `upload`, `upgrade`, `isolate`, `reset`, ...) is matched against tool names only, because argument values legitimately contain substrings like `createdBy` or `lastUpdateTime`.
+Safety is enforced at two always-active levels — keyword blocklist and per-tenant capability scopes — plus a third opt-in level (read-only name allowlist) used by Device Assessments. The blocklist applies twice — at tool registration (unsafe tools are never registered/indexed: 2776 gateway-exposed tools are filtered to 2220) and again at execution time inside the shared execution pipeline `src/core/mcp_executor.py` (safety → tenant governance → tenant-header injection → execution → error classification), which both the Engineer's `execute_tool` and the Device Assessment collector use. The blocklist has two config lists: `SAFETY_BLOCKED_KEYWORDS` is matched against tool names **and** string argument values; `SAFETY_BLOCKED_NAME_KEYWORDS` (mutating verbs: `update`, `create`, `upload`, `upgrade`, `isolate`, `reset`, ...) is matched against tool names only, because argument values legitimately contain substrings like `createdBy` or `lastUpdateTime`.
 
 ## Safety Layers
 
@@ -16,9 +16,11 @@ flowchart TD
     KW0 -->|blocked| SKIP["Not registered / not indexed"]
     KW0 -->|pass| REG["Registered + indexed in tool_catalog"]
 
-    REQ["execute_tool Request"] --> KW{"Keyword Blocklist\n(is_safe_tool)"}
+    REQ["execute_mcp_tool Request\n(Engineer execute_tool / Assessment collector)"] --> KW{"Keyword Blocklist\n(is_safe_tool)"}
     KW -->|blocked| DENY["DENY — blocked keyword"]
-    KW -->|pass| CS{"Capability Scope\n(is_tool_allowed_for_tenant)"}
+    KW -->|pass| RO{"Read-only name allowlist\n(assessments only, enforce_read_only)"}
+    RO -->|blocked| DENY0["DENY — not a GET-style tool"]
+    RO -->|pass| CS{"Capability Scope\n(is_tool_allowed_for_tenant)"}
     CS -->|not allowed| DENY2["DENY — not in tenant scope"]
     CS -->|allowed| EXEC["Execute via MCP"]
     EXEC --> RES["Result"]
@@ -38,6 +40,10 @@ This enables:
 - Tenant A can use FortiGate tools but not AWS tools
 - Tenant B can use AWS tools but not FortiGate tools
 - New tools must be explicitly allowed per tenant
+
+## Layer 3: Read-Only Name Allowlist (Device Assessments)
+
+The Device Assessment collector opts into a stricter check on top of the shared pipeline: `execute_mcp_tool(..., enforce_read_only=True)` requires the tool name to carry the `_get` marker and rejects names containing any mutating marker. This is viable because the FortiEDR spec converter and the FortiGate specs guarantee GET-style operations carry `_get` in their names; the Engineer path does not use it (the agent may legitimately call reviewed read-only POST tools).
 
 ## API Access Governance
 
@@ -62,9 +68,10 @@ The Engineer agent's model is set via `LLM_MODEL_ENGINEER`. Model selection is d
 ## Key Implementation Details
 
 - Safety check: `src/core/safety.py` — `is_safe_tool()`, `is_tool_allowed_for_tenant()`
+- Shared execution pipeline: `src/core/mcp_executor.py` — `execute_mcp_tool()` (applies both checks; optional `enforce_read_only`)
 - Registration-time filter: `src/core/registry.py` — `_is_safe()`
 - Capability scope ORM: `src/core/orm.py` — `CapabilityScope` model
-- Blocked keywords: `src/config.py` — `SAFETY_BLOCKED_KEYWORDS`
+- Blocked keywords: `src/config.py` — `SAFETY_BLOCKED_KEYWORDS`, `SAFETY_BLOCKED_NAME_KEYWORDS`
 
 ## See Also
 
