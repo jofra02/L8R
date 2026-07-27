@@ -39,7 +39,7 @@ docs/
   architecture/   # Architecture design documents
   setup/          # Quickstart, configuration, deployment guides
   integrations/   # API reference, MCP tools, webhooks
-  planning/       # Design specs (skills, data layer, model governance)
+  planning/       # Active plans (roadmap) + assessment source material; implemented specs archived in legacy/planning/
   legacy/         # Old 13-agent pipeline documentation (archived)
 data/             # Runtime artifacts (gitignored)
 ```

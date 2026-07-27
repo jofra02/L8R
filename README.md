@@ -33,7 +33,7 @@ The system uses a single **Engineer ReAct agent** that reasons through IT suppor
 
 ### Skills System
 
-The Engineer agent operates with a **base investigation methodology** always present in its system prompt, covering general diagnostic reasoning, evidence gathering, and structured reporting. **Domain-specific skills** (networking, cloud, database, security, etc.) are loaded on-demand via the `load_domain_skill` tool when the agent determines specialized methodology is needed.
+The Engineer agent operates with a **base investigation methodology** always present in its system prompt, covering general diagnostic reasoning, evidence gathering, and structured reporting. **Domain-specific skills** are loaded on-demand via the `load_domain_skill` tool when the agent determines specialized methodology is needed. Current skills cover networking, flow verification, tool catalog usage, FortiGate licensing and logs, FortiEDR investigation and event triage, and lateral thinking; the system is extensible to any IT domain (see `docs/agents/skill_authoring.md`).
 
 ### LangGraph
 
@@ -58,6 +58,8 @@ Defined in `src/agent_graph_v2.py`. The Engineer node runs the full ReAct loop i
 - **Langfuse Observability.** Full trace visibility into the ReAct loop, tool calls, and LLM interactions. Compatible with Langfuse v4.
 - **React Frontend Dashboard.** Web-based UI at `frontend/` for ticket submission, run monitoring, and report viewing.
 - **Structured Engineering Reports.** Output is a formatted technical document with diagnosis, remediation steps, validation procedures, and rollback plans.
+- **Device Assessments.** Second product module (`src/assessments/`): deterministic, definition-driven security assessments over managed devices (first: FortiGate). Versioned YAML definitions pin collection steps and controls; the LLM never chooses tools and only assists over pre-collected, schema-validated evidence. See [docs/assessments.md](docs/assessments.md).
+- **Outbound Notifications.** Optional n8n webhook egress (`ticket.ingested`, `run.completed`). Each delivery is persisted with its exact payload snapshot for manual resend from the dashboard. Disabled unless `N8N_WEBHOOK_URL` is set. See [docs/notifications.md](docs/notifications.md).
 
 ---
 
@@ -140,23 +142,27 @@ src/
 │   ├── engineer_prompts.py  # System prompt + base skill
 │   ├── engineer_tools.py    # 6 meta-tools factory
 │   └── skills/              # Investigation methodology skills
+├── assessments/             # Device Assessment module (definitions, collection, evaluation, scoring)
 ├── core/                    # Models, LLM, audit, evidence, safety
 ├── api/                     # Platform API (FastAPI)
-├── ingestion/               # Webhook ingestion
+├── ingestion/               # Webhook ingestion + background run execution
+├── notifications/           # Outbound n8n webhook notifications
 ├── mcp/                     # MCP client
 └── capabilities/            # Capability packs
 frontend/                    # React dashboard
 mcp_gateway/                 # Generic OpenAPI→MCP gateway service (tool execution)
 ├── gateway/                 # Vendor-agnostic engine
 ├── vendors/                 # Appliance packs: vendors/<vendor>/<appliance>/<version>/
-│   └── fortinet/fortigate/  # FortiGate pack (manifest + FortiOS specs + hooks)
+│   ├── fortinet/fortigate/  # FortiGate pack (manifest + FortiOS specs + hooks)
+│   └── fortinet/fortiedr/   # FortiEDR pack (generated OpenAPI 3 specs)
 └── inventory/               # Per-tenant device inventory (gitignored, encrypted tokens)
 docs/
 ├── setup/                   # Quickstart, configuration, deployment
 ├── operations/              # Runbooks (ops manual)
 ├── architecture/            # Overview, components, data layer, observability, safety
 ├── agents/                  # Agent documentation
-├── integrations/            # API reference, MCP tools, webhooks
+├── integrations/            # API reference, MCP tools
+├── planning/                # Active plans (roadmap) + assessment source material
 └── legacy/                  # Old 13-agent pipeline docs
 ```
 
@@ -171,6 +177,7 @@ docs/
 | `ENGINEER_MAX_TOOL_CALLS` | `30` | Maximum tool executions per run |
 | `ENGINEER_MAX_ITERATIONS` | `50` | Maximum ReAct loop iterations |
 | `ENGINEER_TIMEOUT_SECONDS` | `600` | Hard timeout for a single run |
+| `N8N_WEBHOOK_URL` | unset | n8n endpoint for outbound notifications; feature disabled when unset |
 
 ---
 
@@ -183,4 +190,6 @@ docs/
 | Components Guide | [docs/architecture/components.md](docs/architecture/components.md) |
 | Architecture Overview | [docs/architecture/overview.md](docs/architecture/overview.md) |
 | API Reference | [docs/integrations/api_reference.md](docs/integrations/api_reference.md) |
+| Device Assessments | [docs/assessments.md](docs/assessments.md) |
+| Outbound Notifications | [docs/notifications.md](docs/notifications.md) |
 | **Full index** | [docs/README.md](docs/README.md) |

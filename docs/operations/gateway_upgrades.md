@@ -28,7 +28,7 @@ Both procedures end at the same gate: the **name-freeze check**. Tool names are 
    - **Green** → names survived. Done (commit lock + pin).
    - **Red** → the new version renames tools. Decide:
      - **Abort**: revert the pin (`git checkout pyproject.toml uv.lock && uv sync`).
-     - **Proceed**: regenerate `baseline_tools.txt`, commit, then do a **forced re-index** of the agent's tool catalog ([Tool Catalog](tool_catalog.md)) — full LLM classification cost over ~2182 tools.
+     - **Proceed**: regenerate `baseline_tools.txt`, commit, then do a **forced re-index** of the agent's tool catalog ([Tool Catalog](tool_catalog.md)) — full LLM classification cost over ~2220 tools.
 3. Rebuild the container: `docker compose build mcp-gateway && docker compose up -d mcp-gateway`.
 
 **Verification**: live diff against the (possibly new) baseline is empty; agent startup shows either `up to date` (names kept) or a completed re-index (names changed).

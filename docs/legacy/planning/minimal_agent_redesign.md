@@ -1,3 +1,5 @@
+> Historical design spec — implemented. This document proposed the single Engineer ReAct agent that replaced the 13-agent pipeline and is now the shipped architecture. Current docs: [Architecture Overview](../../architecture/overview.md), [Engineer Agent](../../agents/engineer.md).
+
 # Redesign: Minimal Agent Architecture
 
 ## The Problem With Many Agents

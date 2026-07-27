@@ -13,7 +13,7 @@
 #
 # Optional fields (any transport):
 #   vendor: vendor name for tool metadata extraction (e.g., "fortinet", "cisco")
-#   timeout: per-server timeout in seconds (overrides MCP_SERVER_TIMEOUT)
+#   timeout: per-server timeout in seconds (declared but NOT enforced by the current client)
 
 servers:
   # ── SSE (HTTP) transport ──

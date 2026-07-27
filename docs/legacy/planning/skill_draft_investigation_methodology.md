@@ -1,3 +1,5 @@
+> Historical skill draft — this content shipped as `src/agents/skills/base_investigation.md` (since rewritten as the v2 causal "Logical Investigation Method"). Kept for reference only.
+
 # Skill: Engineering Investigation Methodology
 
 ## Purpose

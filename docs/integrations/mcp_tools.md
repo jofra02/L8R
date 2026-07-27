@@ -6,7 +6,7 @@
 
 The system uses the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) to connect to external tool servers. Tools are auto-discovered at startup via `CapabilityRegistry` and indexed in Qdrant for semantic search. All tool execution is read-only — write actions are only proposed in the Engineer's plan.
 
-The bundled [MCP Gateway](../architecture/mcp_gateway.md) (`mcp_gateway/`) is the primary server: it generates **2776** tools from vendor OpenAPI specs, which the registry safety-filters to **2182** registered and indexed tools.
+The bundled [MCP Gateway](../architecture/mcp_gateway.md) (`mcp_gateway/`) is the primary server: it generates **2776** tools from vendor OpenAPI specs, which the registry safety-filters to **2220** registered and indexed tools.
 
 Two transport modes are supported: **stdio** (local processes) and **SSE** (remote HTTP servers).
 
@@ -21,7 +21,7 @@ graph TD
     IDX --> READY["Tools ready for\nsemantic search"]
 
     AGENT["Engineer agent"] --> SEARCH["search_tool_catalog\n(Qdrant semantic search)"]
-    SEARCH --> EXEC["execute_tool\n(safety + tenant checks, direct MCP call)"]
+    SEARCH --> EXEC["execute_tool\n(shared guardrail pipeline\nsrc/core/mcp_executor.py)"]
 ```
 
 ## MCP Server Configuration
@@ -59,19 +59,20 @@ This prevents:
 
 ## Tool Selection (Engineer mode)
 
-1. **Semantic search**: the agent calls `search_tool_catalog` with an intent query; Qdrant returns matching tools with descriptions, parameter schemas, vendor and categories.
-2. **Safety check**: `is_safe_tool()` + `is_tool_allowed_for_tenant()` inside `execute_tool`.
-3. **Execution**: direct MCP call via `ExternalToolWrapper` (no retry middleware); results are stored as evidence automatically.
+1. **Semantic search**: the agent calls `search_tool_catalog` with an intent query; Qdrant returns matching tools with descriptions, parameter schemas, vendor and categories — scoped to the appliance-pack versions matching the tenant's managed devices (`src/core/pack_matching.py`).
+2. **Guardrail pipeline**: `execute_tool` delegates to the shared `src/core/mcp_executor.py::execute_mcp_tool` — keyword blocklist (`is_safe_tool`) → tenant capability scope (`is_tool_allowed_for_tenant`) → registry resolution → framework-side `tenant` header injection → execution → error classification. The Device Assessment collector uses the same pipeline with the additional `enforce_read_only` name allowlist.
+3. **Execution**: direct MCP call via `ExternalToolWrapper` (no retry middleware); the Engineer path stores results as evidence and records the tool-call audit trail.
 
 (The legacy pipeline's 4-phase `ToolSelector` + `AdaptiveExecutor` flow is archived in [docs/legacy/architecture/tool_selection_pipeline.md](../legacy/architecture/tool_selection_pipeline.md).)
 
 ## Key Implementation Details
 
 - MCP client: `src/mcp/client.py` — transport abstraction (stdio/SSE)
+- Shared execution pipeline: `src/core/mcp_executor.py` — `execute_mcp_tool()` (Engineer + Assessment collector)
 - Registry: `src/core/registry.py` — `CapabilityRegistry` (discovery + safety filter + indexing)
 - Safety: `src/core/safety.py` — `is_safe_tool()`, `is_tool_allowed_for_tenant()`
 - Pack interface: `src/core/interfaces.py` — `CapabilityPackInterface`, `MCPToolInterface`
-- Timeout: `MCP_SERVER_TIMEOUT` (default 30s) per tool call, overridable per server in servers.yaml
+- Timeouts: no per-tool-call timeout is enforced on the Engineer path (`MCP_SERVER_TIMEOUT` and the per-server `timeout` field in servers.yaml are defined but **not applied** by the current client); the run-level `ENGINEER_TIMEOUT_SECONDS` bounds the whole investigation. Assessments pass an explicit per-step `timeout_s` (default `ASSESSMENT_STEP_TIMEOUT_S`) through `execute_mcp_tool`
 
 ## See Also
 

@@ -18,6 +18,6 @@ Planned work not yet scheduled. Items here are commitments of direction, not des
 **Integration points:**
 
 - `GET /tickets/{ticket_id}/report?format=md|html|text` (default `md`, current behavior unchanged).
-- Outbound webhook egress step: when pushing a report to an external platform, select the format the destination accepts.
+- Outbound notification egress (`src/notifications/`, implemented since): `run.completed` already delivers the findings as Markdown; format selection would apply here when the destination platform accepts only HTML or plain text.
 
 **Out of scope for now:** PDF export, templating/branding of exported reports.

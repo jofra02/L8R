@@ -1,3 +1,5 @@
+> Historical design spec — implemented. The skills system (embedded base skill + on-demand domain skills) shipped in `src/agents/skills/`. Current docs: [Engineer Agent](../../agents/engineer.md), [Skill Authoring Guide](../../agents/skill_authoring.md).
+
 # Task: Implement Skills System for Engineer Agent
 
 ## Overview
