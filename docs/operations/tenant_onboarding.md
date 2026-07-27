@@ -11,7 +11,7 @@
 ## Steps
 
 1. **Author the tenant files** under `data/tenants/<customer_id>/`:
-   - `tenant.yaml` — id, name, capability scopes (tool allowlist globs like `fgt74_*`).
+   - `tenant.yaml` — id, name, `allowed_tools` (tool allowlist globs like `fgt74_*`, seeded as `CapabilityScope` rows).
    - `context.yaml` — inventory (devices with ids matching the gateway inventory, e.g. `fgt_casa`), dependencies, baselines, known changes.
 2. **Register the tenant**:
    ```bash

@@ -4,7 +4,7 @@
 
 **The real access model** (full contract: [API Reference — Authentication](../integrations/api_reference.md#authentication)):
 
-- **API keys** (`sk_live_...`) carry a **fixed permission set**: `tickets:write`, `tickets:read`, `runs:read`. They are for machine ticket ingestion and result polling. They cannot manage keys, users, tenants, or inventory.
+- **API keys** (`sk_live_...`) carry a **fixed permission set**: `tickets:write`, `tickets:read`, `runs:read`. They are for machine ticket ingestion and result polling. They cannot manage keys, users, tenants, or inventory. A key on the `__platform__` tenant (from `create-admin-key`) has those same three permissions but may act on behalf of any existing tenant by appending `?customer_id=<cid>` to the request.
 - **JWT users** get their permissions from the profile assigned per tenant; all administrative endpoints require a JWT session. The old role hierarchy (`viewer < operator < ...`) is deprecated.
 
 ## Bootstrap the first admin
@@ -34,7 +34,7 @@ Password policy: min 12 chars, uppercase + symbol required (`src/config.py`).
 Via CLI (no server needed):
 
 ```bash
-uv run python src/main.py create-admin-key "platform-ops"     # platform-admin key (bootstrap only)
+uv run python src/main.py create-admin-key "platform-ops"     # __platform__ key (cross-tenant via ?customer_id=)
 uv run python src/main.py create-tenant-key fake_client "ci"  # tenant key (tickets:write/read + runs:read)
 ```
 

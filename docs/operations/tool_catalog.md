@@ -16,7 +16,7 @@ At API startup, `CapabilityRegistry` ([src/core/registry.py](../../src/core/regi
 6. New and changed tools go through an **LLM classification pass** (IT-domain categories, discovery tier, identifiers) in batches of 15 — this is the expensive part. `TOOL_CATALOG_REINDEX_CAP` (default 200, env-overridable) bounds how many CHANGED tools are re-indexed per startup; any excess is deferred to the next startup (alphabetical order, logged as a WARNING).
 7. Stale entries (indexed but no longer registered) are logged, **not** deleted.
 
-There is **no force-reindex flag** (but `_check_catalog_needs_migration` forces a full re-index when it samples a gateway point without `pack_key` **or without `schema_hash`** — legacy catalogs from before the pack partition or before raw-inputSchema capture migrate automatically on startup).
+There is **no force-reindex flag** (but `_check_catalog_needs_migration` forces a full re-index when a sampled point misses `vendor`/`categories`/`tier` metadata, or when a sampled **gateway** point lacks `pack_key` **or `schema_hash`** — legacy catalogs from before the classification metadata, the pack partition, or the raw-inputSchema capture migrate automatically on startup).
 
 ## Version-aware search scoping
 
