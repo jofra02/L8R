@@ -8,6 +8,8 @@ The system integrates with [Langfuse](https://langfuse.com) for observability. E
 
 The integration targets the OTel-based Langfuse SDK (v4 API compatible) and is managed through a singleton `LangfuseManager` in `src/core/langfuse_integration.py`.
 
+Scope: only agent runs are traced. Device Assessment runs and notification deliveries are not instrumented with Langfuse — their forensic records live in PostgreSQL (`assessment_collection_executions`, `notification_deliveries`).
+
 ## Trace Model (Engineer mode)
 
 ```mermaid
