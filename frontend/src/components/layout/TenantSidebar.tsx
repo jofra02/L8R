@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Boxes,
   ClipboardCheck,
+  BellRing,
 } from "lucide-react";
 import { SidebarBase, type NavGroup } from "./SidebarBase";
 import { useMemo } from "react";
@@ -44,6 +45,7 @@ export function TenantSidebar({ collapsed, onToggle, hasPermission, tenantId }: 
         items: [
           { label: "Audit Logs", path: `${p}/audit/logs`, icon: <ScrollText size={20} />, permission: "audit:read" },
           { label: "Tool Calls", path: `${p}/audit/tool-calls`, icon: <Wrench size={20} />, permission: "audit:read" },
+          { label: "Notifications", path: `${p}/notifications`, icon: <BellRing size={20} />, permission: "notifications:read" },
         ],
       },
       {

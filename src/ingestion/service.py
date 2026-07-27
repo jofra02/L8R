@@ -4,6 +4,7 @@ from src.core.models import Ticket, GlobalState
 from src.core.orm import TicketORM, AgentRunORM, PlatformTenant
 from src.ingestion.normalizers.generic import GenericNormalizer
 from src.core.audit import AuditService
+from src.notifications import NotificationService
 from src.config import settings
 from langchain_core.messages import HumanMessage
 from typing import Dict, Any, Type, Tuple, Optional, List
@@ -22,6 +23,7 @@ class IngestionService:
         self.session = session
         self.normalizer = GenericNormalizer()  # In future, use factory based on source
         self.audit = AuditService()
+        self.notifications = NotificationService()
 
     async def ingest_webhook(self, source: str, payload: Dict[str, Any], customer_id: str) -> Tuple[str, str, str]:
         """Process a webhook payload and setup the initial execution run."""
@@ -33,6 +35,7 @@ class IngestionService:
         # 2. Persist to DB
         ticket_orm = TicketORM(
             id=ticket.id,
+            external_id=ticket.external_id,
             customer_id=customer_id,
             mode=ticket.mode,
             severity=ticket.severity,
@@ -49,6 +52,9 @@ class IngestionService:
         run_id = await self.audit.create_run(ticket.id, trace_id, customer_id)
         
         logger.info(f"Ticket {ticket.id} persisted. Run ID {run_id} created.")
+
+        # 4. Outbound notification (best-effort, never raises)
+        await self.notifications.notify_ticket_ingested(ticket, run_id, customer_id)
 
         return ticket, run_id
 
@@ -126,6 +132,11 @@ class IngestionService:
                 hypothesis_count=hypothesis_count,
             )
             logger.info(f"Background execution completed for Run {run_id} (Ticket {ticket.id})")
+
+            # Outbound notification with the full sanitized state (best-effort, never raises)
+            await self.notifications.notify_run_completed(
+                ticket, run_id, customer_id, serializable_state
+            )
 
         except asyncio.CancelledError:
             logger.info(f"Run {run_id} (Ticket {ticket.id}) was cancelled by user.")

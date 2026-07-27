@@ -140,6 +140,12 @@ class Settings(BaseSettings):
     MCP_GATEWAY_ADMIN_URL: Optional[str] = "http://localhost:8001"
     MCP_GATEWAY_ADMIN_TOKEN: Optional[str] = None
     MCP_GATEWAY_ADMIN_TIMEOUT: float = 10.0
+
+    # Outbound notifications (n8n webhook) — disabled unless N8N_WEBHOOK_URL is set
+    N8N_WEBHOOK_URL: Optional[str] = None
+    NOTIFICATION_TIMEOUT: float = 10.0
+    NOTIFICATION_AUTH_HEADER_NAME: Optional[str] = None   # e.g. "X-Webhook-Token"
+    NOTIFICATION_AUTH_HEADER_VALUE: Optional[str] = None
     
     # --- LLM Profiles (Governance) ---
     

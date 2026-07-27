@@ -54,6 +54,7 @@ ComponentRole = Literal[
 class Ticket(BaseModel):
     """Normalized ticket input."""
     id: str
+    external_id: Optional[str] = None  # ID in the source system (ITSM ticket number, etc.)
     mode: TicketMode
     text: str
     severity: Severity
