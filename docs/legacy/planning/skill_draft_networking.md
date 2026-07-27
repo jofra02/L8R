@@ -1,3 +1,5 @@
+> Historical skill draft — this content shipped as `src/agents/skills/networking.md`. Kept for reference only.
+
 # Skill: Network Engineering Investigation Methodology
 
 ## Purpose

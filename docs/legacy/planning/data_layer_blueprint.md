@@ -1,3 +1,5 @@
+> Historical design blueprint — superseded. The control-plane/data-plane split and the tenant-isolation maxims informed the current schema; the DB-per-tenant option discussed below was not adopted (shared PostgreSQL with `customer_id` FK isolation shipped instead). Current doc: [Data Layer](../../architecture/data_layer.md).
+
 # Support AI Agent Framework (L1/L2) — Data Layer Blueprint (PostgreSQL + Qdrant)
 
 **Fecha:** 2026-02-16  

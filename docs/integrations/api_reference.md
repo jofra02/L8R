@@ -48,9 +48,9 @@ A JWT with `mcp: true` (fresh user, admin reset) is blocked from every route exc
 
 ### Permission catalog
 
-Seeded by migrations `b3f8a1c2d4e6` + `c4d5e6f7a8b9`:
+Seeded by migrations `b3f8a1c2d4e6` + `c4d5e6f7a8b9` (base), `e6f7a8b9c0d1` (assessments) and `f7a8b9c0d1e2` (notifications):
 
-`tickets:read`, `tickets:write`, `runs:read`, `evidence:read`, `audit:read`, `keys:read`, `keys:manage`, `users:read`, `users:manage`, `profiles:read`, `profiles:manage`, `tenants:read`, `tenants:manage`, `inventory:read`, `inventory:write`
+`tickets:read`, `tickets:write`, `runs:read`, `evidence:read`, `audit:read`, `keys:read`, `keys:manage`, `users:read`, `users:manage`, `profiles:read`, `profiles:manage`, `tenants:read`, `tenants:manage`, `inventory:read`, `inventory:write`, `assessments:read`, `assessments:write`, `notifications:read`, `notifications:manage`
 
 Notes on actual enforcement:
 
@@ -305,6 +305,50 @@ Valid `device_type` values come from the loaded gateway packs (`GET /admin/packs
 - The component is saved locally first; the gateway outcome comes back as `gateway_sync` (`status`: `synced` | `error` | `skipped`) and is persisted in `metadata.mcp.sync`. The token is never stored or returned by the Platform API.
 - `PATCH` with `"mcp_managed": false` detaches the device from the gateway.
 - Requires `MCP_GATEWAY_ADMIN_URL` + `MCP_GATEWAY_ADMIN_TOKEN` in the app environment (otherwise `gateway_sync.status = "skipped"`).
+
+### Notifications — `/api/v1/notifications`
+
+Source: `src/api/routers/notifications.py`. Outbound n8n webhook deliveries (see [Outbound Notifications](../notifications.md)). Tenant-scoped: only deliveries of the caller's tenant are visible.
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/notifications` | `notifications:read` | Paginated delivery list, newest first; filters `status`, `event_type`, `ticket_id`, `run_id` |
+| POST | `/notifications/{delivery_id}/resend` | `notifications:manage` | Re-POST the stored payload snapshot; returns the refreshed `NotificationDeliveryItem`. 409 `not_configured` when `N8N_WEBHOOK_URL` is unset, 404 `not_found` when the delivery does not belong to the tenant |
+
+`NotificationDeliveryItem`: `{id, event_type, ticket_id?, run_id?, payload, status, attempts, last_attempt_at?, response_status?, response_body?, error?, created_at}` — `status` is `pending` \| `delivered` \| `failed`.
+
+### Assessments — `/api/v1/assessments`
+
+Source: `src/api/routers/assessments.py`, schemas in `src/api/schemas/assessment.py`, service in `src/api/services/assessment_service.py`. Device Assessment runs (see [Device Assessments](../assessments.md)). Both routers are mounted only when `ASSESSMENT_ENABLED=true` (the default) — with the flag off, every path below answers 404.
+
+Definition endpoints use plain `require_permission` (definitions are global, not tenant data). All run endpoints use `require_tenant_permission`: platform admins **must** target a tenant with `?customer_id=<tenant>` (otherwise 400 `tenant_required`).
+
+| Method | Path | Permission | Purpose |
+|---|---|---|---|
+| GET | `/assessment-definitions` | `assessments:read` | List all synced definition versions (`DefinitionVersionItem[]`) |
+| GET | `/assessment-definitions/{definition_id}/versions/{version}` | `assessments:read` | Full version snapshot: `step_count`, `control_count`, `categories`, `collection_steps`, `controls` |
+| POST | `/assessments` | `assessments:write` | Create a run in `draft` → 201 `AssessmentCreateResponse {run, warnings}` |
+| POST | `/assessments/{run_id}/start` | `assessments:write` | Queue a draft for execution; 409 `invalid_state` unless status is `draft` |
+| POST | `/assessments/{run_id}/cancel` | `assessments:write` | Cancel an active run (`queued` \| `collecting` \| `evaluating`); 409 `invalid_state` otherwise |
+| POST | `/assessments/{run_id}/reevaluate` | `assessments:write` | Re-run evaluation over stored evidence; 409 `invalid_state` unless `completed` \| `completed_with_errors`, 409 `conflict` if a live task exists |
+| GET | `/assessments` | `assessments:read` | Paginated run list; filters `status`, `definition_id`, `search` |
+| GET | `/assessments/{run_id}` | `assessments:read` | `AssessmentDetail` (adds `params`, `error`, `targets[]`) |
+| GET | `/assessments/{run_id}/steps` | `assessments:read` | Collection executions (`ExecutionResponse[]`); filters `target_id`, `status` |
+| GET | `/assessments/{run_id}/results` | `assessments:read` | Control results (`ControlResultResponse[]`); filters `target_id`, `status`, `severity`, `category` |
+| GET | `/assessments/{run_id}/executions/{execution_id}/evidence` | `assessments:read` | Raw + normalized evidence of one execution (`EvidenceResponse`) |
+| GET | `/assessments/{run_id}/report` | `assessments:read` | `ReportResponse {run_id, format_version, generated_at?, model}` — `model` is the full report document; 404 `not_found` while no report exists |
+
+**`POST /assessments`** — body `AssessmentCreate`:
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | str | 1–200 chars |
+| `definition_id` | str | Must exist with `definition_version` (404 `not_found`) |
+| `definition_version` | str | Pinned version — the run snapshots it immutably |
+| `component_ids` | str[] | ≥1 inventory component ids; each must be an MCP-managed device (422 `validation_error` otherwise) |
+| `params` | object | Optional definition parameters |
+
+A vendor mismatch between a component and the definition does not reject the request — it is returned in `warnings`. Run `status` lifecycle: `draft → queued → collecting → evaluating → completed | completed_with_errors | failed | cancelled`. `AssessmentListItem`: `{id, name, definition_id, definition_version, status, progress, score?, stats?, requested_by?, created_at?, started_at?, finished_at?, device_count}`.
 
 ---
 

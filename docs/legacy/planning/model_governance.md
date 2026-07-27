@@ -1,3 +1,5 @@
+> Historical design spec — applies to the legacy multi-agent pipeline only. Engineer mode uses a single model set via `LLM_MODEL_ENGINEER`; the per-agent profiles below survive only behind `PIPELINE_MODE=pipeline`. Current reference: [Configuration](../../setup/configuration.md).
+
 # Model Governance & Configuration Plan
 
 To address the need for granular LLM control (Vendor, Model, Token) per agent, we will upgrade the `LLMFactory` and `Settings`.

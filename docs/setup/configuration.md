@@ -96,7 +96,7 @@ servers:
     transport: sse
     url: http://10.0.1.50:8001/sse
     vendor: fortinet          # optional — used for tool metadata extraction
-    timeout: 45               # optional — overrides MCP_SERVER_TIMEOUT
+    timeout: 45               # optional — declared but NOT enforced by the current client
 
   filesystem:
     transport: stdio
@@ -114,13 +114,13 @@ servers:
 | `args` | stdio only | List of command arguments |
 | `env` | No | Environment variables dict (stdio only) |
 | `vendor` | No | Vendor name for tool metadata (replaces `MCP_SERVER_VENDOR_MAP`) |
-| `timeout` | No | Per-server timeout override in seconds |
+| `timeout` | No | Per-server timeout override in seconds — accepted but **not enforced** by the current MCP client |
 
 **Global env var:**
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| `MCP_SERVER_TIMEOUT` | `int` | `30` | Default timeout for MCP tool calls (overridden by per-server `timeout`) |
+| `MCP_SERVER_TIMEOUT` | `int` | `30` | Declared but **not enforced** — no per-tool-call timeout is applied today. The Engineer run is bounded by `ENGINEER_TIMEOUT_SECONDS`; assessments enforce per-step `timeout_s` (`ASSESSMENT_STEP_TIMEOUT_S`) via `execute_mcp_tool` |
 
 ### LLM Profiles (Legacy Multi-Agent Mode)
 

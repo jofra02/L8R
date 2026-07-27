@@ -71,6 +71,7 @@ graph TD
 | Doc | Description |
 |---|---|
 | [Device Assessments](assessments.md) | Deterministic definition-driven assessments: collection, evaluation, scoring, reporting |
+| [Outbound Notifications](notifications.md) | n8n webhook egress: `ticket.ingested` / `run.completed` events, persisted deliveries, manual resend |
 
 ### Integrations
 | Doc | Description |
@@ -78,19 +79,18 @@ graph TD
 | [API Reference](integrations/api_reference.md) | All HTTP surfaces: Platform API, legacy webhook ingestion, gateway admin API |
 | [MCP Tools](integrations/mcp_tools.md) | MCP server setup, tool discovery, capability packs |
 
-### Planning (Historical Design Specs)
+### Planning (Active)
 | Doc | Description |
 |---|---|
+| [Planning index](planning/README.md) | Folder purpose, contents, archive policy |
 | [Roadmap](planning/roadmap.md) | Planned work: report export service (MD → HTML / plain text) |
-| [Redesign Minimal Agent Architecture](planning/Redesign%20Minimal%20Agent%20Architecture.md) | Engineer ReAct architecture design |
-| [Skills Implementation](planning/skills_implementation.md) | Domain skill system design |
-| [Data Layer Blueprint](planning/data_layer_blueprint.md) | Data layer design decisions |
-| [Model Governance](planning/model_governance.md) | LLM model selection rationale (legacy framing) |
-| [Onboarding Plan](planning/onboarding_plan.md) | Tenant onboarding process (superseded by the runbook) |
+
+`planning/assessment/` holds the Device Assessment module's source material (the FortiGate hardening manual is path-referenced by the definition YAMLs — do not move it).
 
 ### Legacy (Archived)
 | Doc | Description |
 |---|---|
 | [Legacy Agents](legacy/agents/README.md) | Old 13-agent pipeline documentation |
+| [Legacy Planning Specs](legacy/planning/) | Implemented/superseded design specs: minimal-agent redesign, skills system, data layer blueprint, model governance, onboarding, skill drafts, legacy tool-selection designs |
 | [Tool Selection Pipeline](legacy/architecture/tool_selection_pipeline.md) | Legacy 4-phase ToolSelector design |
 | [Adaptive Execution](legacy/architecture/adaptive_execution.md) | Legacy self-healing executor |

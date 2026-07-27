@@ -230,7 +230,7 @@ servers:
     transport: sse
     url: http://mcp-host:8001/sse
     vendor: fortinet        # optional — used for tool metadata extraction
-    timeout: 45             # optional — overrides MCP_SERVER_TIMEOUT
+    timeout: 45             # optional — declared but NOT enforced by the current client
 ```
 
 The `mcp-gateway` compose service needs `INVENTORY_MASTER_KEY` (and optionally `DEFAULT_TENANT`, the fallback for header-less calls) in `.env`, and mounts `./mcp_gateway/inventory` read-write (device credentials never enter the image; the admin API persists there).

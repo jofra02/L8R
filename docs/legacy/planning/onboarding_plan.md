@@ -1,4 +1,4 @@
-> Historical design spec — for the current onboarding procedure see [../setup/quickstart.md](../setup/quickstart.md) and the [Tenant Onboarding runbook](../operations/tenant_onboarding.md).
+> Historical design spec — for the current onboarding procedure see the [Quickstart](../../setup/quickstart.md) and the [Tenant Onboarding runbook](../../operations/tenant_onboarding.md).
 
 # Onboarding & Data Seeding Plan
 
