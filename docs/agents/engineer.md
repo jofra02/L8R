@@ -16,9 +16,9 @@ Activated when `PIPELINE_MODE=engineer` (the default).
 |---|---|---|
 | 1 | `query_client_db` | Load tenant context: devices, topology, baselines, recent changes |
 | 2 | `load_domain_skill` | Load domain-specific investigation methodology |
-| 3 | `search_tool_catalog` | Semantic search over the Qdrant tool catalog (2220 safety-filtered tools of the 2776 the gateway exposes) |
+| 3 | `search_tool_catalog` | Semantic search over the Qdrant tool catalog (2220 safety-filtered tools of the 2776 the gateway exposes), scoped to the tenant's appliance-pack versions |
 | 4 | `search_knowledge_base` | Search vendor docs, runbooks, known issues |
-| 5 | `execute_tool` | Execute MCP tools against live devices (read-only) |
+| 5 | `execute_tool` | Execute MCP tools against live devices (read-only, direct via the shared `execute_mcp_tool` helper — no AdaptiveExecutor) |
 | 6 | `submit_findings` | Submit structured output: summary, hypotheses, facts, plan, case_status |
 
 All tools are created via `create_engineer_tools()` in `src/agents/engineer_tools.py`. Runtime context (`customer_id`, `run_id`, `ticket_id`, `max_tool_calls`) is bound via closure. A shared `EngineerToolState` object accumulates evidence refs, topology, client context, and findings across the entire ReAct loop.
@@ -31,11 +31,11 @@ query_client_db -> load_domain_skill -> search_tool_catalog -> execute_tool (1+)
 
 1. **query_client_db** -- always called first. Loads the full `ClientContext` from PostgreSQL and seeds topology nodes/edges from inventory.
 2. **load_domain_skill** -- called after reading the ticket and identifying the primary domain. Loads domain-specific reasoning frameworks and investigation templates.
-3. **search_tool_catalog** -- semantic search over the tool catalog in Qdrant. Returns tool names, descriptions, parameter schemas, vendor, and categories. Up to 10 results per query.
-4. **execute_tool** -- executes MCP tools with read-only access. Includes safety checks (blocked keywords), tenant governance, deduplication (content-addressable signatures), and automatic evidence storage. Called one or more times.
+3. **search_tool_catalog** -- semantic search over the tool catalog in Qdrant. Returns tool names, descriptions, parameter schemas (one line per parameter: type, format, enum values, required flag), vendor, and categories. Up to 10 results per query. Results are **version-scoped**: the allowed `pack_key`s are derived from the tenant's managed devices (`src/core/pack_matching.py` — exact version, then major.minor, then over-inclusive fallback); tools without pack identity always pass, and a tenant with no managed devices searches unscoped.
+4. **execute_tool** -- executes MCP tools with read-only access through the shared `execute_mcp_tool` helper (`src/core/mcp_executor.py`): safety filter (blocked keywords) → tenant governance → registry resolution → framework-side `tenant` injection → execution. Adds run-local deduplication (SHA-256 signature over tool name + the LLM's arguments — a repeat call is skipped with a message), a `max_tool_calls` cap, automatic evidence storage, and a `tool_calls_audit` record per call. Called one or more times.
 5. **submit_findings** -- called exactly once as the final action. Produces the structured output consumed by the platform.
 
-The agent is instructed to never produce a text-only response -- every response must include a tool call. The `submit_findings` tool cannot be called until `execute_tool` has been called at least once.
+The sequence is enforced by prompt rules, not code: the agent is instructed to never produce a text-only response (every response must include a tool call) and to never call `submit_findings` until `execute_tool` has run at least once.
 
 ## Skills System
 
@@ -56,6 +56,8 @@ Available domain skill files:
 - `fortigate_licensing.md` -- FortiGate license/entitlement investigation (verified tool anchors)
 - `fortigate_logs.md` -- FortiGate log retrieval across storage backends (verified tool anchors)
 - `flow_verification.md` -- control-point flow verification: is the firewall affecting a specific application flow (verified tool anchors)
+- `fortiedr.md` -- FortiEDR endpoint security: collectors, security events, threat hunting (verified tool anchors)
+- `fortiedr_triage.md` -- FortiEDR event triage: verdict adjudication (malicious / benign / false positive)
 - `lateral_thinking.md` -- investigation re-framing techniques for stalled cases
 
 New domains are added by dropping a `.md` file in `src/agents/skills/` and mapping its trigger keywords in `DOMAIN_SKILL_MAP` (`src/agents/engineer_tools.py`). See `docs/agents/skill_authoring.md` for the authoring format, tool anchor contract, and registration checklist.
@@ -75,6 +77,7 @@ If no mapping is found, the agent falls back to the base investigation methodolo
 | `ENGINEER_MAX_TOOL_CALLS` | `30` | Maximum tool executions per investigation run |
 | `ENGINEER_MAX_ITERATIONS` | `50` | Maximum ReAct loop iterations (LangGraph recursion limit) |
 | `ENGINEER_TIMEOUT_SECONDS` | `600` | Total timeout for the investigation in seconds |
+| `LLM_REASONING_EFFORT_ENGINEER` | `None` | Reasoning effort for the Engineer's LLM. The global `LLM_REASONING_EFFORT` deliberately does **not** apply to the engineer — unset means no `reasoning_effort` is sent |
 
 All variables are defined in `src/config.py` and loaded via Pydantic Settings from the `.env` file.
 
@@ -92,18 +95,22 @@ The `submit_findings` tool produces a structured output with five fields:
 
 The engineer node (`engineer_agent_node`) converts these raw dicts into proper GlobalState models (`Hypothesis`, `Fact`, `Plan`, `PlanStep`, `ScoringResult`) before returning to the graph. A synthetic `ScoringResult` is built for frontend compatibility.
 
-If the agent fails to call `submit_findings` (timeout, error, or omission), a fallback extractor pulls the last AI message content as a minimal summary.
+If the agent fails to call `submit_findings`, the outcome depends on why:
+
+- **Omission** (loop ended normally without calling it): a fallback extractor pulls the last AI message content as a minimal summary (`case_status: resolved`).
+- **Timeout** (`ENGINEER_TIMEOUT_SECONDS` exceeded): synthetic "Investigation Interrupted" findings with `case_status: blocked` and the evidence count collected so far.
+- **Loop error** (ReAct loop raised before any findings): the node re-raises, so the run is persisted as `failed` instead of `completed` with a blank report.
 
 ## Evidence Storage
 
 Every `execute_tool` result is automatically saved as an immutable `EvidenceSnapshot` via `EvidenceStore`. Evidence is:
 
-- **Content-addressable**: deduplicated by a SHA-256 hash of tool name, arguments, and content.
+- **Content-addressable**: the snapshot ID (`ev_<hash8>`) and on-disk filename derive from a SHA-256 hash of the result content, so identical content is stored once.
 - **Persisted to three stores**: disk (local filesystem), Qdrant (vector-indexed for semantic retrieval), and PostgreSQL (relational metadata).
 - **Namespaced by tenant**: all evidence is scoped to `customer_id`.
 - **Referenced by ID**: snapshot IDs are accumulated in `EngineerToolState.evidence_refs` and attached to the final findings.
 
-Duplicate tool executions (same tool name + same arguments) are detected via signature hashing and skipped with an informative message to the agent.
+Separately from content addressing, duplicate tool **executions** are prevented up front: a per-run signature (SHA-256 over tool name + the agent's arguments, computed before tenant injection) causes an exact repeat call to be skipped with an informative message to the agent instead of re-executing.
 
 ## Observability
 
@@ -123,4 +130,6 @@ This provides full observability into the agent's reasoning chain, tool selectio
 | `src/agents/engineer_tools.py` | Meta-tool factory (`create_engineer_tools`) and `EngineerToolState` |
 | `src/agents/engineer_prompts.py` | System prompt composition (base prompt + base investigation skill) |
 | `src/agents/skills/` | Skill markdown files (base + domain-specific) |
+| `src/core/mcp_executor.py` | Shared MCP execution helper used by `execute_tool` (safety → governance → tenant injection → execution; also used by the assessments module) |
+| `src/core/pack_matching.py` | Device `os_version` → pack version matching for catalog scoping |
 | `src/config.py` | Configuration variables |
