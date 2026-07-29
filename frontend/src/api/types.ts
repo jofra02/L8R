@@ -41,6 +41,7 @@ export interface ChangePasswordRequest {
 export interface ApiKeyCreate {
   name: string;
   expires_at?: string | null;
+  scope?: "tenant" | "global";
 }
 
 export interface ApiKeyResponse {
@@ -51,6 +52,7 @@ export interface ApiKeyResponse {
   expires_at: string | null;
   last_used_at: string | null;
   created_at: string;
+  scope?: "tenant" | "global";
 }
 
 export interface ApiKeyCreatedResponse extends ApiKeyResponse {

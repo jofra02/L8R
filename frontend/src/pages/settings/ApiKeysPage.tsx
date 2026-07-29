@@ -6,6 +6,7 @@ import { listApiKeys, createApiKey, revokeApiKey, rotateApiKey } from "@/api/end
 import { TimeAgo } from "@/components/common/TimeAgo";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { EmptyState } from "@/components/common/EmptyState";
+import { useAuth } from "@/hooks/useAuth";
 import type { ApiKeyCreatedResponse } from "@/api/types";
 
 export function ApiKeysPage() {
@@ -57,7 +58,8 @@ export function ApiKeysPage() {
       </div>
 
       <p className="text-xs text-text-muted">
-        API keys are used for ticket ingestion via webhook or API call. Each key is scoped to this tenant.
+        API keys are used for ticket ingestion via webhook or API call. Keys are scoped to this tenant;
+        platform admins can also issue global keys that target a tenant per request.
       </p>
 
       {/* New key banner */}
@@ -92,6 +94,7 @@ export function ApiKeysPage() {
               <tr className="border-b border-border">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Prefix</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Scope</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Active</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Last Used</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary">Created</th>
@@ -103,6 +106,13 @@ export function ApiKeysPage() {
                 <tr key={k.id} className="border-b border-border-subtle">
                   <td className="px-4 py-3 text-text-primary">{k.name}</td>
                   <td className="px-4 py-3 font-mono text-xs text-text-secondary">{k.key_prefix}...</td>
+                  <td className="px-4 py-3">
+                    {k.scope === "global" ? (
+                      <span className="text-xs px-2 py-0.5 rounded bg-accent/15 text-accent border border-accent/30">Global</span>
+                    ) : (
+                      <span className="text-xs text-text-muted">Tenant</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`inline-block w-2 h-2 rounded-full ${k.is_active ? "bg-status-completed" : "bg-status-failed"}`} />
                   </td>
@@ -154,7 +164,9 @@ function CreateKeyModal({
   onCreated: (key: ApiKeyCreatedResponse) => void;
 }) {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [name, setName] = useState("");
+  const [globalScope, setGlobalScope] = useState(false);
 
   const createMut = useMutation({
     mutationFn: createApiKey,
@@ -176,7 +188,7 @@ function CreateKeyModal({
           onSubmit={(e) => {
             e.preventDefault();
             if (!name.trim()) return;
-            createMut.mutate({ name: name.trim() });
+            createMut.mutate({ name: name.trim(), scope: globalScope ? "global" : "tenant" });
           }}
           className="p-5 space-y-4"
         >
@@ -192,6 +204,20 @@ function CreateKeyModal({
               autoFocus
             />
           </div>
+          {user?.is_platform_admin && (
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalScope}
+                onChange={(e) => setGlobalScope(e.target.checked)}
+                className="mt-0.5 accent-accent"
+              />
+              <span className="text-xs text-text-secondary">
+                Global key — not bound to this tenant; each request must target a tenant
+                via <code className="font-mono">?customer_id=</code>
+              </span>
+            </label>
+          )}
           <p className="text-xs text-text-muted">
             This key will only have permission to submit tickets via API.
           </p>

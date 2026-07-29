@@ -49,4 +49,5 @@ testpaths = [
     "src/testing/test_assessment_evaluation.py",
     "src/testing/test_assessment_collector.py",
     "src/testing/test_assessment_api.py",
+    "src/testing/test_api_key_scope.py",
 ]

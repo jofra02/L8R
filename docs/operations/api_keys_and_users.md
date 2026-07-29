@@ -41,10 +41,18 @@ uv run python src/main.py create-tenant-key fake_client "ci"  # tenant key (tick
 Via API (JWT session required):
 
 ```bash
-# Create
+# Create (bound to the caller's tenant context)
 curl -X POST http://localhost:8000/api/v1/auth/keys \
   -H "Authorization: Bearer <jwt_access_token>" -H "Content-Type: application/json" \
   -d '{"name": "ci-pipeline"}'
+# Create a GLOBAL key (platform admin only) — targets a tenant per request
+curl -X POST http://localhost:8000/api/v1/auth/keys \
+  -H "Authorization: Bearer <jwt_access_token>" -H "Content-Type: application/json" \
+  -d '{"name": "n8n-msp", "scope": "global"}'
+# Use a global key: the tenant goes in the query string
+curl -X POST "http://localhost:8000/api/v1/tickets?customer_id=<tenant>" \
+  -H "Authorization: Bearer sk_live_..." -H "Content-Type: application/json" \
+  -d '{"text": "VPN down at branch"}'
 # List / revoke / rotate
 curl http://localhost:8000/api/v1/auth/keys -H "Authorization: Bearer <jwt>"
 curl -X DELETE http://localhost:8000/api/v1/auth/keys/<key_id> -H "Authorization: Bearer <jwt>"
@@ -68,5 +76,6 @@ Managed via the API routers (see the [API Reference](../integrations/api_referen
 ## Gotchas
 
 - A `role` field sent to `POST /auth/keys` is **ignored** — keys are always operator.
+- `?customer_id=` is honored only by **global** keys. On a tenant-bound key it is silently ignored and the request acts on the key's own tenant — if you need cross-tenant submission, create a `scope: "global"` key as platform admin.
 - Losing all admin users is recoverable: `create-admin` can always mint another Super Admin from the CLI.
 - `JWT_SECRET_KEY` must be changed from its default in production (`.env`).

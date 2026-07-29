@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.dependencies import get_db, require_role, require_permission, get_auth_context
+from src.api.middleware.auth import PLATFORM_SENTINEL
 from src.api.schemas.auth import (
     ApiKeyCreate, ApiKeyResponse, ApiKeyCreatedResponse, AuthContext,
     LoginRequest, TokenResponse, RefreshRequest, ChangePasswordRequest, SwitchTenantRequest,
@@ -135,19 +136,11 @@ async def get_me(
     return auth
 
 
-@router.post("/keys", response_model=ApiKeyCreatedResponse, status_code=201)
-async def create_key(
-    body: ApiKeyCreate,
-    auth: AuthContext = Depends(_require_jwt_auth()),
-    db: AsyncSession = Depends(get_db),
-):
-    """Issue a new API key for ticket ingestion. The raw key is returned only once."""
-    service = AuthService(db)
-    raw_key, key_orm = await service.create_key(
-        customer_id=auth.customer_id,
-        name=body.name,
-        expires_at=body.expires_at,
-    )
+def _key_scope(key_orm) -> str:
+    return "global" if key_orm.customer_id == PLATFORM_SENTINEL else "tenant"
+
+
+def _created_response(raw_key: str, key_orm) -> ApiKeyCreatedResponse:
     return ApiKeyCreatedResponse(
         id=key_orm.id,
         key_prefix=key_orm.key_prefix,
@@ -156,8 +149,57 @@ async def create_key(
         expires_at=key_orm.expires_at,
         last_used_at=key_orm.last_used_at,
         created_at=key_orm.created_at,
+        scope=_key_scope(key_orm),
         raw_key=raw_key,
     )
+
+
+async def _ensure_platform_tenant(db: AsyncSession) -> None:
+    """Global keys FK against platform_tenants — seed the sentinel row if the
+    deployment predates `main.py bootstrap-admin` doing it."""
+    from src.core.orm import PlatformTenant
+    if await db.get(PlatformTenant, PLATFORM_SENTINEL) is None:
+        db.add(PlatformTenant(
+            customer_id=PLATFORM_SENTINEL,
+            name="Platform Admin",
+            status="active",
+            plan="platform",
+        ))
+        await db.commit()
+
+
+@router.post("/keys", response_model=ApiKeyCreatedResponse, status_code=201)
+async def create_key(
+    body: ApiKeyCreate,
+    auth: AuthContext = Depends(_require_jwt_auth()),
+    db: AsyncSession = Depends(get_db),
+):
+    """Issue a new API key for ticket ingestion. The raw key is returned only once.
+
+    scope='tenant' (default) binds the key to the caller's tenant context.
+    scope='global' (platform admins only) issues a platform-scoped key that
+    must target a tenant per request via ?customer_id=<tenant>.
+    """
+    if body.scope == "global":
+        if not auth.is_platform_admin:
+            raise APIError(403, "platform_admin_required", "Global API keys can only be created by platform admins")
+        await _ensure_platform_tenant(db)
+        target_customer_id = PLATFORM_SENTINEL
+    else:
+        if auth.customer_id == PLATFORM_SENTINEL:
+            raise APIError(
+                400, "tenant_required",
+                "Tenant-scoped key requires a tenant context: pass ?customer_id=<tenant> or use scope='global'.",
+            )
+        target_customer_id = auth.customer_id
+
+    service = AuthService(db)
+    raw_key, key_orm = await service.create_key(
+        customer_id=target_customer_id,
+        name=body.name,
+        expires_at=body.expires_at,
+    )
+    return _created_response(raw_key, key_orm)
 
 
 @router.get("/keys", response_model=list[ApiKeyResponse])
@@ -165,10 +207,24 @@ async def list_keys(
     auth: AuthContext = Depends(_require_jwt_auth()),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all API keys for the authenticated tenant."""
+    """List API keys for the authenticated tenant. Platform admins also see global keys."""
     service = AuthService(db)
     keys = await service.list_keys(auth.customer_id)
-    return [ApiKeyResponse.model_validate(k) for k in keys]
+    if auth.is_platform_admin and auth.customer_id != PLATFORM_SENTINEL:
+        keys = await service.list_keys(PLATFORM_SENTINEL) + keys
+    return [
+        ApiKeyResponse.model_validate(k).model_copy(update={"scope": _key_scope(k)})
+        for k in keys
+    ]
+
+
+async def _resolve_key_tenant(service: AuthService, key_id: str, auth: AuthContext) -> str:
+    """Tenant to scope a key mutation by: platform admins may manage global keys."""
+    if auth.is_platform_admin:
+        key = await service.get_key(key_id)
+        if key and key.customer_id == PLATFORM_SENTINEL:
+            return PLATFORM_SENTINEL
+    return auth.customer_id
 
 
 @router.delete("/keys/{key_id}", status_code=204)
@@ -179,7 +235,8 @@ async def revoke_key(
 ):
     """Revoke an API key."""
     service = AuthService(db)
-    revoked = await service.revoke_key(key_id, auth.customer_id)
+    scope_tenant = await _resolve_key_tenant(service, key_id, auth)
+    revoked = await service.revoke_key(key_id, scope_tenant)
     if not revoked:
         raise APIError(404, "not_found", "Key not found or already revoked")
 
@@ -192,17 +249,9 @@ async def rotate_key(
 ):
     """Revoke an existing key and issue a new one with the same metadata."""
     service = AuthService(db)
-    result = await service.rotate_key(key_id, auth.customer_id)
+    scope_tenant = await _resolve_key_tenant(service, key_id, auth)
+    result = await service.rotate_key(key_id, scope_tenant)
     if not result:
         raise APIError(404, "not_found", "Key not found, already revoked, or not owned by tenant")
     raw_key, key_orm = result
-    return ApiKeyCreatedResponse(
-        id=key_orm.id,
-        key_prefix=key_orm.key_prefix,
-        name=key_orm.name,
-        is_active=key_orm.is_active,
-        expires_at=key_orm.expires_at,
-        last_used_at=key_orm.last_used_at,
-        created_at=key_orm.created_at,
-        raw_key=raw_key,
-    )
+    return _created_response(raw_key, key_orm)
