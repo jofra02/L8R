@@ -94,7 +94,17 @@ class Settings(BaseSettings):
     ASSESSMENT_STEP_MAX_ATTEMPTS: int = 2     # default attempts for retryable errors
     ASSESSMENT_MAX_EVIDENCE_BYTES: int = 524288  # 512 KiB cap on stored evidence payloads
     LLM_MODEL_ASSESSMENT_EVALUATOR: str = "gpt-5-mini"
-    
+
+    # Asset Inventory module (deterministic — no LLM anywhere in this module)
+    ASSETS_ENABLED: bool = True
+    ASSETS_SYNC_CONCURRENCY: int = 4          # max concurrent enrichment runs
+    ASSETS_SYNC_STEP_TIMEOUT_S: int = 60      # default per-step timeout (pack YAML can override)
+    ASSETS_SYNC_STEP_MAX_ATTEMPTS: int = 2    # default attempts for retryable errors
+    ASSETS_SYNC_TIMEOUT_S: int = 900          # stale-run sweeper threshold
+    ASSETS_SYNC_INTERVAL_HOURS: int = 24      # scheduled re-enrichment cadence; 0 disables
+    ASSETS_IMPORT_MAX_ROWS: int = 10000       # per-request import cap
+    ASSETS_EXPORT_MAX_ROWS: int = 100000      # per-request export cap
+
     # Database (Postgres)
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
@@ -181,10 +191,15 @@ class Settings(BaseSettings):
     # argument values, where substrings like "createdBy"/"lastUpdateTime" are
     # legitimate. Mirrored in mcp_gateway/scripts/convert_fortiedr_specs.py
     # (BLOCKED_NAME_KEYWORDS) — keep in sync.
+    # Name matching is token-based (split on _/-) since the "format" ⊂
+    # "information" false-positive fix; "unisolate"/"remove"/"put" are listed
+    # explicitly because token matching no longer catches them via the
+    # "isolate"/"move"/"update" substrings.
     SAFETY_BLOCKED_NAME_KEYWORDS: List[str] = [
-        "update", "create", "upload", "upgrade", "isolate", "uninstall",
-        "remediate", "terminate", "set_", "reset", "assign", "clone",
-        "transfer", "import", "toggle", "release", "move", "stop",
+        "update", "create", "upload", "upgrade", "isolate", "unisolate",
+        "uninstall", "remediate", "terminate", "set_", "reset", "assign",
+        "clone", "transfer", "import", "toggle", "release", "move", "remove",
+        "stop", "put", "vmlicense",
     ]
 
     # Langfuse Observability

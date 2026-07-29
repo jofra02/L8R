@@ -57,6 +57,16 @@ import type {
   ScopeCreate,
   ScopeUpdate,
   CascadeWarning,
+  Asset,
+  AssetCreatePayload,
+  AssetUpdatePayload,
+  AssetTypeDef,
+  AssetRelation,
+  AssetAuditEntry,
+  AssetSyncRun,
+  AssetImportResponse,
+  McpPack,
+  GatewaySync,
 } from "./types";
 
 // --- Health ---
@@ -425,6 +435,107 @@ export async function updateKnownChange(index: number, body: KnownChangeUpdate):
 
 export async function deleteKnownChange(index: number): Promise<void> {
   await client.delete(`/inventory/changes/${index}`);
+}
+
+// --- Assets ---
+export async function listAssets(filters: Record<string, string | number | boolean | undefined>): Promise<PaginatedResponse<Asset>> {
+  const { data } = await client.get<PaginatedResponse<Asset>>("/assets", { params: filters });
+  return data;
+}
+
+export async function listGlobalAssets(filters: Record<string, string | number | boolean | undefined>): Promise<PaginatedResponse<Asset>> {
+  const { data } = await client.get<PaginatedResponse<Asset>>("/assets/global", { params: filters });
+  return data;
+}
+
+export async function getAsset(id: string): Promise<Asset> {
+  const { data } = await client.get<Asset>(`/assets/${id}`);
+  return data;
+}
+
+export async function createAsset(body: AssetCreatePayload): Promise<Asset> {
+  const { data } = await client.post<Asset>("/assets", body);
+  return data;
+}
+
+export async function updateAsset(id: string, body: AssetUpdatePayload): Promise<Asset> {
+  const { data } = await client.patch<Asset>(`/assets/${id}`, body);
+  return data;
+}
+
+export async function deleteAsset(id: string): Promise<{ deleted: string; gateway_sync?: GatewaySync }> {
+  const { data } = await client.delete(`/assets/${id}`);
+  return data;
+}
+
+export async function restoreAsset(id: string): Promise<Asset> {
+  const { data } = await client.post<Asset>(`/assets/${id}/restore`);
+  return data;
+}
+
+export async function listAssetTypes(): Promise<AssetTypeDef[]> {
+  const { data } = await client.get<AssetTypeDef[]>("/assets/types");
+  return data;
+}
+
+export async function listAssetRelations(id: string): Promise<AssetRelation[]> {
+  const { data } = await client.get<AssetRelation[]>(`/assets/${id}/relations`);
+  return data;
+}
+
+export async function createAssetRelation(
+  id: string,
+  body: { target_asset_id: string; relation_type: string; direction?: "out" | "in"; details?: Record<string, unknown> },
+): Promise<AssetRelation> {
+  const { data } = await client.post<AssetRelation>(`/assets/${id}/relations`, body);
+  return data;
+}
+
+export async function deleteAssetRelation(relationId: number): Promise<void> {
+  await client.delete(`/assets/relations/${relationId}`);
+}
+
+export async function getAssetHistory(id: string, filters: Record<string, number>): Promise<PaginatedResponse<AssetAuditEntry>> {
+  const { data } = await client.get<PaginatedResponse<AssetAuditEntry>>(`/assets/${id}/history`, { params: filters });
+  return data;
+}
+
+export async function enrichAsset(id: string): Promise<{ run_id: string; status: string }> {
+  const { data } = await client.post(`/assets/${id}/enrich`);
+  return data;
+}
+
+export async function listAssetSyncRuns(id: string, filters: Record<string, number>): Promise<PaginatedResponse<AssetSyncRun>> {
+  const { data } = await client.get<PaginatedResponse<AssetSyncRun>>(`/assets/${id}/sync-runs`, { params: filters });
+  return data;
+}
+
+export async function listMcpPacks(): Promise<McpPack[]> {
+  const { data } = await client.get<McpPack[]>("/assets/mcp-packs");
+  return data;
+}
+
+export async function exportAssets(
+  format: "csv" | "xlsx",
+  filters: Record<string, string | number | boolean | undefined>,
+): Promise<Blob> {
+  const { data } = await client.get(`/assets/export`, {
+    params: { ...filters, format },
+    responseType: "blob",
+  });
+  return data;
+}
+
+export async function importAssets(
+  body: { assets: Record<string, unknown>[] } | string,
+  opts: { dryRun: boolean; matchKey: string },
+): Promise<AssetImportResponse> {
+  const isCsv = typeof body === "string";
+  const { data } = await client.post<AssetImportResponse>("/assets/import", body, {
+    params: { dry_run: opts.dryRun, match_key: opts.matchKey },
+    headers: isCsv ? { "Content-Type": "text/csv" } : undefined,
+  });
+  return data;
 }
 
 // --- Tenants ---

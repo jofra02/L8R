@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies import get_db, require_permission
+from src.api.dependencies import get_db, require_tenant_permission
 from src.api.schemas.auth import AuthContext
 from src.api.schemas.inventory import (
     ComponentCreate, ComponentUpdate, ComponentResponse,
@@ -11,33 +11,12 @@ from src.api.schemas.inventory import (
     InventoryOverview, FullInventoryResponse, InventoryImport,
 )
 from src.api.services.inventory_service import InventoryService
-from src.api.middleware.auth import PLATFORM_SENTINEL
-from src.api.exceptions import APIError
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
 
 def _svc(db: AsyncSession) -> InventoryService:
     return InventoryService(db)
-
-
-def require_tenant_permission(perm: str):
-    """Like require_permission, but rejects the platform sentinel as tenant.
-
-    Inventory is tenant-scoped: writing under '__platform__' violates the
-    client_contexts FK (500) and can leak orphan devices into the gateway.
-    """
-    base = require_permission(perm)
-
-    async def dependency(auth: AuthContext = Depends(base)) -> AuthContext:
-        if auth.customer_id == PLATFORM_SENTINEL:
-            raise APIError(
-                400, "tenant_required",
-                "Platform admin must target a tenant: pass ?customer_id=<tenant>.",
-            )
-        return auth
-
-    return dependency
 
 
 # --- Context-level ---

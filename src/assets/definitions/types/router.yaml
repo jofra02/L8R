@@ -1,0 +1,20 @@
+type_id: router
+version: 1
+label: Router
+category: network
+roles: [router, gateway]
+fields:
+  - key: os_version
+    label: OS Version
+    type: string
+    filterable: true
+    searchable: true
+  - key: mac
+    label: Base MAC address
+    type: string
+    filterable: true
+  - key: mgmt_url
+    label: Management URL
+    type: string
+relations:
+  allowed: [depends_on, connected_to, managed_by, member_of]

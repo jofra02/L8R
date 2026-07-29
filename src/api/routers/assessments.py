@@ -5,9 +5,13 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies import get_db, get_pagination, require_permission
+from src.api.dependencies import (
+    get_db,
+    get_pagination,
+    require_permission,
+    require_tenant_permission,
+)
 from src.api.exceptions import APIError
-from src.api.middleware.auth import PLATFORM_SENTINEL
 from src.api.schemas.assessment import (
     AssessmentCreate,
     AssessmentCreateResponse,
@@ -30,21 +34,6 @@ router = APIRouter(prefix="/assessments", tags=["assessments"])
 definitions_router = APIRouter(
     prefix="/assessment-definitions", tags=["assessments"]
 )
-
-
-def require_tenant_permission(perm: str):
-    """require_permission + reject the platform sentinel (tenant-scoped writes)."""
-    base = require_permission(perm)
-
-    async def dependency(auth: AuthContext = Depends(base)) -> AuthContext:
-        if auth.customer_id == PLATFORM_SENTINEL:
-            raise APIError(
-                400, "tenant_required",
-                "Platform admin must target a tenant: pass ?customer_id=<tenant>.",
-            )
-        return auth
-
-    return dependency
 
 
 def _svc(db: AsyncSession) -> AssessmentService:

@@ -37,7 +37,8 @@ export function TenantSidebar({ collapsed, onToggle, hasPermission, tenantId }: 
       {
         label: "CONFIGURATION",
         items: [
-          { label: "Inventory", path: `${p}/inventory`, icon: <Boxes size={20} />, permission: "inventory:read" },
+          { label: "Assets", path: `${p}/assets`, icon: <Boxes size={20} />, permission: "assets:read" },
+          { label: "Inventory", path: `${p}/inventory`, icon: <Wrench size={20} />, permission: "inventory:read" },
         ],
       },
       {

@@ -77,13 +77,18 @@ async def seed_tenant(file_path: str):
         print(f"Gateway inventory sync {sync.status}: {sync.error or ''}")
 
 async def seed_context(file_path: str):
-    """Seed ClientContext in the Data Plane."""
+    """Seed ClientContext in the Data Plane.
+
+    Components and dependencies are seeded into the relational asset tables
+    (AssetService) — the assets tables are authoritative since the Asset
+    Inventory migration. The blob keeps baselines/known_changes.
+    """
     print(f"Reading Context YAML: {file_path}")
     with open(file_path, "r") as f:
         data = yaml.safe_load(f)
-        
+
     customer_id = data["customer_id"]
-    
+
     # Validate against Pydantic Model
     try:
         context_model = ClientContext(**data)
@@ -95,37 +100,66 @@ async def seed_context(file_path: str):
         # Check if tenant exists/active (Guardrail)
         tenant_res = await session.execute(select(PlatformTenant).where(PlatformTenant.customer_id == customer_id))
         tenant = tenant_res.scalar_one_or_none()
-        
+
         if not tenant or tenant.status != 'active':
             print(f"Error: Tenant {customer_id} not found or inactive in Control Plane.")
             return
 
-        # Upsert Context
-        # We check for existing version or just overwrite 'latest' logic?
-        # For this seeder, we will create a NEW version or update if version matches?
-        # Let's simple: Insert new row mapping to this version.
-        
-        # Check if this version exists
+        # Components/dependencies -> asset tables (upsert by id, lenient).
+        from src.api.schemas.inventory import ComponentCreate, DependencyCreate
+        from src.api.services.inventory_service import InventoryService
+        from src.api.exceptions import APIError
+
+        inventory = InventoryService(session)
+        for comp in context_model.inventory:
+            payload = ComponentCreate(**comp.model_dump())
+            try:
+                await inventory.add_component(customer_id, payload)
+                print(f"  asset created: {comp.id}")
+            except APIError as e:
+                if e.error == "conflict":
+                    from src.api.schemas.inventory import ComponentUpdate
+                    await inventory.update_component(
+                        customer_id, comp.id,
+                        ComponentUpdate(**comp.model_dump(exclude={"id"})),
+                    )
+                    print(f"  asset updated: {comp.id}")
+                else:
+                    print(f"  asset {comp.id} skipped: {e.error} {e.detail}")
+        for dep in context_model.dependencies:
+            try:
+                await inventory.add_dependency(customer_id, DependencyCreate(**dep.model_dump()))
+                print(f"  relation created: {dep.source_id} -> {dep.target_id}")
+            except APIError as e:
+                if e.error != "conflict":
+                    print(f"  relation skipped: {e.error} {e.detail}")
+
+        # Blob keeps baselines/known_changes (inventory keys are blanked by
+        # ContextStore on save; here we upsert the row directly).
+        content = context_model.model_dump()
+        content["inventory"] = []
+        content["dependencies"] = []
+
         stmt = select(ClientContextORM).where(
             ClientContextORM.customer_id == customer_id,
             ClientContextORM.version == context_model.version
         )
         result = await session.execute(stmt)
         existing = result.scalar_one_or_none()
-        
+
         if existing:
-            existing.content = context_model.model_dump()
+            existing.content = content
             print(f"Updated existing context version {context_model.version}")
         else:
             new_ctx = ClientContextORM(
                 customer_id=customer_id,
                 version=context_model.version,
-                content=context_model.model_dump(),
+                content=content,
                 is_active=True
             )
             session.add(new_ctx)
             print(f"Created new context version {context_model.version}")
-            
+
         await session.commit()
 
 if __name__ == "__main__":

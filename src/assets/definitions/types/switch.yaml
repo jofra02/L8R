@@ -1,0 +1,25 @@
+type_id: switch
+version: 1
+label: Switch
+category: network
+roles: [switch]
+fields:
+  - key: os_version
+    label: OS Version
+    type: string
+    filterable: true
+    searchable: true
+  - key: mac
+    label: Base MAC address
+    type: string
+    filterable: true
+    searchable: true
+  - key: port_count
+    label: Port count
+    type: integer
+    validation: { min: 0 }
+  - key: mgmt_url
+    label: Management URL
+    type: string
+relations:
+  allowed: [depends_on, connected_to, managed_by, member_of]

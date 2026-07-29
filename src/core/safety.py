@@ -1,10 +1,36 @@
 """Shared safety utilities for tool execution governance."""
 
+import re
 from typing import Any, Dict
 from src.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
+_NAME_SEPARATORS = re.compile(r"[_\-]+")
+
+
+def _name_blocked_by(tool_name: str) -> str | None:
+    """Return the keyword blocking *tool_name*, or None.
+
+    Tool-name matching is TOKEN-based (split on _/-): the keyword must equal
+    a whole token, so "format" blocks ..._logdisk_format but no longer
+    false-positives on ..._get_vm_information (in-FORMAT-ion). Keywords
+    containing spaces (e.g. "debug flow", "set ") keep the legacy substring
+    semantics — they target arg values / spaced phrases and cannot match
+    snake_case names as tokens.
+    """
+    name = tool_name.lower()
+    tokens = set(_NAME_SEPARATORS.split(name))
+    for kw in settings.SAFETY_BLOCKED_KEYWORDS + settings.SAFETY_BLOCKED_NAME_KEYWORDS:
+        if " " in kw or kw.endswith("_"):
+            # Positional keywords ("set_") and spaced phrases keep the
+            # legacy substring semantics.
+            if kw in name:
+                return kw
+        elif kw in tokens:
+            return kw
+    return None
 
 
 def is_safe_tool(tool_name: str, tool_args: Dict[str, Any]) -> bool:
@@ -15,12 +41,12 @@ def is_safe_tool(tool_name: str, tool_args: Dict[str, Any]) -> bool:
     blocked = settings.SAFETY_BLOCKED_KEYWORDS
 
     # Check Name (name-only keywords included — see SAFETY_BLOCKED_NAME_KEYWORDS)
-    for kw in blocked + settings.SAFETY_BLOCKED_NAME_KEYWORDS:
-        if kw in tool_name.lower():
-            logger.warning(f"Safety Block: Tool '{tool_name}' blocked by keyword '{kw}'")
-            return False
+    kw = _name_blocked_by(tool_name)
+    if kw is not None:
+        logger.warning(f"Safety Block: Tool '{tool_name}' blocked by keyword '{kw}'")
+        return False
 
-    # Check Args (e.g. "command": "execute ...")
+    # Check Args (e.g. "command": "execute ...") — substring semantics kept.
     for key, val in tool_args.items():
         if isinstance(val, str):
             for kw in blocked:

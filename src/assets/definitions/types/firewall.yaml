@@ -1,0 +1,41 @@
+# Asset type: firewall — versioned and immutable once synced (bump version
+# to change; see src/assets/registry.py).
+type_id: firewall
+version: 1
+label: Firewall
+category: network_security
+roles: [firewall]
+fields:
+  - key: os_version
+    label: OS Version
+    type: string
+    filterable: true
+    searchable: true
+  - key: firmware
+    label: Firmware inventory
+    type: json
+  - key: ha_mode
+    label: HA Mode
+    type: enum
+    enum: [standalone, active-passive, active-active]
+    filterable: true
+  - key: ha_config
+    label: HA configuration
+    type: json
+  - key: license_status
+    label: License status
+    type: json
+  - key: performance
+    label: Performance snapshot
+    type: json
+  - key: interfaces
+    label: Interfaces
+    type: json
+  - key: vdoms
+    label: VDOMs
+    type: json
+  - key: mgmt_url
+    label: Management URL
+    type: string
+relations:
+  allowed: [depends_on, connected_to, managed_by, member_of]

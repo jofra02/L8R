@@ -1,28 +1,28 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpDown } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowUpDown, Boxes } from "lucide-react";
 import { getFullInventory } from "@/api/endpoints";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useAuth } from "@/hooks/useAuth";
-import { ComponentsTab } from "./ComponentsTab";
-import { DependenciesTab } from "./DependenciesTab";
 import { BaselinesTab } from "./BaselinesTab";
 import { KnownChangesTab } from "./KnownChangesTab";
 import { ImportExportModal } from "./ImportExportModal";
 
-type Tab = "components" | "dependencies" | "baselines" | "changes";
+// Components/Dependencies moved to the Assets module (/t/:tenantId/assets);
+// this page keeps the blob-owned baselines and known changes.
+type Tab = "baselines" | "changes";
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: "components", label: "Components" },
-  { key: "dependencies", label: "Dependencies" },
   { key: "baselines", label: "Baselines" },
   { key: "changes", label: "Known Changes" },
 ];
 
 export function InventoryPage() {
+  const { tenantId } = useParams<{ tenantId: string }>();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission("inventory:write");
-  const [tab, setTab] = useState<Tab>("components");
+  const [tab, setTab] = useState<Tab>("baselines");
   const [importExportOpen, setImportExportOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -74,6 +74,19 @@ export function InventoryPage() {
         ))}
       </div>
 
+      {/* Components/Dependencies now live in Assets */}
+      <div className="bg-card border border-border rounded-lg px-4 py-3 flex items-center justify-between">
+        <p className="text-sm text-text-secondary">
+          Components and dependencies are managed in the Assets module.
+        </p>
+        <Link
+          to={`/t/${tenantId}/assets`}
+          className="flex items-center gap-2 text-sm text-accent hover:underline"
+        >
+          <Boxes size={16} /> Open Assets
+        </Link>
+      </div>
+
       {/* Tabs */}
       <div className="border-b border-border flex gap-0">
         {TABS.map((t) => (
@@ -92,8 +105,6 @@ export function InventoryPage() {
       </div>
 
       {/* Tab content */}
-      {tab === "components" && <ComponentsTab components={components} canWrite={canWrite} />}
-      {tab === "dependencies" && <DependenciesTab dependencies={dependencies} components={components} canWrite={canWrite} />}
       {tab === "baselines" && <BaselinesTab baselines={baselines} components={components} canWrite={canWrite} />}
       {tab === "changes" && <KnownChangesTab knownChanges={knownChanges} components={components} canWrite={canWrite} />}
 

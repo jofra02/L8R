@@ -1,7 +1,8 @@
-from sqlalchemy import String, Text, DateTime, JSON, ForeignKey, Integer, Boolean, Float, BigInteger, Index, UniqueConstraint, Table, Column
+from sqlalchemy import String, Text, DateTime, Date, JSON, ForeignKey, Integer, Boolean, Float, BigInteger, Index, UniqueConstraint, Table, Column
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func, text
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, Dict, Any, List
 from .database import Base
 
@@ -532,4 +533,177 @@ class NotificationDeliveryORM(Base, TenantMixin):
 
     __table_args__ = (
         Index("ix_notification_deliveries_tenant_created", "customer_id", "created_at"),
+    )
+
+
+# --- Asset Inventory module ---
+#
+# Deliberate deviation from the sa.JSON convention: asset tables use
+# postgresql.JSONB + GIN indexes because the search surface (dynamic
+# attributes, tags) requires containment operators. The codebase is
+# Postgres-only (asyncpg DSN, partial indexes, pg_insert in evidence_store).
+# The sqlite variant exists ONLY so the self-contained test suite can run
+# against in-memory sqlite; production DDL (alembic) is pure JSONB.
+
+PortableJSONB = JSONB().with_variant(JSON(), "sqlite")
+
+class AssetORM(Base, TenantMixin):
+    """One inventory asset. Relational successor of the Component entries
+    formerly embedded in client_contexts.content (see context_adapter)."""
+    __tablename__ = "assets"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    ref: Mapped[str] = mapped_column(String, nullable=False)  # MCP device routing slug
+    asset_type: Mapped[str] = mapped_column(String, nullable=False)
+    type_schema_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    manufacturer: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    model: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    serial_number: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    location: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    owner: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    fqdn: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="active", nullable=False)  # active|inactive|maintenance|retired
+    criticality: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # low|medium|high|critical
+    tags: Mapped[List[str]] = mapped_column(PortableJSONB, default=list, nullable=False)
+    purchase_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    warranty_expires: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    eol_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
+    # Type-specific attributes, schema-validated against the asset-type
+    # definition. provenance maps attribute/field name -> origin descriptor
+    # ({source: manual|discovered, pack_id, run_id, updated_at}).
+    attributes: Mapped[Dict[str, Any]] = mapped_column(PortableJSONB, default=dict, nullable=False)
+    provenance: Mapped[Dict[str, Any]] = mapped_column(PortableJSONB, default=dict, nullable=False)
+
+    # MCP gateway management. mcp_config never holds the token (write-only
+    # to the gateway, Fernet-encrypted at rest gateway-side).
+    managed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    mcp_config: Mapped[Optional[Dict[str, Any]]] = mapped_column(PortableJSONB, nullable=True)
+    sync_status: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # pending|synced|error|skipped
+    sync_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    external_source: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    external_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    updated_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    __table_args__ = (
+        Index("ix_assets_tenant_created", "customer_id", "created_at"),
+        Index("ix_assets_tenant_type", "customer_id", "asset_type"),
+        Index("ix_assets_tenant_status", "customer_id", "status"),
+        Index("ix_assets_attributes_gin", "attributes", postgresql_using="gin",
+              postgresql_ops={"attributes": "jsonb_path_ops"}),
+        Index("ix_assets_tags_gin", "tags", postgresql_using="gin"),
+        Index("uq_assets_tenant_ref", "customer_id", "ref", unique=True,
+              postgresql_where=text("deleted_at IS NULL")),
+        Index("uq_assets_external_identity", "customer_id", "external_source", "external_id",
+              unique=True,
+              postgresql_where=text("external_id IS NOT NULL AND deleted_at IS NULL")),
+    )
+
+
+class AssetRelationORM(Base, TenantMixin):
+    """Directed relation between two assets (successor of blob dependencies)."""
+    __tablename__ = "asset_relations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_asset_id: Mapped[str] = mapped_column(
+        ForeignKey("assets.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    target_asset_id: Mapped[str] = mapped_column(
+        ForeignKey("assets.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    relation_type: Mapped[str] = mapped_column(String, nullable=False)  # depends_on|managed_by|connected_to|member_of|...
+    provenance: Mapped[str] = mapped_column(String, default="manual", nullable=False)  # manual|discovered
+    details: Mapped[Dict[str, Any]] = mapped_column(PortableJSONB, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("customer_id", "source_asset_id", "target_asset_id", "relation_type",
+                         name="uq_asset_relation"),
+    )
+
+
+class AssetDefinitionVersionORM(Base):
+    """Immutable snapshot of an asset-type or enrichment-pack definition.
+
+    Same immutability contract as AssessmentDefinitionVersionORM: YAML in
+    src/assets/definitions/ is the authoring source; same (kind,
+    definition_id, version) with different content_hash is rejected at sync.
+    Global catalog — no TenantMixin.
+    """
+    __tablename__ = "asset_definition_versions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    kind: Mapped[str] = mapped_column(String, nullable=False)  # asset_type | enrichment_pack
+    definition_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    label: Mapped[str] = mapped_column(String, nullable=False)
+    content: Mapped[Dict[str, Any]] = mapped_column(PortableJSONB, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("kind", "definition_id", "version", name="uq_asset_definition_version"),
+    )
+
+
+class AssetSyncRunORM(Base, TenantMixin):
+    """One enrichment/discovery execution against one managed asset."""
+    __tablename__ = "asset_sync_runs"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    asset_id: Mapped[str] = mapped_column(
+        ForeignKey("assets.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    pack_id: Mapped[str] = mapped_column(String, nullable=False)
+    pack_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    # pending|running|completed|completed_with_errors|failed
+    status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
+    trigger: Mapped[str] = mapped_column(String, nullable=False)  # auto|manual|scheduled|import
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    stats: Mapped[Dict[str, Any]] = mapped_column(PortableJSONB, default=dict, nullable=False)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_asset_sync_runs_tenant_asset_created", "customer_id", "asset_id", "created_at"),
+    )
+
+
+class AssetAuditLogORM(Base, TenantMixin):
+    """Per-asset change audit (who/what/when + field-level diff).
+
+    AuditLogORM is unusable here (NOT NULL FK to tickets); this mirrors the
+    NotificationDeliveryORM precedent of module-owned nullable refs.
+    """
+    __tablename__ = "asset_audit_log"
+
+    # BigInteger in production; sqlite needs INTEGER for autoincrement (tests)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True, autoincrement=True,
+    )
+    asset_id: Mapped[str] = mapped_column(
+        ForeignKey("assets.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    actor: Mapped[str] = mapped_column(String, nullable=False)  # user email | system:enrichment | api_key:<id>
+    # created|updated|deleted|restored|imported|enriched|relation_added|relation_removed|sync_status_changed
+    action: Mapped[str] = mapped_column(String, nullable=False)
+    changes: Mapped[Dict[str, Any]] = mapped_column(PortableJSONB, default=dict, nullable=False)  # {field: {old, new}}
+    sync_run_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("asset_sync_runs.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_asset_audit_tenant_asset_created", "customer_id", "asset_id", "created_at"),
     )
