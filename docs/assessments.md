@@ -54,7 +54,7 @@ Module layout:
 | `src/assessments/scoring.py` | Score + stats |
 | `src/assessments/reporting.py` | Report model |
 | `src/assessments/runner.py` | State machine, background job, startup stale-run sweep |
-| `src/api/routers/assessments.py` | REST API (permissions `assessments:read`/`assessments:write`) |
+| `src/api/routers/assessments.py` | REST API — 12 endpoints across `/assessments` (10) and `/assessment-definitions` (2); permissions `assessments:read`/`assessments:write` |
 | `frontend/src/pages/assessments/` | List, creation wizard, live progress, results |
 
 ## Security model
@@ -78,13 +78,19 @@ Module layout:
 
 Definitions live in
 `src/assessments/definitions/<vendor>/<product>/<name>/<version>.yaml` and are
-synced to the DB at API startup (or via `sync_definitions()`).
+synced to the DB at API startup (or via `sync_definitions()`). Startup sync is
+best-effort and gated on `ASSESSMENT_ENABLED`: a failure (e.g. DB down) is
+logged and does not block boot.
 
 Rules:
 
 1. **Never edit a published version.** The registry compares the semantic
    content hash against the DB snapshot and refuses to sync a changed file
    with the same `assessment.version` — copy the file to a new version.
+   Live example: `fortigate-security-baseline` ships `1.0.0` and `1.0.1`;
+   1.0.1 supersedes 1.0.0 (identical controls, collection tool names updated
+   for the `fgt_* → fgt74_*` pack prefix rename — 1.0.0 references retired
+   tool names and its collection steps will fail).
 2. Tool names must exist in `mcp_gateway/baseline_tools.txt` (name-freeze)
    and pass the read-only allowlist.
 3. Every `normalizer`, `rule` and `parser` name must be registered in code —
@@ -140,9 +146,11 @@ Zero core changes required:
   is planned hardening).
 - Re-evaluation (`POST /assessments/{id}/reevaluate`) re-runs evaluation +
   scoring + report over the stored evidence without touching devices.
-- Migration `e6f7a8b9c0d1` creates the six tables and seeds
-  `assessments:read`/`assessments:write` into the three system profiles.
-  API keys do NOT get assessment permissions (UI/human-driven feature).
+- Migration `e6f7a8b9c0d1` creates the six tables and seeds the
+  `assessments:read`/`assessments:write` permissions into the system
+  profiles: super admin and tenant admin get both, super admin read-only
+  gets `assessments:read` only. API keys do NOT get assessment permissions
+  (UI/human-driven feature).
 
 ## Tests
 

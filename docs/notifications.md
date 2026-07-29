@@ -28,7 +28,7 @@ Each delivery is persisted to the `notification_deliveries` table (migration `f7
 
 | Endpoint | Permission | Purpose |
 |---|---|---|
-| `GET /notifications` | `notifications:read` | Paginated, tenant-scoped delivery list |
+| `GET /notifications` | `notifications:read` | Paginated, tenant-scoped delivery list; optional filters `status`, `event_type`, `ticket_id`, `run_id` |
 | `POST /notifications/{delivery_id}/resend` | `notifications:manage` | Re-POST the stored payload of a delivery (tenant-scoped); `409 not_configured` when `N8N_WEBHOOK_URL` is unset, `404 not_found` when the delivery does not exist for the tenant |
 
 The frontend exposes a Notifications page under the tenant shell for browsing deliveries and triggering resends.
