@@ -91,6 +91,9 @@ class AuthService:
             is_platform_admin=False,
         )
 
+    async def get_key(self, key_id: str) -> Optional[ApiKeyORM]:
+        return await self.session.get(ApiKeyORM, key_id)
+
     async def revoke_key(self, key_id: str, customer_id: str) -> bool:
         stmt = (
             update(ApiKeyORM)

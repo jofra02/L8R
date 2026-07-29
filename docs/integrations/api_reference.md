@@ -33,7 +33,7 @@ curl -X <METHOD> "http://localhost:8000/api/v1/<resource>?customer_id=<tenant>" 
 
 Single dependency (`src/api/middleware/auth.py:get_auth_context`): every authenticated endpoint requires `Authorization: Bearer <token>`. The token is routed by prefix:
 
-- **`sk_live_*` → API key.** Validated against the `api_keys` table (SHA-256 hash, active + not expired). API keys carry a **fixed, hardcoded permission set**: `tickets:write`, `tickets:read`, `runs:read` (`src/api/services/auth_service.py:_API_KEY_PERMISSIONS`). They are for machine ticket ingestion and polling — they cannot manage keys, users, tenants, or inventory, and any `role` concept does not apply to them (stored role is always `operator`, kept for backward compat).
+- **`sk_live_*` → API key.** Validated against the `api_keys` table (SHA-256 hash, active + not expired). API keys carry a **fixed, hardcoded permission set**: `tickets:write`, `tickets:read`, `runs:read` (`src/api/services/auth_service.py:_API_KEY_PERMISSIONS`). They are for machine ticket ingestion and polling — they cannot manage keys, users, tenants, or inventory, and any `role` concept does not apply to them (stored role is always `operator`, kept for backward compat). Keys come in two scopes: **tenant** keys are bound to the tenant they were created in — `?customer_id=` is ignored for them (isolation: a tenant key can never act on another tenant); **global** keys (platform-admin issued, `customer_id='__platform__'`) target a tenant per request via `?customer_id=<tenant>` and answer 400 `tenant_required` on `POST /tickets` without it.
 - **Anything else → JWT.** Decoded access token claims: `sub` (user id), `cid` (customer_id), `perms` (permission list), `ipa` (is_platform_admin), `mcp` (must_change_password). JWT users get their permissions from the **profile** assigned to them per tenant (see [Profiles](#profiles--apiv1profiles) and [Assignments](#user-tenant-assignments--apiv1tenantscustomer_idusers)).
 
 Authorization is **permission-based** (`require_permission`): an endpoint requires one permission; platform admins (`ipa: true`) pass every check. The legacy role hierarchy (`viewer < operator < tenant_admin < platform_admin`) is deprecated — kept only for backward compat in `require_role`.
@@ -108,8 +108,8 @@ Source: `src/api/routers/auth.py`. Key management endpoints reject API-key auth 
 | POST | `/auth/change-password` | Bearer (JWT) | Change own password → 204 (400 `password_policy` / `invalid_password`) |
 | POST | `/auth/switch-tenant` | Bearer (JWT) | New access token scoped to another tenant (403 `no_tenant_access`) |
 | GET | `/auth/me` | Bearer | The caller's resolved `AuthContext` |
-| POST | `/auth/keys` | Bearer (JWT only) | Create API key → 201, raw key returned **once** |
-| GET | `/auth/keys` | Bearer (JWT only) | List the tenant's API keys |
+| POST | `/auth/keys` | Bearer (JWT only) | Create API key → 201, raw key returned **once**; `scope: "global"` is platform-admin only (403 `platform_admin_required`) |
+| GET | `/auth/keys` | Bearer (JWT only) | List the tenant's API keys; platform admins also see global keys |
 | DELETE | `/auth/keys/{key_id}` | Bearer (JWT only) | Revoke a key → 204 (404 if missing/revoked) |
 | POST | `/auth/keys/{key_id}/rotate` | Bearer (JWT only) | Revoke + reissue with same metadata; new raw key returned once |
 
@@ -122,7 +122,7 @@ Source: `src/api/routers/auth.py`. Key management endpoints reject API-key auth 
 }
 ```
 
-**`POST /auth/keys`** — body `ApiKeyCreate {name (1–128), expires_at?}`. Any other field (e.g. `role`) is ignored — keys always get the fixed permission set. Response 201 `ApiKeyCreatedResponse`:
+**`POST /auth/keys`** — body `ApiKeyCreate {name (1–128), expires_at?, scope?}`. `scope` defaults to `"tenant"` (key bound to the caller's tenant context); `"global"` requires platform admin and binds the key to `__platform__` — the scope decision is **body-driven**, so it works even while the admin has a tenant selected (the frontend auto-injects `?customer_id=` on every request). Creating a tenant key from the bare `__platform__` context answers 400 `tenant_required`. Any other field (e.g. `role`) is ignored — keys always get the fixed permission set. Response 201 `ApiKeyCreatedResponse` (includes `scope`):
 
 ```json
 {

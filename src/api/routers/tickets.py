@@ -82,6 +82,15 @@ async def submit_ticket(
     """Submit a new ticket for pipeline processing. Returns 202 + ticket_id + job_id."""
     from src.ingestion.service import IngestionService
     from src.core import task_registry
+    from src.api.middleware.auth import PLATFORM_SENTINEL
+
+    # Global API keys / platform admins must pick a tenant explicitly — tickets
+    # must never be created under the platform sentinel.
+    if auth.customer_id == PLATFORM_SENTINEL:
+        raise APIError(
+            400, "tenant_required",
+            "A tenant is required to submit tickets: pass ?customer_id=<tenant>.",
+        )
 
     payload = {
         "text": body.text,

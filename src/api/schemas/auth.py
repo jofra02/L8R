@@ -1,11 +1,15 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Literal, Optional, List
 from datetime import datetime
 
 
 class ApiKeyCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
     expires_at: Optional[datetime] = None
+    # "tenant": key bound to the caller's tenant (default, unchanged behavior).
+    # "global": platform-scoped key (customer_id='__platform__') that targets a
+    # tenant per request via ?customer_id=. Platform admins only.
+    scope: Literal["tenant", "global"] = "tenant"
 
 
 class ApiKeyResponse(BaseModel):
@@ -16,6 +20,7 @@ class ApiKeyResponse(BaseModel):
     expires_at: Optional[datetime] = None
     last_used_at: Optional[datetime] = None
     created_at: datetime
+    scope: Literal["tenant", "global"] = "tenant"
 
     model_config = {"from_attributes": True}
 
