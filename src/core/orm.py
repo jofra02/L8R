@@ -552,6 +552,12 @@ class AssetORM(Base, TenantMixin):
     formerly embedded in client_contexts.content (see context_adapter)."""
     __tablename__ = "assets"
 
+    # updated_at is server-generated (onupdate=func.now()); without eager
+    # fetch SQLAlchemy expires it after an UPDATE flush and the next attribute
+    # access lazy-loads synchronously — MissingGreenlet under the async
+    # session when the router serializes the returned instance.
+    __mapper_args__ = {"eager_defaults": True}
+
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     ref: Mapped[str] = mapped_column(String, nullable=False)  # MCP device routing slug

@@ -80,6 +80,21 @@ async def test_create_get_update(session):
     assert updated.updated_by == "user:u2"
 
 
+async def test_updated_orm_serializes_without_io(session):
+    """Regression: updated_at is server-generated (onupdate=func.now()), so an
+    UPDATE flush expires it unless the mapper sets eager_defaults=True. The
+    router then serializes the returned instance with model_validate — an
+    expired attribute lazy-loads synchronously and raises MissingGreenlet
+    under the async session (500 on every PATCH /assets/{id})."""
+    from src.api.schemas.assets import AssetResponse
+
+    svc = make_service(session)
+    asset = await svc.create_asset("t1", FIREWALL, "u")
+    updated = await svc.update_asset("t1", asset.id, AssetUpdate(location="HQ"), "u")
+    out = AssetResponse.model_validate(updated, from_attributes=True)
+    assert out.updated_at is not None
+
+
 async def test_tenant_isolation_404(session):
     svc = make_service(session)
     asset = await svc.create_asset("t1", FIREWALL, "user:u1")
