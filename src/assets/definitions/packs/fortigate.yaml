@@ -1,0 +1,68 @@
+# Enrichment pack: FortiGate (FortiOS) — deterministic, read-only.
+#
+# Tool names are LITERAL and pinned against mcp_gateway/baseline_tools.txt
+# (name-freeze). The device routing key is the asset ref, injected by the
+# engine as args["device"] — never part of the tool name.
+# Versioned and immutable once synced; bump version to change.
+# v2: no semantic change — the schema dropped the `produces` field (replaced
+# by `subitems`), and content_hash covers the canonical dump, so the v1
+# file (which carried `produces: []`) would no longer hash-match its
+# stored snapshot. Bumping keeps the immutability contract intact.
+pack_id: fortigate
+version: 2
+label: FortiGate (FortiOS)
+compatible:
+  device_types: [fortios]
+  asset_types: [firewall]
+
+steps:
+  - id: system_status
+    tool: fgt74_monitor_sys_get_status
+    required: true
+    normalizer: fortigate.monitor_results
+    timeout_s: 30
+  - id: license
+    tool: fgt74_monitor_lic_get_license_status
+    normalizer: fortigate.monitor_results
+  - id: firmware
+    tool: fgt74_monitor_sys_get_firmware
+    normalizer: fortigate.monitor_results
+  - id: perf
+    tool: fgt74_monitor_sys_get_performance_status
+    normalizer: fortigate.monitor_results
+  - id: interfaces
+    tool: fgt74_cmdb_sys_get_interface
+    normalizer: fortigate.cmdb_results
+  - id: ha
+    tool: fgt74_cmdb_sys_get_ha
+    normalizer: fortigate.cmdb_results
+    sanitize: [password, key]
+  - id: vdoms
+    tool: fgt74_cmdb_sys_get_vdom
+    normalizer: fortigate.cmdb_results
+  - id: lldp
+    tool: fgt74_monitor_net_get_network_lldp_neighbors
+    normalizer: fortigate.monitor_results
+
+# Self-enrichment: dotted paths into the normalized step output
+# ({results, meta}). Default policy manual_wins: a manually-set field is
+# never overwritten by discovery.
+mappings:
+  - { source: system_status.meta.serial,        target: serial_number, policy: discovered_wins }
+  - { source: system_status.results.hostname,   target: name }
+  - { source: system_status.results.model,      target: model }
+  - { source: system_status.meta.version,       target: attributes.os_version, policy: discovered_wins }
+  - { source: license.results,                  target: attributes.license_status, policy: discovered_wins }
+  - { source: firmware.results,                 target: attributes.firmware, policy: discovered_wins }
+  - { source: perf.results,                     target: attributes.performance, policy: discovered_wins }
+  - { source: interfaces.results,               target: attributes.interfaces, policy: discovered_wins }
+  - { source: ha.results,                       target: attributes.ha_config, policy: discovered_wins }
+  - { source: vdoms.results,                    target: attributes.vdoms, policy: discovered_wins }
+
+# Match-only: relations link to EXISTING assets (by MAC), no asset
+# creation from LLDP neighbors.
+relations:
+  - step: lldp
+    items: "results[*]"
+    type: connected_to
+    match: { path: chassis_id, by: attributes.mac }

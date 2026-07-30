@@ -1,0 +1,27 @@
+# EDR management console (e.g. FortiEDR manager). One console asset
+# produces many child endpoint assets during enrichment.
+type_id: edr_console
+version: 1
+label: EDR Console
+category: security
+roles: []
+fields:
+  - key: management_version
+    label: Management version
+    type: string
+    filterable: true
+  - key: license_type
+    label: License type
+    type: string
+    filterable: true
+  - key: license_expiration
+    label: License expiration
+    type: datetime
+  - key: license_capacity
+    label: License capacity
+    type: json
+  - key: components
+    label: System components
+    type: json
+relations:
+  allowed: [depends_on, connected_to, managed_by]

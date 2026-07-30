@@ -71,6 +71,8 @@ graph TD
 | Doc | Description |
 |---|---|
 | [Device Assessments](assessments.md) | Deterministic definition-driven assessments: collection, evaluation, scoring, reporting |
+| [Asset Inventory](assets.md) | MSP multi-tenant asset inventory: relational storage, schema-governed attributes, search/export/import, RBAC + audit |
+| [Asset Enrichment](assets_enrichment.md) | Deterministic MCP enrichment packs: provenance, conflict policy, child-asset discovery |
 | [Outbound Notifications](notifications.md) | n8n webhook egress: `ticket.ingested` / `run.completed` events, persisted deliveries, manual resend |
 
 ### Integrations

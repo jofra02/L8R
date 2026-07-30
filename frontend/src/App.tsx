@@ -23,10 +23,13 @@ import { UsersPage } from "@/pages/settings/UsersPage";
 import { ProfilesPage } from "@/pages/settings/ProfilesPage";
 import { TenantDetailPage } from "@/pages/settings/TenantDetailPage";
 import { InventoryPage } from "@/pages/inventory/InventoryPage";
+import { AssetsPage } from "@/pages/assets/AssetsPage";
+import { AssetDetailPage } from "@/pages/assets/AssetDetailPage";
 import { NotificationsPage } from "@/pages/notifications/NotificationsPage";
 import { GlobalDashboardPage } from "@/pages/global/GlobalDashboardPage";
 import { TenantManagementPage } from "@/pages/global/TenantManagementPage";
 import { GlobalTicketsPage } from "@/pages/global/GlobalTicketsPage";
+import { GlobalAssetsPage } from "@/pages/global/GlobalAssetsPage";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 const queryClient = new QueryClient({
@@ -55,6 +58,7 @@ export default function App() {
               <Route path="tenants" element={<ProtectedRoute permission="tenants:read"><TenantManagementPage /></ProtectedRoute>} />
               <Route path="tenants/:id" element={<ProtectedRoute permission="tenants:read"><TenantDetailPage /></ProtectedRoute>} />
               <Route path="tickets" element={<ProtectedRoute permission="tickets:read"><GlobalTicketsPage /></ProtectedRoute>} />
+              <Route path="assets" element={<ProtectedRoute permission="assets:read_global"><GlobalAssetsPage /></ProtectedRoute>} />
               <Route path="users" element={<ProtectedRoute permission="users:read"><UsersPage /></ProtectedRoute>} />
               <Route path="profiles" element={<ProtectedRoute permission="profiles:read"><ProfilesPage /></ProtectedRoute>} />
             </Route>
@@ -72,6 +76,8 @@ export default function App() {
               <Route path="assessments/:id" element={<ProtectedRoute permission="assessments:read"><AssessmentDetailPage /></ProtectedRoute>} />
               <Route path="audit/logs" element={<ProtectedRoute permission="audit:read"><AuditLogsPage /></ProtectedRoute>} />
               <Route path="audit/tool-calls" element={<ProtectedRoute permission="audit:read"><ToolCallsPage /></ProtectedRoute>} />
+              <Route path="assets" element={<ProtectedRoute permission="assets:read"><AssetsPage /></ProtectedRoute>} />
+              <Route path="assets/:assetId" element={<ProtectedRoute permission="assets:read"><AssetDetailPage /></ProtectedRoute>} />
               <Route path="inventory" element={<ProtectedRoute permission="inventory:read"><InventoryPage /></ProtectedRoute>} />
               <Route path="notifications" element={<ProtectedRoute permission="notifications:read"><NotificationsPage /></ProtectedRoute>} />
               <Route path="settings/keys" element={<ProtectedRoute permission="keys:read"><ApiKeysPage /></ProtectedRoute>} />

@@ -669,3 +669,181 @@ export interface AssessmentReport {
   generated_at: string | null;
   model: Record<string, unknown>;
 }
+
+// --- Assets ---
+export interface AssetTypeField {
+  key: string;
+  label?: string | null;
+  type: "string" | "integer" | "number" | "boolean" | "date" | "datetime" | "enum" | "string_list" | "ip" | "json";
+  required: boolean;
+  default?: unknown;
+  enum?: string[] | null;
+  filterable: boolean;
+  searchable: boolean;
+  sensitive: boolean;
+  validation?: { pattern?: string | null; min?: number | null; max?: number | null; max_length?: number | null } | null;
+}
+
+export interface AssetTypeDef {
+  type_id: string;
+  version: number;
+  label: string;
+  category: string;
+  roles: string[];
+  open_attributes: boolean;
+  fields: AssetTypeField[];
+  relations: { allowed: string[] };
+}
+
+export interface Asset {
+  id: string;
+  customer_id: string;
+  name: string;
+  ref: string;
+  asset_type: string;
+  type_schema_version: number;
+  manufacturer: string | null;
+  model: string | null;
+  serial_number: string | null;
+  location: string | null;
+  owner: string | null;
+  ip_address: string | null;
+  fqdn: string | null;
+  status: string;
+  criticality: string | null;
+  tags: string[];
+  purchase_date: string | null;
+  warranty_expires: string | null;
+  eol_date: string | null;
+  attributes: Record<string, unknown>;
+  provenance: Record<string, { source: string; pack_id?: string; run_id?: string; updated_at?: string }>;
+  managed: boolean;
+  mcp_config: (Record<string, unknown> & { device_type?: string; host?: string; sync_warnings?: string[] }) | null;
+  sync_status: string | null;
+  sync_error: string | null;
+  last_synced_at: string | null;
+  external_source: string | null;
+  external_id: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  gateway_sync?: GatewaySync | null;
+  subitems_summary?: SubitemsSummary | null;
+}
+
+export interface SubitemKindSummary {
+  total: number;
+  by_state: Record<string, number>;
+  absent: number;
+}
+
+export type SubitemsSummary = Record<string, SubitemKindSummary>;
+
+export interface AssetSubitem {
+  id: string;
+  parent_asset_id: string;
+  source: string;
+  kind: string;
+  external_id: string;
+  name: string;
+  state: string | null;
+  attributes: Record<string, unknown>;
+  absent: boolean;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  last_sync_run_id: string | null;
+  promoted_asset_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssetCreatePayload {
+  id?: string;
+  name: string;
+  ref?: string;
+  asset_type: string;
+  manufacturer?: string | null;
+  model?: string | null;
+  serial_number?: string | null;
+  location?: string | null;
+  owner?: string | null;
+  ip_address?: string | null;
+  fqdn?: string | null;
+  status?: string;
+  criticality?: string | null;
+  tags?: string[];
+  purchase_date?: string | null;
+  warranty_expires?: string | null;
+  eol_date?: string | null;
+  attributes?: Record<string, unknown>;
+  mcp_connection?: McpConnection | null;
+}
+
+export interface AssetUpdatePayload extends Partial<Omit<AssetCreatePayload, "id">> {
+  mcp_managed?: boolean;
+}
+
+export interface AssetRelation {
+  id: number;
+  source_asset_id: string;
+  target_asset_id: string;
+  relation_type: string;
+  provenance: string;
+  details: Record<string, unknown>;
+  created_at: string;
+  source_name?: string | null;
+  target_name?: string | null;
+}
+
+export interface AssetAuditEntry {
+  id: number;
+  asset_id: string;
+  actor: string;
+  action: string;
+  changes: Record<string, unknown>;
+  sync_run_id: string | null;
+  created_at: string;
+}
+
+export interface AssetSyncRun {
+  id: string;
+  asset_id: string;
+  pack_id: string;
+  pack_version: number;
+  status: string;
+  trigger: string;
+  started_at: string | null;
+  finished_at: string | null;
+  stats: Record<string, unknown> & { warnings?: string[] };
+  error: string | null;
+  created_at: string;
+}
+
+export interface AssetImportRowResult {
+  row: number;
+  action: "create" | "update" | "skip" | "error";
+  asset_id: string | null;
+  errors: string[];
+}
+
+export interface AssetImportResponse {
+  dry_run: boolean;
+  total: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  rows: AssetImportRowResult[];
+}
+
+export interface McpPack {
+  vendor: string;
+  appliance: string;
+  version: string;
+  display_name: string;
+  device_type: string;
+  prefix: string;
+  pack_key: string;
+}

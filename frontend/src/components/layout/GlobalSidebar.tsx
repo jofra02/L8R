@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Ticket, Users, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Building2, Ticket, Users, ShieldCheck, Boxes } from "lucide-react";
 import { SidebarBase, type NavGroup } from "./SidebarBase";
 
 const GLOBAL_NAV_GROUPS: NavGroup[] = [
@@ -8,6 +8,7 @@ const GLOBAL_NAV_GROUPS: NavGroup[] = [
       { label: "Dashboard", path: "/global", icon: <LayoutDashboard size={20} />, permission: "tenants:read" },
       { label: "Tenants", path: "/global/tenants", icon: <Building2 size={20} />, permission: "tenants:read" },
       { label: "Tickets", path: "/global/tickets", icon: <Ticket size={20} />, permission: "tickets:read" },
+      { label: "Assets", path: "/global/assets", icon: <Boxes size={20} />, permission: "assets:read_global" },
     ],
   },
   {

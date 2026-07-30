@@ -1,0 +1,20 @@
+type_id: access_point
+version: 1
+label: Access Point
+category: network
+roles: [access_point]
+fields:
+  - key: os_version
+    label: OS Version
+    type: string
+    filterable: true
+  - key: mac
+    label: MAC address
+    type: string
+    filterable: true
+    searchable: true
+  - key: ssids
+    label: SSIDs
+    type: string_list
+relations:
+  allowed: [depends_on, connected_to, managed_by, member_of]

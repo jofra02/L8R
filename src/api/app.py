@@ -63,7 +63,27 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"Assessment startup (definition sync / stale sweep) failed: {e}")
 
+    # Asset Inventory module: sync type/pack definitions, fail sync runs
+    # orphaned by a previous process, start the periodic enrichment
+    # scheduler. Best-effort: a down DB must not block boot.
+    scheduler_task = None
+    if settings.ASSETS_ENABLED:
+        try:
+            from src.assets.registry import sync_definitions as sync_asset_definitions
+            from src.assets.enrichment.engine import sweep_stale_sync_runs
+            from src.assets.enrichment.scheduler import start_scheduler
+            from src.core.database import async_session_factory
+            async with async_session_factory() as session:
+                outcome = await sync_asset_definitions(session)
+            logger.info(f"Asset definitions synced: {outcome}")
+            await sweep_stale_sync_runs()
+            scheduler_task = start_scheduler()
+        except Exception as e:
+            logger.error(f"Assets startup (definition sync / sweep / scheduler) failed: {e}")
+
     yield
+    if scheduler_task is not None and not scheduler_task.done():
+        scheduler_task.cancel()
     # Shutdown: stop indexing if still running, flush Langfuse
     if not index_task.done():
         index_task.cancel()
@@ -119,6 +139,7 @@ def create_app() -> FastAPI:
     from src.api.routers.tenants import router as tenants_router
     from src.api.routers.assignments import router as assignments_router
     from src.api.routers.inventory import router as inventory_router
+    from src.api.routers.assets import router as assets_router
     from src.api.routers.notifications import router as notifications_router
     from src.api.routers.assessments import (
         router as assessments_router,
@@ -134,6 +155,8 @@ def create_app() -> FastAPI:
     application.include_router(tenants_router, prefix="/api/v1")
     application.include_router(assignments_router, prefix="/api/v1")
     application.include_router(inventory_router, prefix="/api/v1")
+    if settings.ASSETS_ENABLED:
+        application.include_router(assets_router, prefix="/api/v1")
     application.include_router(notifications_router, prefix="/api/v1")
     if settings.ASSESSMENT_ENABLED:
         application.include_router(assessments_router, prefix="/api/v1")

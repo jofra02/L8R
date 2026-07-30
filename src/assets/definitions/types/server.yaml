@@ -1,0 +1,33 @@
+type_id: server
+version: 1
+label: Server
+category: infrastructure
+roles: [server, host, hypervisor, node]
+fields:
+  - key: os
+    label: Operating System
+    type: string
+    filterable: true
+    searchable: true
+  - key: os_family
+    label: OS Family
+    type: enum
+    enum: [windows, linux, macos, other]
+    filterable: true
+  - key: mac
+    label: MAC address
+    type: string
+    filterable: true
+  - key: cpu_cores
+    label: CPU cores
+    type: integer
+    validation: { min: 0 }
+  - key: memory_gb
+    label: Memory (GB)
+    type: number
+    validation: { min: 0 }
+  - key: virtualization
+    label: Virtualization platform
+    type: string
+relations:
+  allowed: [depends_on, connected_to, managed_by, member_of]

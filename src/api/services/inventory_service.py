@@ -1,24 +1,84 @@
-from datetime import datetime, timezone
+"""Legacy inventory API service — delegating shim over AssetService.
+
+Components and dependencies live in the relational assets/asset_relations
+tables since the Asset Inventory migration; this service preserves the old
+/inventory response shapes by translating Component <-> Asset on the way
+through. Baselines and known changes still live in the client_contexts
+blob. The gateway ordering contract (pending-first) now lives inside
+AssetService.
+
+Deprecation path: the /inventory components/dependencies endpoints are
+retired once the frontend moves to /assets.
+"""
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from src.core.models import ClientContext, Component, InventoryDependency, Baseline, KnownChange
+from src.core.models import ClientContext, Baseline, KnownChange
 from src.core.context_store import ContextStore
+from src.core.orm import AssetORM
 from src.api.exceptions import APIError
 from src.api.schemas.inventory import (
-    ComponentCreate, ComponentUpdate, McpConnection,
+    ComponentCreate, ComponentUpdate,
     DependencyCreate,
     BaselineCreate, BaselineUpdate,
     KnownChangeCreate, KnownChangeUpdate,
     InventoryImport,
 )
-from src.api.services.gateway_admin_client import GatewayAdminClient, GatewaySyncResult
+from src.api.schemas.assets import AssetCreate, AssetUpdate, RelationCreate
+from src.api.services.gateway_admin_client import GatewayAdminClient
+from src.assets.context_adapter import (
+    PRIORITY_TO_CRITICALITY,
+    asset_to_component_dict,
+    assemble_inventory,
+)
+from src.assets.service import AssetService
+
+# Legacy Component.role -> asset type (kept in sync with the starter type
+# definitions; the b9c0d1e2f3a4 migration carries its own frozen copy).
+ROLE_TO_TYPE = {
+    "firewall": "firewall",
+    "router": "router",
+    "switch": "switch",
+    "access_point": "access_point",
+    "server": "server",
+    "host": "server",
+    "endpoint": "endpoint",
+}
+
+_SHIM_ACTOR = "legacy:inventory"
+
+
+def _component_to_asset_create(data: ComponentCreate) -> AssetCreate:
+    attributes = dict(data.metadata or {})
+    attributes.pop("mcp", None)
+    attributes["legacy_role"] = data.role
+    return AssetCreate(
+        id=data.id,
+        name=data.ref,
+        ref=data.ref,
+        asset_type=ROLE_TO_TYPE.get(data.role, "generic"),
+        manufacturer=data.vendor,
+        criticality=PRIORITY_TO_CRITICALITY.get(data.priority, "low"),
+        attributes=attributes,
+        mcp_connection=data.mcp_connection,
+    )
+
+
+def _component_out(asset: AssetORM) -> dict:
+    out = asset_to_component_dict(asset)
+    sync = getattr(asset, "gateway_sync_transient", None)
+    if sync is not None:
+        out["gateway_sync"] = sync.model_dump()
+    return out
 
 
 class InventoryService:
     def __init__(self, session: AsyncSession, gateway: Optional[GatewayAdminClient] = None):
+        self.session = session
         self.store = ContextStore(session)
-        self.gateway = gateway if gateway is not None else GatewayAdminClient.from_settings()
+        self.assets = AssetService(session, gateway=gateway)
+        self.gateway = self.assets.gateway
 
     async def _load_or_init(self, customer_id: str) -> ClientContext:
         ctx = await self.store.get_active_context(customer_id)
@@ -63,262 +123,216 @@ class InventoryService:
         }
 
     async def import_context(self, customer_id: str, data: InventoryImport) -> dict:
-        ctx = await self._load_or_init(customer_id)
-        ctx.inventory = [
-            Component(**c.model_dump(exclude={"mcp_connection"})) for c in data.components
-        ]
-        ctx.dependencies = [InventoryDependency(**d.model_dump()) for d in data.dependencies]
-        ctx.baselines = [Baseline(**b.model_dump()) for b in data.baselines]
-        ctx.known_changes = [KnownChange(**kc.model_dump()) for kc in data.known_changes]
-        ctx = await self._save_incremented(ctx)
-        return await self.get_full_context(customer_id)
-
-    # --- Components ---
-
-    async def list_components(self, customer_id: str) -> List[dict]:
-        ctx = await self._load_or_init(customer_id)
-        return [c.model_dump() for c in ctx.inventory]
-
-    async def get_component(self, customer_id: str, component_id: str) -> dict:
-        ctx = await self._load_or_init(customer_id)
-        for c in ctx.inventory:
-            if c.id == component_id:
-                return c.model_dump()
-        raise APIError(404, "not_found", f"Component '{component_id}' not found")
-
-    # --- MCP gateway sync helpers ---
-
-    @staticmethod
-    def _gateway_payload(component: Component, mcp: McpConnection) -> dict:
-        connection: dict = {
-            "host": mcp.host,
-            "port": mcp.port,
-            "verify_ssl": mcp.verify_ssl,
-        }
-        if mcp.token:
-            connection["token"] = mcp.token
-        payload = {
-            "id": component.id,
-            "name": component.ref,
-            "type": mcp.device_type,
-            "primary": mcp.primary,
-            "connection": connection,
-        }
-        if mcp.os_version:
-            payload["os_version"] = mcp.os_version
-        return payload
-
-    @staticmethod
-    def _set_mcp_metadata(component: Component, mcp: McpConnection, sync_info: dict) -> None:
-        """Write the managed-connection descriptors (never the token) into metadata."""
-        component.metadata["mcp"] = {
-            "managed": True,
-            "vendor": mcp.vendor,
-            "appliance": mcp.appliance,
-            "device_type": mcp.device_type,
-            "os_version": mcp.os_version,
-            "host": mcp.host,
-            "port": mcp.port,
-            "verify_ssl": mcp.verify_ssl,
-            "primary": mcp.primary,
-            "sync": sync_info,
-        }
-
-    @staticmethod
-    def _pending_sync_info() -> dict:
-        return {"status": "pending", "last_error": None, "warnings": []}
-
-    async def _sync_component_to_gateway(
-        self, customer_id: str, component: Component, mcp: McpConnection, *, create: bool
-    ) -> GatewaySyncResult:
-        """Propagate a managed device to the gateway and record the outcome
-        in ``component.metadata["mcp"]``; the caller persists the context.
+        """Components/dependencies upsert into the asset tables
+        (non-destructive: assets absent from the payload are NOT deleted —
+        unlike the pre-migration full replace). Baselines/known changes keep
+        the legacy destructive-replace semantics in the blob.
         """
-        if self.gateway is None:
-            result = GatewaySyncResult(
-                status="skipped", error="Gateway admin sync is not configured"
-            )
-        else:
-            result = await self.gateway.upsert_device(
-                customer_id, self._gateway_payload(component, mcp), create=create
-            )
-
-        sync_info = {
-            "status": result.status,
-            "last_error": result.error,
-            "warnings": result.warnings,
+        existing_ids = {
+            c["id"] for c in (await assemble_inventory(self.session, customer_id))[0]
         }
-        if result.status == "synced":
-            sync_info["last_synced_at"] = datetime.now(timezone.utc).isoformat()
-
-        self._set_mcp_metadata(component, mcp, sync_info)
-        return result
-
-    @staticmethod
-    def _is_managed(component: Component) -> bool:
-        return bool((component.metadata.get("mcp") or {}).get("managed"))
-
-    async def add_component(self, customer_id: str, data: ComponentCreate) -> dict:
-        ctx = await self._load_or_init(customer_id)
-        for c in ctx.inventory:
-            if c.id == data.id:
-                raise APIError(409, "conflict", f"Component '{data.id}' already exists")
-        component = Component(**data.model_dump(exclude={"mcp_connection"}))
-
-        # Local write first: the gateway must never hold a device the app has
-        # no record of. The sync outcome is persisted in a second save.
-        if data.mcp_connection:
-            self._set_mcp_metadata(component, data.mcp_connection, self._pending_sync_info())
-        ctx.inventory.append(component)
-        await self._save_incremented(ctx)
-
-        gateway_sync: Optional[GatewaySyncResult] = None
-        if data.mcp_connection:
-            gateway_sync = await self._sync_component_to_gateway(
-                customer_id, component, data.mcp_connection, create=True
-            )
-            await self._save_incremented(ctx)
-        out = component.model_dump()
-        if gateway_sync:
-            out["gateway_sync"] = gateway_sync.model_dump()
-        return out
-
-    async def update_component(self, customer_id: str, component_id: str, data: ComponentUpdate) -> dict:
-        ctx = await self._load_or_init(customer_id)
-        for c in ctx.inventory:
-            if c.id == component_id:
-                updates = data.model_dump(exclude_none=True, exclude={"mcp_connection", "mcp_managed"})
-                for k, v in updates.items():
-                    setattr(c, k, v)
-
-                gateway_sync: Optional[GatewaySyncResult] = None
-                was_managed = self._is_managed(c)
-                if data.mcp_connection:
-                    # Local write first (see add_component); sync outcome is
-                    # persisted by the final save below.
-                    self._set_mcp_metadata(c, data.mcp_connection, self._pending_sync_info())
-                    await self._save_incremented(ctx)
-                    gateway_sync = await self._sync_component_to_gateway(
-                        customer_id, c, data.mcp_connection, create=not was_managed
-                    )
-                elif data.mcp_managed is False and was_managed:
-                    if self.gateway is None:
-                        gateway_sync = GatewaySyncResult(
-                            status="skipped", error="Gateway admin sync is not configured"
-                        )
-                    else:
-                        gateway_sync = await self.gateway.delete_device(customer_id, c.id)
-                    c.metadata.pop("mcp", None)
-
-                await self._save_incremented(ctx)
-                out = c.model_dump()
-                if gateway_sync:
-                    out["gateway_sync"] = gateway_sync.model_dump()
-                return out
-        raise APIError(404, "not_found", f"Component '{component_id}' not found")
-
-    async def delete_component(self, customer_id: str, component_id: str) -> dict:
-        ctx = await self._load_or_init(customer_id)
-        target = next((c for c in ctx.inventory if c.id == component_id), None)
-        if target is None:
-            raise APIError(404, "not_found", f"Component '{component_id}' not found")
-
-        gateway_sync: Optional[GatewaySyncResult] = None
-        if self._is_managed(target):
-            if self.gateway is None:
-                gateway_sync = GatewaySyncResult(
-                    status="skipped", error="Gateway admin sync is not configured"
+        for comp in data.components:
+            create = _component_to_asset_create(comp)
+            create.mcp_connection = None  # legacy import drops mcp_connection
+            if comp.id in existing_ids:
+                await self.assets.update_asset(
+                    customer_id, comp.id,
+                    AssetUpdate(
+                        name=create.name, ref=create.ref,
+                        asset_type=create.asset_type,
+                        manufacturer=create.manufacturer,
+                        criticality=create.criticality,
+                        attributes=create.attributes,
+                    ),
+                    _SHIM_ACTOR,
+                    lenient=True,
                 )
             else:
-                gateway_sync = await self.gateway.delete_device(customer_id, component_id)
+                await self.assets.create_asset(customer_id, create, _SHIM_ACTOR, lenient=True)
 
-        ctx.inventory = [c for c in ctx.inventory if c.id != component_id]
+        for dep in data.dependencies:
+            try:
+                await self.add_dependency(customer_id, dep)
+            except APIError as e:
+                if e.error != "conflict":  # idempotent import
+                    raise
 
-        # Cascade: remove related dependencies, baselines, known_changes
-        deps_removed = len(ctx.dependencies)
-        ctx.dependencies = [
-            d for d in ctx.dependencies
-            if d.source_id != component_id and d.target_id != component_id
-        ]
-        deps_removed -= len(ctx.dependencies)
+        ctx = await self._load_or_init(customer_id)
+        ctx.baselines = [Baseline(**b.model_dump()) for b in data.baselines]
+        ctx.known_changes = [KnownChange(**kc.model_dump()) for kc in data.known_changes]
+        await self._save_incremented(ctx)
+        return await self.get_full_context(customer_id)
 
+    # --- Components (delegating shims) ---
+
+    async def list_components(self, customer_id: str) -> List[dict]:
+        components, _ = await assemble_inventory(self.session, customer_id)
+        return components
+
+    async def get_component(self, customer_id: str, component_id: str) -> dict:
+        try:
+            asset = await self.assets.get_asset(customer_id, component_id)
+        except APIError:
+            raise APIError(404, "not_found", f"Component '{component_id}' not found")
+        return _component_out(asset)
+
+    async def add_component(self, customer_id: str, data: ComponentCreate) -> dict:
+        try:
+            asset = await self.assets.create_asset(
+                customer_id, _component_to_asset_create(data), _SHIM_ACTOR, lenient=True
+            )
+        except APIError as e:
+            if e.error == "conflict":
+                raise APIError(409, "conflict", f"Component '{data.id}' already exists")
+            raise
+        return _component_out(asset)
+
+    async def update_component(self, customer_id: str, component_id: str,
+                               data: ComponentUpdate) -> dict:
+        try:
+            asset = await self.assets.get_asset(customer_id, component_id)
+        except APIError:
+            raise APIError(404, "not_found", f"Component '{component_id}' not found")
+
+        update = AssetUpdate(
+            mcp_connection=data.mcp_connection,
+            mcp_managed=data.mcp_managed,
+        )
+        if data.ref is not None:
+            update.ref = data.ref
+            update.name = data.ref
+        if data.vendor is not None:
+            update.manufacturer = data.vendor
+        if data.priority is not None:
+            update.criticality = PRIORITY_TO_CRITICALITY.get(data.priority, "low")
+        if data.role is not None:
+            update.asset_type = ROLE_TO_TYPE.get(data.role, "generic")
+
+        # Legacy metadata semantics: full replace (merge + explicit deletes).
+        attributes = None
+        if data.metadata is not None:
+            new_meta = dict(data.metadata)
+            new_meta.pop("mcp", None)
+            attributes = {
+                key: None
+                for key in (asset.attributes or {})
+                if key != "legacy_role" and key not in new_meta
+            }
+            attributes.update(new_meta)
+        if data.role is not None:
+            attributes = attributes if attributes is not None else {}
+            attributes["legacy_role"] = data.role
+        update.attributes = attributes
+
+        asset = await self.assets.update_asset(
+            customer_id, component_id, update, _SHIM_ACTOR, lenient=True
+        )
+        return _component_out(asset)
+
+    async def delete_component(self, customer_id: str, component_id: str) -> dict:
+        try:
+            relations = await self.assets.list_relations(customer_id, component_id)
+        except APIError:
+            raise APIError(404, "not_found", f"Component '{component_id}' not found")
+
+        result = await self.assets.soft_delete(customer_id, component_id, _SHIM_ACTOR)
+
+        # Blob cascade parity: baselines/known changes referencing the id.
+        ctx = await self._load_or_init(customer_id)
         baselines_removed = len(ctx.baselines)
         ctx.baselines = [b for b in ctx.baselines if b.component_id != component_id]
         baselines_removed -= len(ctx.baselines)
-
         changes_removed = len(ctx.known_changes)
         ctx.known_changes = [kc for kc in ctx.known_changes if kc.component_id != component_id]
         changes_removed -= len(ctx.known_changes)
+        if baselines_removed or changes_removed:
+            await self._save_incremented(ctx)
 
-        await self._save_incremented(ctx)
         out = {
             "deleted": component_id,
             "cascade": {
-                "dependencies_removed": deps_removed,
+                "dependencies_removed": len(relations),
                 "baselines_removed": baselines_removed,
                 "known_changes_removed": changes_removed,
             },
         }
-        if gateway_sync:
-            out["gateway_sync"] = gateway_sync.model_dump()
+        if "gateway_sync" in result:
+            out["gateway_sync"] = result["gateway_sync"]
         return out
 
-    # --- Dependencies ---
+    # --- Dependencies (delegating shims) ---
 
     async def list_dependencies(self, customer_id: str) -> List[dict]:
-        ctx = await self._load_or_init(customer_id)
-        return [d.model_dump() for d in ctx.dependencies]
+        _, dependencies = await assemble_inventory(self.session, customer_id)
+        return dependencies
 
     async def add_dependency(self, customer_id: str, data: DependencyCreate) -> dict:
-        ctx = await self._load_or_init(customer_id)
-        inv_ids = {c.id for c in ctx.inventory}
-        if data.source_id not in inv_ids:
-            raise APIError(422, "validation_error", f"Source component '{data.source_id}' not found in inventory")
-        if data.target_id not in inv_ids:
-            raise APIError(422, "validation_error", f"Target component '{data.target_id}' not found in inventory")
-
-        for d in ctx.dependencies:
-            if d.source_id == data.source_id and d.target_id == data.target_id and d.relation == data.relation:
+        try:
+            await self.assets.get_asset(customer_id, data.source_id)
+        except APIError:
+            raise APIError(422, "validation_error",
+                           f"Source component '{data.source_id}' not found in inventory")
+        try:
+            await self.assets.add_relation(
+                customer_id, data.source_id,
+                RelationCreate(target_asset_id=data.target_id,
+                               relation_type=data.relation,
+                               direction="out",
+                               details=data.metadata),
+                _SHIM_ACTOR,
+            )
+        except APIError as e:
+            if e.error == "validation_error":
+                raise APIError(422, "validation_error",
+                               f"Target component '{data.target_id}' not found in inventory")
+            if e.error == "conflict":
                 raise APIError(409, "conflict", "Dependency already exists")
+            raise
+        return {
+            "source_id": data.source_id,
+            "target_id": data.target_id,
+            "relation": data.relation,
+            "metadata": data.metadata,
+        }
 
-        dep = InventoryDependency(**data.model_dump())
-        ctx.dependencies.append(dep)
-        await self._save_incremented(ctx)
-        return dep.model_dump()
-
-    async def delete_dependency(self, customer_id: str, source_id: str, target_id: str, relation: str) -> None:
-        ctx = await self._load_or_init(customer_id)
-        original_len = len(ctx.dependencies)
-        ctx.dependencies = [
-            d for d in ctx.dependencies
-            if not (d.source_id == source_id and d.target_id == target_id and d.relation == relation)
-        ]
-        if len(ctx.dependencies) == original_len:
+    async def delete_dependency(self, customer_id: str, source_id: str,
+                                target_id: str, relation: str) -> None:
+        relations = await self.assets.list_relations(customer_id, source_id)
+        match = next(
+            (r for r in relations
+             if r["source_asset_id"] == source_id and r["target_asset_id"] == target_id
+             and r["relation_type"] == relation),
+            None,
+        )
+        if match is None:
             raise APIError(404, "not_found", "Dependency not found")
-        await self._save_incremented(ctx)
+        await self.assets.delete_relation(customer_id, match["id"], _SHIM_ACTOR)
 
-    # --- Baselines ---
+    # --- Baselines (blob-owned, unchanged) ---
 
     async def list_baselines(self, customer_id: str) -> List[dict]:
         ctx = await self._load_or_init(customer_id)
         return [b.model_dump() for b in ctx.baselines]
 
     async def add_baseline(self, customer_id: str, data: BaselineCreate) -> dict:
-        ctx = await self._load_or_init(customer_id)
-        inv_ids = {c.id for c in ctx.inventory}
-        if data.component_id not in inv_ids:
-            raise APIError(422, "validation_error", f"Component '{data.component_id}' not found in inventory")
+        components, _ = await assemble_inventory(self.session, customer_id)
+        if data.component_id not in {c["id"] for c in components}:
+            raise APIError(422, "validation_error",
+                           f"Component '{data.component_id}' not found in inventory")
 
+        ctx = await self._load_or_init(customer_id)
         for b in ctx.baselines:
             if b.component_id == data.component_id and b.metric == data.metric:
-                raise APIError(409, "conflict", f"Baseline for ({data.component_id}, {data.metric}) already exists")
+                raise APIError(409, "conflict",
+                               f"Baseline for ({data.component_id}, {data.metric}) already exists")
 
         baseline = Baseline(**data.model_dump())
         ctx.baselines.append(baseline)
         await self._save_incremented(ctx)
         return baseline.model_dump()
 
-    async def update_baseline(self, customer_id: str, component_id: str, metric: str, data: BaselineUpdate) -> dict:
+    async def update_baseline(self, customer_id: str, component_id: str,
+                              metric: str, data: BaselineUpdate) -> dict:
         ctx = await self._load_or_init(customer_id)
         for b in ctx.baselines:
             if b.component_id == component_id and b.metric == metric:
@@ -340,7 +354,7 @@ class InventoryService:
             raise APIError(404, "not_found", f"Baseline ({component_id}, {metric}) not found")
         await self._save_incremented(ctx)
 
-    # --- Known Changes ---
+    # --- Known Changes (blob-owned, unchanged) ---
 
     async def list_known_changes(self, customer_id: str) -> List[dict]:
         ctx = await self._load_or_init(customer_id)
@@ -357,7 +371,8 @@ class InventoryService:
         await self._save_incremented(ctx)
         return {**kc.model_dump(), "index": idx}
 
-    async def update_known_change(self, customer_id: str, index: int, data: KnownChangeUpdate) -> dict:
+    async def update_known_change(self, customer_id: str, index: int,
+                                  data: KnownChangeUpdate) -> dict:
         ctx = await self._load_or_init(customer_id)
         if index < 0 or index >= len(ctx.known_changes):
             raise APIError(404, "not_found", f"Known change at index {index} not found")

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { EmptyState } from "./EmptyState";
 
@@ -8,6 +8,8 @@ export interface Column<T> {
   header: string;
   render: (row: T) => React.ReactNode;
   className?: string;
+  /** Server-side sort key; the column header becomes clickable when set. */
+  sortable?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -21,6 +23,9 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   emptyMessage?: string;
   className?: string;
+  /** Current sort key, "-" prefix for descending (e.g. "-created_at"). */
+  sortKey?: string;
+  onSortChange?: (sort: string) => void;
 }
 
 export function DataTable<T>({
@@ -34,6 +39,8 @@ export function DataTable<T>({
   onRowClick,
   emptyMessage,
   className,
+  sortKey,
+  onSortChange,
 }: DataTableProps<T>) {
   if (loading) {
     return <LoadingSpinner className="py-16" />;
@@ -49,17 +56,27 @@ export function DataTable<T>({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={cn(
-                    "text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider",
-                    col.className,
-                  )}
-                >
-                  {col.header}
-                </th>
-              ))}
+              {columns.map((col) => {
+                const active = sortKey?.replace(/^-/, "") === col.key;
+                const descending = active && sortKey?.startsWith("-");
+                const sortable = col.sortable && onSortChange;
+                return (
+                  <th
+                    key={col.key}
+                    onClick={sortable ? () => onSortChange(active && !descending ? `-${col.key}` : col.key) : undefined}
+                    className={cn(
+                      "text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider",
+                      sortable && "cursor-pointer select-none hover:text-text-primary",
+                      col.className,
+                    )}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {col.header}
+                      {active && (descending ? <ChevronDown size={12} /> : <ChevronUp size={12} />)}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>

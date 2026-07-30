@@ -1,0 +1,46 @@
+# Endpoint devices — including EDR-managed agents discovered via
+# enrichment (see packs/fortiedr.yaml produces rules).
+type_id: endpoint
+version: 1
+label: Endpoint
+category: end_user
+roles: [endpoint]
+fields:
+  - key: os
+    label: Operating System
+    type: string
+    filterable: true
+    searchable: true
+  - key: os_family
+    label: OS Family
+    type: string
+    filterable: true
+  - key: mac
+    label: MAC address
+    type: string
+    filterable: true
+    searchable: true
+  - key: edr_state
+    label: EDR agent state
+    type: string
+    filterable: true
+  - key: edr_version
+    label: EDR agent version
+    type: string
+    filterable: true
+  - key: edr_group
+    label: EDR collector group
+    type: string
+    filterable: true
+  - key: last_seen_at
+    label: Last seen
+    type: datetime
+  - key: logged_users
+    label: Logged users
+    type: string_list
+  - key: domain
+    label: AD domain
+    type: string
+    filterable: true
+relations:
+  allowed: [depends_on, connected_to, managed_by, member_of]

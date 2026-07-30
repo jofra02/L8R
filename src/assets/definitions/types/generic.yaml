@@ -1,0 +1,11 @@
+# Escape hatch for legacy Component roles without a dedicated type.
+# open_attributes: any attribute key is accepted, validation-off.
+type_id: generic
+version: 1
+label: Generic Asset
+category: other
+roles: []
+open_attributes: true
+fields: []
+relations:
+  allowed: [depends_on, connected_to, managed_by, member_of]

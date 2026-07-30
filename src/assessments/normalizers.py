@@ -78,3 +78,33 @@ def fortigate_cmdb_results(raw: Any) -> Dict[str, Any]:
 def fortigate_monitor_results(raw: Any) -> Dict[str, Any]:
     """FortiOS monitor GET envelope -> {results, meta} (results may be a dict)."""
     return _fortios_envelope(raw)
+
+
+@register_normalizer("passthrough")
+def passthrough(raw: Any) -> Dict[str, Any]:
+    """Parse the payload but keep its native shape under 'results'.
+
+    For APIs without a response envelope (e.g. FortiEDR returns bare JSON
+    arrays/objects).
+    """
+    payload = _parse_payload(raw)
+    if isinstance(payload, (dict, list)):
+        return {"results": payload, "meta": {}}
+    return {"error": f"unparseable payload ({type(payload).__name__})",
+            "raw_excerpt": str(payload)[:500]}
+
+
+@register_normalizer("fortiedr.results")
+def fortiedr_results(raw: Any) -> Dict[str, Any]:
+    """FortiEDR management REST -> {results, meta}.
+
+    Handles both observed response shapes: a bare JSON array/object and the
+    ``{"result": ...}`` envelope returned by hosted consoles.
+    """
+    payload = _parse_payload(raw)
+    if isinstance(payload, dict) and "result" in payload:
+        payload = payload["result"]
+    if isinstance(payload, (dict, list)):
+        return {"results": payload, "meta": {}}
+    return {"error": f"unparseable payload ({type(payload).__name__})",
+            "raw_excerpt": str(payload)[:500]}
