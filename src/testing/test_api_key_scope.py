@@ -189,3 +189,50 @@ async def test_submit_ticket_rejects_platform_sentinel(app):
         resp = await client.post("/api/v1/tickets", json={"text": "vpn down", "source": "api"})
     assert resp.status_code == 400
     assert resp.json()["error"] == "tenant_required"
+
+
+# --- /tenants sentinel guard -------------------------------------------------
+# The sentinel row anchors global API keys via FK; deleting it would
+# cascade-delete them. It must not be manageable as a tenant.
+
+def _admin_ctx():
+    return _jwt_ctx("acme", is_platform_admin=True, permissions={"tenants:manage", "tenants:read"})
+
+
+async def test_delete_sentinel_tenant_is_rejected(app):
+    app.dependency_overrides[get_auth_context] = _admin_ctx
+    _override_db(app, _FakeSession())
+    async with _client(app) as client:
+        resp = await client.delete(f"/api/v1/tenants/{PLATFORM_SENTINEL}")
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "reserved_tenant"
+
+
+async def test_patch_sentinel_tenant_is_rejected(app):
+    app.dependency_overrides[get_auth_context] = _admin_ctx
+    _override_db(app, _FakeSession())
+    async with _client(app) as client:
+        resp = await client.patch(f"/api/v1/tenants/{PLATFORM_SENTINEL}", json={"name": "x"})
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "reserved_tenant"
+
+
+async def test_create_sentinel_tenant_is_rejected(app):
+    app.dependency_overrides[get_auth_context] = _admin_ctx
+    _override_db(app, _FakeSession())
+    async with _client(app) as client:
+        resp = await client.post(
+            "/api/v1/tenants",
+            json={"customer_id": PLATFORM_SENTINEL, "name": "Platform Admin"},
+        )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "reserved_tenant"
+
+
+async def test_suspend_sentinel_tenant_is_rejected(app):
+    app.dependency_overrides[get_auth_context] = _admin_ctx
+    _override_db(app, _FakeSession())
+    async with _client(app) as client:
+        resp = await client.post(f"/api/v1/tenants/{PLATFORM_SENTINEL}/suspend")
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "reserved_tenant"

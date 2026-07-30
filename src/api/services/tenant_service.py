@@ -13,6 +13,7 @@ from src.core.orm import (
     UserTenantProfileORM,
     ApiKeyORM,
 )
+from src.api.middleware.auth import PLATFORM_SENTINEL
 from src.api.schemas.tenants import EndpointUpsert, ScopeCreate, ScopeUpdate
 from src.api.exceptions import APIError
 from src.api.services.gateway_admin_client import GatewayAdminClient, GatewaySyncResult
@@ -54,6 +55,9 @@ class TenantService:
                 ticket_count_sq.label("ticket_count"),
                 last_activity_sq.label("last_activity"),
             )
+            # The platform sentinel row (FK anchor for global API keys) is not
+            # a real tenant and must not be listed or managed as one
+            .where(PlatformTenant.customer_id != PLATFORM_SENTINEL)
             .order_by(PlatformTenant.created_at.desc())
         )
         result = await self.session.execute(stmt)
