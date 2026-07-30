@@ -72,7 +72,21 @@ export function AssetsPage() {
       sortable: true,
       render: (r) => (
         <div>
-          <p className="text-text-primary font-medium">{r.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-text-primary font-medium">{r.name}</p>
+            {Object.entries(r.subitems_summary ?? {}).map(([kind, s]) => (
+              <span
+                key={kind}
+                className="text-xs px-2 py-0.5 rounded bg-elevated border border-border text-text-secondary whitespace-nowrap"
+                title={Object.entries(s.by_state)
+                  .map(([state, n]) => `${state}: ${n}`)
+                  .join(" · ")}
+              >
+                {s.total} {kind}
+                {s.total === 1 ? "" : "s"}
+              </span>
+            ))}
+          </div>
           <p className="text-xs text-text-muted font-mono">{r.ref}</p>
         </div>
       ),

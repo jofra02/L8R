@@ -31,17 +31,33 @@ A pack declares:
 - `relations` — match-only rules: link the asset to EXISTING assets by
   matching a discovered value (e.g. LLDP `chassis_id`) against an asset
   field (`attributes.mac`). Never creates assets.
-- `produces` — child-asset rules: a list step yields many child assets
-  (e.g. one FortiEDR console → many `endpoint` collectors), upserted by
-  `identity` = `(customer_id, external_source, external_id)` with an
-  optional fallback path (MAC), plus a child→parent `relation`
-  (`managed_by`). Items without identity are skipped with a warning.
-  **Absent children are never deleted** and soft-deleted children are
-  never resurrected — retirement is a human decision.
+- `subitems` — discovered sub-inventory rules: a list step yields many
+  sub-entities of the parent asset (e.g. one FortiEDR console → many
+  `endpoint` collectors), upserted into **`asset_subitems`** — never into
+  `assets`. Assets are curated (human/import created, ref-unique,
+  type-validated, lifecycle-managed); discovery only provides visibility,
+  and the separate table makes that invariant structural rather than a
+  filter every consumer must remember. Rule shape: `step`, `items`,
+  `kind`, `identity` = `(source, external_id path, fallback)`, `name`
+  path, optional `state` path + `state_map`, and `attributes` mappings
+  (targets restricted to `attributes.<key>`, no merge policy — subitems
+  are wholly source-owned). Items without identity are skipped with a
+  warning. After a **complete** scan (not truncated by the pagination
+  cap — `meta.truncated` guards this), rows the source no longer returns
+  are flagged `absent=true` (cleared when they reappear); **rows are
+  never deleted** — retirement visibility is the point of the flag.
+  Promotion of a subitem to a curated asset is a future explicit action
+  (`promoted_asset_id` reserves the link).
 
-Shipped packs: `fortigate@1` (fgt74: status, license, firmware,
-performance, interfaces, HA, VDOMs, LLDP) and `fortiedr@1` (fedr62:
-system summary + paginated collectors → endpoint children).
+  Replaced the pre-v3 `produces` rules (which materialized discoveries as
+  child assets); old snapshots containing `produces` still parse (ignored
+  by the schema) and simply create nothing.
+
+Shipped packs: `fortigate@2` (fgt74: status, license, firmware,
+performance, interfaces, HA, VDOMs, LLDP; v2 is a no-op bump — the schema
+dropped `produces` and `content_hash` covers the canonical dump, so the
+v1 file no longer hash-matched its snapshot) and `fortiedr@3` (fedr62:
+system summary + paginated collectors → endpoint subitems).
 
 ## Execution model
 
@@ -77,11 +93,19 @@ run_id, updated_at}`):
 - The UI shows the manual/discovered origin per attribute; provenance is
   never exposed through the legacy ClientContext adapter.
 
-Every run audits its work in `asset_audit_log` with actor
-`system:enrichment` and the `sync_run_id` (parent `enriched`, children
-`created`/`enriched`), and records `stats`
-(`steps_total/steps_failed/assets_created/assets_updated/
-relations_created/warnings`) on the run row for the UI.
+Subitems carry no provenance and no audit rows by design: they are 100%
+discovered, and the per-item change trail is covered by
+`first_seen_at`/`last_seen_at`/`last_sync_run_id` plus run stats. Their
+attributes also bypass the sensitive-field redaction (no type schema);
+exposure is the same `assets:read` permission that covered them before.
+
+Every run audits the parent's work in `asset_audit_log` with actor
+`system:enrichment` and the `sync_run_id` (action `enriched`), and
+records `stats`
+(`steps_total/steps_failed/assets_updated/subitems_created/
+subitems_updated/subitems_absent/relations_created/warnings`) on the run
+row for the UI (historical runs may carry the pre-v3 `assets_created`
+key instead).
 
 ## Adding a new integration
 

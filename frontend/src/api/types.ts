@@ -730,6 +730,33 @@ export interface Asset {
   created_by: string | null;
   updated_by: string | null;
   gateway_sync?: GatewaySync | null;
+  subitems_summary?: SubitemsSummary | null;
+}
+
+export interface SubitemKindSummary {
+  total: number;
+  by_state: Record<string, number>;
+  absent: number;
+}
+
+export type SubitemsSummary = Record<string, SubitemKindSummary>;
+
+export interface AssetSubitem {
+  id: string;
+  parent_asset_id: string;
+  source: string;
+  kind: string;
+  external_id: string;
+  name: string;
+  state: string | null;
+  attributes: Record<string, unknown>;
+  absent: boolean;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  last_sync_run_id: string | null;
+  promoted_asset_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AssetCreatePayload {

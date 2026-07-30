@@ -10,6 +10,7 @@ import {
   getAssetHistory,
   listAssetRelations,
   listAssets,
+  listAssetSubitems,
   listAssetSyncRuns,
   listAssetTypes,
   listGlobalAssets,
@@ -95,6 +96,19 @@ export function useAssetSyncRuns(id: string | undefined, page: number, pageSize:
   });
 }
 
+export function useAssetSubitems(
+  id: string | undefined,
+  page: number,
+  pageSize: number,
+  filters: Filters = {},
+) {
+  return useQuery({
+    queryKey: ["assets", "subitems", id, page, pageSize, filters],
+    queryFn: () => listAssetSubitems(id!, { ...filters, page, page_size: pageSize }),
+    enabled: !!id,
+  });
+}
+
 function reportGatewaySync(asset: Asset, successMessage: string) {
   const sync = asset.gateway_sync;
   if (!sync) {
@@ -169,6 +183,8 @@ export function useEnrichAsset() {
     onSuccess: () => {
       toast.success("Enrichment run queued");
       queryClient.invalidateQueries({ queryKey: ["assets", "sync-runs"] });
+      queryClient.invalidateQueries({ queryKey: ["assets", "subitems"] });
+      queryClient.invalidateQueries({ queryKey: ["assets", "detail"] });
     },
     onError: (e: any) => toast.error(apiError(e, "Failed to queue enrichment")),
   });

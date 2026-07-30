@@ -1,10 +1,11 @@
 # Enrichment pack: FortiEDR management console — deterministic, read-only.
 #
-# One console asset produces MANY child endpoint assets (collectors),
-# upserted by (customer_id, external_source, external_id). Absent children
-# are never deleted — retirement is a human decision.
+# The collector inventory lands in asset_subitems (kind: endpoint) attached
+# to the console asset — never in the assets table: assets are curated,
+# discovery only provides visibility. Items missing from a complete scan
+# are marked absent, never deleted — retirement is a human decision.
 pack_id: fortiedr
-version: 2
+version: 3
 label: FortiEDR
 compatible:
   device_types: [fortiedr]
@@ -38,25 +39,22 @@ mappings:
 
 relations: []
 
-# Child endpoint assets from the collectors inventory. Mapping sources are
-# paths INSIDE each item.
-produces:
+# Discovered endpoints from the collector inventory. Attribute sources are
+# paths INSIDE each item. device_last_seen is what the console reports;
+# the subitem's last_seen_at column is when OUR sync last observed it.
+subitems:
   - step: collectors
     items: "results[*]"
-    asset_type: endpoint
-    identity:
-      external_source: fortiedr
-      external_id: id
-      fallback: "macAddresses[0]"
-    relation: { type: managed_by }
-    mappings:
-      - { source: name,               target: name, policy: discovered_wins }
-      - { source: ipAddress,          target: ip_address, policy: discovered_wins }
-      - { source: operatingSystem,    target: attributes.os, policy: discovered_wins }
-      - { source: osFamily,           target: attributes.os_family, policy: discovered_wins }
-      - { source: state,              target: attributes.edr_state, policy: discovered_wins }
-      - { source: version,            target: attributes.edr_version, policy: discovered_wins }
-      - { source: collectorGroupName, target: attributes.edr_group, policy: discovered_wins }
-      - { source: macAddresses,       target: attributes.mac, policy: discovered_wins, transform: first }
-      - { source: loggedUsers,        target: attributes.logged_users, policy: discovered_wins }
-      - { source: lastSeenTime,       target: attributes.last_seen_at, policy: discovered_wins, transform: to_datetime }
+    kind: endpoint
+    identity: { source: fortiedr, external_id: id, fallback: "macAddresses[0]" }
+    name: name
+    state: state
+    attributes:
+      - { source: ipAddress,          target: attributes.ip }
+      - { source: operatingSystem,    target: attributes.os }
+      - { source: osFamily,           target: attributes.os_family }
+      - { source: version,            target: attributes.edr_version }
+      - { source: collectorGroupName, target: attributes.edr_group }
+      - { source: macAddresses,       target: attributes.mac, transform: first }
+      - { source: loggedUsers,        target: attributes.logged_users }
+      - { source: lastSeenTime,       target: attributes.device_last_seen, transform: to_datetime }

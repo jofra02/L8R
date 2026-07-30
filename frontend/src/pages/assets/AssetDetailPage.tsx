@@ -15,6 +15,7 @@ import {
   useAssetHistory,
   useAssetRelations,
   useAssets,
+  useAssetSubitems,
   useAssetSyncRuns,
   useAssetTypes,
   useCreateRelation,
@@ -23,11 +24,11 @@ import {
   useEnrichAsset,
   useRestoreAsset,
 } from "@/hooks/useAssets";
-import type { Asset, AssetAuditEntry, AssetRelation, AssetSyncRun, AssetTypeDef } from "@/api/types";
+import type { Asset, AssetAuditEntry, AssetRelation, AssetSubitem, AssetSyncRun, AssetTypeDef } from "@/api/types";
 import { AssetFormModal } from "./AssetFormModal";
 import { SyncStatusBadge } from "./SyncStatusBadge";
 
-const TABS = ["Overview", "Attributes", "Relations", "Integration", "History"] as const;
+const TABS = ["Overview", "Attributes", "Relations", "Sub-inventory", "Integration", "History"] as const;
 type Tab = (typeof TABS)[number];
 
 export function AssetDetailPage() {
@@ -131,6 +132,7 @@ export function AssetDetailPage() {
       {tab === "Overview" && <OverviewTab asset={asset} />}
       {tab === "Attributes" && <AttributesTab asset={asset} typeDef={typeDef} />}
       {tab === "Relations" && <RelationsTab asset={asset} canWrite={canWrite && !asset.deleted_at} />}
+      {tab === "Sub-inventory" && <SubInventoryTab asset={asset} />}
       {tab === "Integration" && <IntegrationTab asset={asset} />}
       {tab === "History" && <HistoryTab assetId={asset.id} />}
 
@@ -384,6 +386,113 @@ function RelationModal({ asset, onClose }: { asset: Asset; onClose: () => void }
 
 // --- Integration (MCP + sync runs) ---
 
+// --- Sub-inventory (discovered, read-only) ---
+
+function SubInventoryTab({ asset }: { asset: Asset }) {
+  const { page, pageSize, setPage, reset } = usePagination();
+  const [q, setQ] = useState("");
+  const [absentOnly, setAbsentOnly] = useState(false);
+  const filters: Record<string, string | boolean | undefined> = {
+    q: q || undefined,
+    absent: absentOnly ? true : undefined,
+  };
+  const { data, isLoading } = useAssetSubitems(asset.id, page, pageSize, filters);
+
+  const columns: Column<AssetSubitem>[] = [
+    {
+      key: "name",
+      header: "Name",
+      render: (r) => (
+        <div className="flex items-center gap-2">
+          <span className="text-text-primary">{r.name}</span>
+          {r.absent && (
+            <span className="text-xs px-2 py-0.5 rounded bg-severity-critical/15 text-severity-critical">absent</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "kind",
+      header: "Kind",
+      render: (r) => (
+        <span className="text-xs px-2 py-0.5 rounded bg-elevated border border-border text-text-secondary">{r.kind}</span>
+      ),
+      className: "w-28",
+    },
+    {
+      key: "state",
+      header: "State",
+      render: (r) =>
+        r.state ? (
+          <span className="text-xs px-2 py-0.5 rounded bg-elevated border border-border text-text-secondary">{r.state}</span>
+        ) : (
+          <span className="text-text-muted">—</span>
+        ),
+      className: "w-32",
+    },
+    {
+      key: "ip",
+      header: "IP",
+      render: (r) => (
+        <span className="font-mono text-xs text-text-secondary">{String(r.attributes["ip"] ?? "—")}</span>
+      ),
+      className: "w-32",
+    },
+    {
+      key: "os",
+      header: "OS",
+      render: (r) => (
+        <span className="text-xs text-text-secondary">{String(r.attributes["os"] ?? "—")}</span>
+      ),
+    },
+    {
+      key: "last_seen_at",
+      header: "Last seen",
+      render: (r) => (r.last_seen_at ? <TimeAgo date={r.last_seen_at} /> : <span className="text-text-muted">—</span>),
+      className: "w-32",
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <input
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            reset();
+          }}
+          placeholder="Search name or id…"
+          className="bg-elevated border border-border rounded-md px-3 py-1.5 text-sm text-text-primary placeholder:text-text-muted w-64"
+        />
+        <label className="flex items-center gap-2 text-sm text-text-secondary">
+          <input
+            type="checkbox"
+            checked={absentOnly}
+            onChange={(e) => {
+              setAbsentOnly(e.target.checked);
+              reset();
+            }}
+          />
+          Absent only
+        </label>
+      </div>
+      <div className="bg-card border border-border rounded-lg">
+        <DataTable
+          columns={columns}
+          data={data?.items ?? []}
+          loading={isLoading}
+          page={page}
+          totalPages={data?.total_pages}
+          total={data?.total}
+          onPageChange={setPage}
+          emptyMessage="No discovered sub-inventory"
+        />
+      </div>
+    </div>
+  );
+}
+
 function IntegrationTab({ asset }: { asset: Asset }) {
   const { page, pageSize, setPage } = usePagination();
   const { data: runs, isLoading } = useAssetSyncRuns(asset.id, page, pageSize);
@@ -425,9 +534,14 @@ function IntegrationTab({ asset }: { asset: Asset }) {
       render: (r) => {
         const s = r.stats ?? {};
         if (r.status === "failed") return <span className="text-xs text-status-failed">{r.error ?? "failed"}</span>;
+        // Historical runs (pack produces era) report assets_created instead
+        const created = s["subitems_created"] ?? s["assets_created"] ?? 0;
+        const updated = s["subitems_updated"] ?? 0;
+        const absent = s["subitems_absent"] ?? 0;
         return (
           <span className="text-xs text-text-secondary">
-            {String(s["assets_created"] ?? 0)} created · {String(s["assets_updated"] ?? 0)} updated
+            {String(created)} discovered · {String(updated)} updated
+            {Number(absent) > 0 ? ` · ${String(absent)} absent` : ""}
             {r.status === "completed_with_errors" ? " · with errors" : ""}
           </span>
         );

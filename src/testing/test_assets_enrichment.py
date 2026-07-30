@@ -19,7 +19,7 @@ from src.api.exceptions import APIError
 from src.assets.enrichment import engine, scheduler
 from src.assets.registry import sync_definitions
 from src.core.mcp_executor import MCPToolResult
-from src.core.orm import AssetORM, AssetRelationORM, AssetSyncRunORM
+from src.core.orm import AssetORM, AssetRelationORM, AssetSubitemORM, AssetSyncRunORM
 
 SUMMARY_TOOL = "fedr62_mgmt_administrator_get_admin_list_system_summary"
 COLLECTORS_TOOL = "fedr62_mgmt_system_inventory_get_list_collectors"
@@ -144,7 +144,7 @@ async def test_enqueue_rejects_concurrent_run(env):
 
 # --- full run ---
 
-async def test_full_run_children_and_mappings(env, monkeypatch):
+async def test_full_run_subitems_and_mappings(env, monkeypatch):
     factory, _ = env
     asset_id = await make_console(factory, ref="edr-console")
     calls = stub_tools(monkeypatch, {SUMMARY_TOOL: SUMMARY, COLLECTORS_TOOL: COLLECTORS})
@@ -152,7 +152,8 @@ async def test_full_run_children_and_mappings(env, monkeypatch):
     run_id = await run_enrichment(env, asset_id)
     run = await get_run(factory, run_id)
     assert run.status in ("completed", "completed_with_errors")
-    assert run.stats["assets_created"] == 2  # NO-ID item skipped
+    assert run.stats["subitems_created"] == 2  # NO-ID item skipped
+    assert any("without identity" in w for w in run.stats["warnings"])
 
     # tenant + device routing injected deterministically
     assert all(c["enforce_read_only"] for c in calls)
@@ -168,22 +169,33 @@ async def test_full_run_children_and_mappings(env, monkeypatch):
         assert console.attributes["license_expiration"].startswith("2026-")
         assert console.provenance["serial_number"]["source"] == "discovered"
 
-        children = (await s.execute(
+        # Discovered collectors are subitems — NEVER asset rows.
+        stray = (await s.execute(
             select(AssetORM).where(AssetORM.external_source == "fortiedr")
         )).scalars().all()
-        assert {c.external_id for c in children} == {"11", "12"}
-        alpha = next(c for c in children if c.external_id == "11")
-        assert alpha.asset_type == "endpoint"
-        assert alpha.ip_address == "10.0.0.11"
+        assert stray == []
+
+        subitems = (await s.execute(
+            select(AssetSubitemORM).where(AssetSubitemORM.parent_asset_id == asset_id)
+        )).scalars().all()
+        assert {i.external_id for i in subitems} == {"11", "12"}
+        alpha = next(i for i in subitems if i.external_id == "11")
+        assert alpha.kind == "endpoint"
+        assert alpha.source == "fortiedr"
+        assert alpha.state == "Running"
+        assert alpha.absent is False
+        assert alpha.name == "PC-ALPHA"
+        assert alpha.attributes["ip"] == "10.0.0.11"
         assert alpha.attributes["os"] == "Windows 11"
         assert alpha.attributes["mac"] == "aa:bb:cc:00:00:11"
+        assert alpha.last_sync_run_id == run_id
+        assert alpha.first_seen_at is not None
 
+        # No relations are created from subitems (relations stay match-only).
         relations = (await s.execute(
             select(AssetRelationORM).where(AssetRelationORM.target_asset_id == asset_id)
         )).scalars().all()
-        assert len(relations) == 2
-        assert all(r.relation_type == "managed_by" and r.provenance == "discovered"
-                   for r in relations)
+        assert relations == []
 
 
 async def test_enveloped_responses_unwrapped(env, monkeypatch):
@@ -197,7 +209,7 @@ async def test_enveloped_responses_unwrapped(env, monkeypatch):
     run_id = await run_enrichment(env, asset_id)
     run = await get_run(factory, run_id)
     assert run.status in ("completed", "completed_with_errors")
-    assert run.stats["assets_created"] == 2
+    assert run.stats["subitems_created"] == 2
 
     async with factory() as s:
         console = (await s.execute(
@@ -211,22 +223,19 @@ async def test_rerun_is_idempotent(env, monkeypatch):
     stub_tools(monkeypatch, {SUMMARY_TOOL: SUMMARY, COLLECTORS_TOOL: COLLECTORS})
 
     await run_enrichment(env, asset_id)
-    await run_enrichment(env, asset_id)
+    second_run_id = await run_enrichment(env, asset_id)
 
+    second = await get_run(factory, second_run_id)
+    assert second.stats["subitems_created"] == 0
+    assert second.stats["subitems_absent"] == 0
     async with factory() as s:
-        n_children = (await s.execute(
+        n_subitems = (await s.execute(
             select(func.count()).select_from(
-                select(AssetORM).where(AssetORM.external_source == "fortiedr").subquery()
+                select(AssetSubitemORM).where(
+                    AssetSubitemORM.parent_asset_id == asset_id).subquery()
             )
         )).scalar()
-        assert n_children == 2, "re-run must not duplicate children"
-        n_rel = (await s.execute(
-            select(func.count()).select_from(
-                select(AssetRelationORM).where(
-                    AssetRelationORM.target_asset_id == asset_id).subquery()
-            )
-        )).scalar()
-        assert n_rel == 2
+        assert n_subitems == 2, "re-run must not duplicate subitems"
 
 
 async def test_manual_wins_policy(env, monkeypatch):
@@ -315,7 +324,146 @@ async def test_pagination(env, monkeypatch):
     stub_tools(monkeypatch, {SUMMARY_TOOL: SUMMARY, COLLECTORS_TOOL: collectors_page})
     run_id = await run_enrichment(env, asset_id)
     run = await get_run(factory, run_id)
-    assert run.stats["assets_created"] == page_size + 1
+    assert run.stats["subitems_created"] == page_size + 1
+
+
+async def test_absent_marking_roundtrip(env, monkeypatch):
+    """Items missing from a complete scan go absent; reappearing clears it."""
+    factory, _ = env
+    asset_id = await make_console(factory)
+
+    stub_tools(monkeypatch, {SUMMARY_TOOL: SUMMARY, COLLECTORS_TOOL: COLLECTORS})
+    await run_enrichment(env, asset_id)
+
+    only_alpha = [c for c in COLLECTORS if c.get("id") == 11]
+    stub_tools(monkeypatch, {SUMMARY_TOOL: SUMMARY, COLLECTORS_TOOL: only_alpha})
+    run_id = await run_enrichment(env, asset_id)
+    run = await get_run(factory, run_id)
+    assert run.stats["subitems_absent"] == 1
+    async with factory() as s:
+        beta = (await s.execute(
+            select(AssetSubitemORM).where(AssetSubitemORM.external_id == "12")
+        )).scalar_one()
+        assert beta.absent is True
+
+    stub_tools(monkeypatch, {SUMMARY_TOOL: SUMMARY, COLLECTORS_TOOL: COLLECTORS})
+    await run_enrichment(env, asset_id)
+    async with factory() as s:
+        beta = (await s.execute(
+            select(AssetSubitemORM).where(AssetSubitemORM.external_id == "12")
+        )).scalar_one()
+        assert beta.absent is False
+
+
+async def test_absent_skipped_on_pagination_cap(env, monkeypatch):
+    """A truncated scan must not mark unseen subitems absent."""
+    from src.assets.registry import (
+        KIND_ENRICHMENT_PACK, PACKS_DIR, content_hash, load_pack_file,
+    )
+    from src.assets.schema import EnrichmentPackDefinition
+    from src.core.orm import AssetDefinitionVersionORM
+
+    factory, _ = env
+    raw = load_pack_file(PACKS_DIR / "fortiedr.yaml").model_dump(mode="json")
+    raw["version"] = 99
+    raw["steps"][1]["paginate"]["max_pages"] = 1
+    capped = EnrichmentPackDefinition.model_validate(raw)
+    async with factory() as s:
+        s.add(AssetDefinitionVersionORM(
+            id=uuid.uuid4().hex, kind=KIND_ENRICHMENT_PACK,
+            definition_id=capped.pack_id, version=capped.version,
+            label=capped.label, content=capped.model_dump(mode="json"),
+            content_hash=content_hash(capped),
+        ))
+        await s.commit()
+
+    asset_id = await make_console(factory)
+    async with factory() as s:
+        s.add(AssetSubitemORM(
+            id=uuid.uuid4().hex, customer_id="t1", parent_asset_id=asset_id,
+            source="fortiedr", kind="endpoint", external_id="old-one",
+            name="OLD", attributes={}, absent=False,
+        ))
+        await s.commit()
+
+    page_size = raw["steps"][1]["paginate"]["size"]
+
+    def full_page(args):
+        return [{"id": i, "name": f"PC-{i}", "macAddresses": [f"m{i}"]}
+                for i in range(page_size)]
+
+    stub_tools(monkeypatch, {SUMMARY_TOOL: SUMMARY, COLLECTORS_TOOL: full_page})
+    run_id = await run_enrichment(env, asset_id)
+    run = await get_run(factory, run_id)
+    assert any("pagination cap" in w for w in run.stats["warnings"])
+    assert run.stats["subitems_absent"] == 0
+    async with factory() as s:
+        old = (await s.execute(
+            select(AssetSubitemORM).where(AssetSubitemORM.external_id == "old-one")
+        )).scalar_one()
+        assert old.absent is False
+
+
+async def test_old_snapshot_with_produces_is_ignored(env, monkeypatch):
+    """Legacy snapshots carrying `produces` parse fine and create nothing."""
+    from src.assets.registry import (
+        KIND_ENRICHMENT_PACK, PACKS_DIR, content_hash, load_pack_file,
+    )
+    from src.assets.schema import EnrichmentPackDefinition
+    from src.core.orm import AssetDefinitionVersionORM
+
+    factory, _ = env
+    raw = load_pack_file(PACKS_DIR / "fortiedr.yaml").model_dump(mode="json")
+    raw["version"] = 99
+    raw.pop("subitems")
+    raw["produces"] = [{  # pre-subitems shape, straight from a v1 snapshot
+        "step": "collectors", "items": "results[*]", "asset_type": "endpoint",
+        "identity": {"external_source": "fortiedr", "external_id": "id",
+                     "fallback": "macAddresses[0]"},
+        "relation": {"type": "managed_by"},
+        "mappings": [{"source": "ipAddress", "target": "ip_address",
+                      "policy": "discovered_wins"}],
+    }]
+    legacy = EnrichmentPackDefinition.model_validate(raw)
+    assert legacy.subitems == []  # produces ignored by the new schema
+    async with factory() as s:
+        s.add(AssetDefinitionVersionORM(
+            id=uuid.uuid4().hex, kind=KIND_ENRICHMENT_PACK,
+            definition_id=legacy.pack_id, version=legacy.version,
+            label=legacy.label, content=raw,
+            content_hash=content_hash(legacy),
+        ))
+        await s.commit()
+
+    asset_id = await make_console(factory)
+    stub_tools(monkeypatch, {SUMMARY_TOOL: SUMMARY, COLLECTORS_TOOL: COLLECTORS})
+    run_id = await run_enrichment(env, asset_id)
+    run = await get_run(factory, run_id)
+    assert run.status in ("completed", "completed_with_errors")
+    async with factory() as s:
+        n_assets = (await s.execute(
+            select(func.count()).select_from(
+                select(AssetORM).where(
+                    AssetORM.external_source == "fortiedr").subquery())
+        )).scalar()
+        n_subitems = (await s.execute(
+            select(func.count()).select_from(select(AssetSubitemORM).subquery())
+        )).scalar()
+        assert n_assets == 0 and n_subitems == 0
+
+
+async def test_no_identity_item_skipped(env, monkeypatch):
+    factory, _ = env
+    asset_id = await make_console(factory)
+    stub_tools(monkeypatch, {
+        SUMMARY_TOOL: SUMMARY,
+        COLLECTORS_TOOL: [{"name": "NO-ID", "ipAddress": "10.0.0.13",
+                           "macAddresses": []}],
+    })
+    run_id = await run_enrichment(env, asset_id)
+    run = await get_run(factory, run_id)
+    assert run.stats["subitems_created"] == 0
+    assert any("without identity" in w for w in run.stats["warnings"])
 
 
 # --- sweeper / scheduler ---

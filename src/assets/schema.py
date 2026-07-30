@@ -143,9 +143,8 @@ class PackStep(BaseModel):
 class FieldMapping(BaseModel):
     """Declarative copy from collected evidence to the asset model.
 
-    source: dotted path into the step results (``<step_id>.<path>`` at pack
-    level, or a path inside the item for `produces` mappings). Supports
-    ``[N]`` list indices and ``[*]`` only within `items` selectors.
+    source: dotted path into the step results (``<step_id>.<path>``).
+    Supports ``[N]`` list indices; ``[*]`` only within `items` selectors.
     target: a mappable common column or ``attributes.<key>``.
     """
     source: str
@@ -183,24 +182,54 @@ class RelationRule(BaseModel):
     provenance: str = "discovered"
 
 
-class ProducesIdentity(BaseModel):
-    external_source: str
+class SubitemIdentity(BaseModel):
+    source: str                 # e.g. fortiedr
     external_id: str            # path inside the item
     fallback: Optional[str] = None  # fallback path when external_id is empty
 
 
-class ProducesRelation(BaseModel):
-    type: str = "managed_by"    # child -> parent relation
+class SubitemMapping(BaseModel):
+    """Declarative copy from a discovered item into subitem attributes.
+
+    Deliberately no policy: subitems are 100% discovered — human-curated
+    data belongs on real assets (future promote action).
+    """
+    source: str                 # path inside the item
+    target: str                 # attributes.<key> only
+    transform: Optional[str] = None
+    value_map: Optional[Dict[str, Any]] = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "SubitemMapping":
+        if not self.target.startswith("attributes."):
+            raise ValueError(
+                f"subitem mapping target '{self.target}' must be attributes.<key>"
+            )
+        if self.transform and self.transform not in KNOWN_TRANSFORMS:
+            raise ValueError(f"unknown transform '{self.transform}'")
+        return self
 
 
-class ProducesRule(BaseModel):
-    """Upsert child assets from a list step (e.g. FortiEDR collectors)."""
+class SubitemsRule(BaseModel):
+    """Upsert discovered sub-entities from a list step into asset_subitems.
+
+    Replaces the former `produces` rules, which materialized discoveries as
+    child assets: assets are curated, discovery only provides visibility.
+    """
     step: str
     items: str = "[*]"
-    asset_type: str
-    identity: ProducesIdentity
-    relation: Optional[ProducesRelation] = None
-    mappings: List[FieldMapping] = Field(default_factory=list)
+    kind: str                   # e.g. endpoint
+    identity: SubitemIdentity
+    name: str = "name"          # path inside the item
+    state: Optional[str] = None  # path inside the item
+    state_map: Optional[Dict[str, str]] = None
+    attributes: List[SubitemMapping] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check(self) -> "SubitemsRule":
+        if not _SNAKE_CASE.match(self.kind):
+            raise ValueError(f"subitem kind '{self.kind}' must be snake_case")
+        return self
 
 
 class PackCompatibility(BaseModel):
@@ -216,7 +245,7 @@ class EnrichmentPackDefinition(BaseModel):
     steps: List[PackStep]
     mappings: List[FieldMapping] = Field(default_factory=list)
     relations: List[RelationRule] = Field(default_factory=list)
-    produces: List[ProducesRule] = Field(default_factory=list)
+    subitems: List[SubitemsRule] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _check(self) -> "EnrichmentPackDefinition":
@@ -241,9 +270,9 @@ class EnrichmentPackDefinition(BaseModel):
         for r in self.relations:
             if r.step not in known:
                 problems.append(f"relation rule: unknown step '{r.step}'")
-        for p in self.produces:
-            if p.step not in known:
-                problems.append(f"produces rule: unknown step '{p.step}'")
+        for s in self.subitems:
+            if s.step not in known:
+                problems.append(f"subitems rule: unknown step '{s.step}'")
         if problems:
             raise ValueError(f"pack '{self.pack_id}': " + "; ".join(problems))
         return self

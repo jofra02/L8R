@@ -114,6 +114,18 @@ async def assemble_inventory(
 
     live_ids = {a.id for a in assets}
     components = [asset_to_component_dict(a) for a in assets]
+
+    # Discovered sub-inventory as a compact aggregate on the parent component
+    # (metadata["subitems"] = {kind: {total, by_state, absent}}). Counts only:
+    # the full item list stays out of ClientContext by design — it is
+    # visibility data, not inventory, and would bloat the agent context.
+    from src.assets.service import compute_subitems_summary
+    summaries = await compute_subitems_summary(session, list(live_ids), customer_id)
+    for component in components:
+        summary = summaries.get(component["id"])
+        if summary:
+            component["metadata"]["subitems"] = summary
+
     dependencies = [
         relation_to_dependency_dict(r)
         for r in relations

@@ -63,6 +63,7 @@ import type {
   AssetTypeDef,
   AssetRelation,
   AssetAuditEntry,
+  AssetSubitem,
   AssetSyncRun,
   AssetImportResponse,
   McpPack,
@@ -507,6 +508,14 @@ export async function enrichAsset(id: string): Promise<{ run_id: string; status:
 
 export async function listAssetSyncRuns(id: string, filters: Record<string, number>): Promise<PaginatedResponse<AssetSyncRun>> {
   const { data } = await client.get<PaginatedResponse<AssetSyncRun>>(`/assets/${id}/sync-runs`, { params: filters });
+  return data;
+}
+
+export async function listAssetSubitems(
+  id: string,
+  filters: Record<string, string | number | boolean | undefined>,
+): Promise<PaginatedResponse<AssetSubitem>> {
+  const { data } = await client.get<PaginatedResponse<AssetSubitem>>(`/assets/${id}/subitems`, { params: filters });
   return data;
 }
 

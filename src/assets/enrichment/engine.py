@@ -3,16 +3,19 @@
 Executes an enrichment pack (pinned snapshot version) against one managed
 asset: sequential collection steps over execute_mcp_tool
 (enforce_read_only=True, framework-injected tenant, device = asset.ref),
-then declarative mappings/produces/relations. No LLM anywhere.
+then declarative mappings/subitems/relations. No LLM anywhere.
 
 State machine (assessments pattern): pending -> running -> completed |
 completed_with_errors | failed, transitions validated and committed in
 their own session. Background execution via asyncio.create_task +
 task_registry; sweep_stale_sync_runs() reconciles orphans at startup.
 
-Merge contract: manual data wins by default (per-field provenance),
-discovered children are upserted by (customer_id, external_source,
-external_id) and never deleted when absent.
+Merge contract: manual data on the parent asset wins by default
+(per-field provenance). Discovered sub-entities land in asset_subitems —
+never in assets (assets are curated; discovery only provides visibility).
+Subitems are upserted by (customer_id, parent, source, kind, external_id)
+and marked absent when a complete (non-truncated) scan no longer returns
+them — never deleted.
 """
 
 from __future__ import annotations
@@ -24,14 +27,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from src.api.exceptions import APIError
 from src.assessments.evaluation.sanitize import sanitize_payload
 from src.assessments.normalizers import get_normalizer
 from src.assets.enrichment import mappings as mp
 from src.assets.registry import KIND_ENRICHMENT_PACK, get_pack_for_device_type
-from src.assets.schema import EnrichmentPackDefinition, PackStep
+from src.assets.schema import EnrichmentPackDefinition, PackStep, SubitemsRule
 from src.config import settings
 from src.core import task_registry
 from src.core.database import async_session_factory
@@ -41,6 +44,7 @@ from src.core.orm import (
     AssetDefinitionVersionORM,
     AssetORM,
     AssetRelationORM,
+    AssetSubitemORM,
     AssetSyncRunORM,
 )
 
@@ -231,6 +235,7 @@ async def _collect_step(step: PackStep, asset_ref: str, customer_id: str
     # Deterministic pagination loop.
     pg = step.paginate
     accumulated: List[Any] = []
+    truncated = False
     page = pg.start_page
     for _ in range(pg.max_pages):
         args = {**base_args, pg.page_param: page, pg.size_param: pg.size}
@@ -248,15 +253,18 @@ async def _collect_step(step: PackStep, asset_ref: str, customer_id: str
             break
         page += 1
     else:
+        truncated = True
         logger.warning(f"step '{step.id}': pagination cap "
                        f"({pg.max_pages} pages) reached — results truncated")
-    return {"results": accumulated, "meta": {"pages": page - pg.start_page + 1}}, None
+    return {"results": accumulated,
+            "meta": {"pages": page - pg.start_page + 1, "truncated": truncated}}, None
 
 
 async def _execute(run_id: str, customer_id: str) -> None:
     stats: Dict[str, Any] = {
         "steps_total": 0, "steps_failed": 0,
-        "assets_created": 0, "assets_updated": 0,
+        "assets_updated": 0,
+        "subitems_created": 0, "subitems_updated": 0, "subitems_absent": 0,
         "relations_created": 0, "warnings": [],
     }
     try:
@@ -297,6 +305,9 @@ async def _execute(run_id: str, customer_id: str) -> None:
                     stats["steps_failed"] += 1
                     stats["warnings"].append(f"step '{step.id}': {error[:200]}")
                     continue
+                if (data.get("meta") or {}).get("truncated"):
+                    stats["warnings"].append(
+                        f"step '{step.id}': pagination cap reached — results truncated")
                 evidence[step.id] = data
 
             if any(required for _, _, required in failures):
@@ -355,14 +366,20 @@ async def _apply(run_id: str, customer_id: str, asset_id: str,
             sync_run_id=run_id,
         ))
 
-        # Child assets (produces).
-        for rule in pack.produces:
+        # Discovered sub-entities: land in asset_subitems, never in assets.
+        for rule in pack.subitems:
             step_evidence = evidence.get(rule.step)
             if step_evidence is None:
                 continue
+            seen: set = set()
             for item in mp.extract_items(step_evidence, rule.items):
-                await _upsert_child(session, customer_id, asset, pack, rule,
-                                    item, run_id, stats)
+                ext = await _upsert_subitem(session, customer_id, asset, rule,
+                                            item, run_id, stats)
+                if ext is not None:
+                    seen.add(ext)
+            if not (step_evidence.get("meta") or {}).get("truncated"):
+                await _mark_absent_subitems(session, customer_id, asset.id,
+                                            rule, seen, stats)
 
         # Discovered relations (match-only against existing assets).
         for rule in pack.relations:
@@ -375,94 +392,89 @@ async def _apply(run_id: str, customer_id: str, asset_id: str,
         await session.commit()
 
 
-async def _unique_ref(session, customer_id: str, base: str, own_id: str) -> str:
-    ref = base
-    for suffix in range(0, 50):
-        candidate = ref if suffix == 0 else f"{base}-{suffix}"
-        existing = (await session.execute(
-            select(AssetORM.id).where(AssetORM.customer_id == customer_id,
-                                      AssetORM.ref == candidate,
-                                      AssetORM.deleted_at.is_(None),
-                                      AssetORM.id != own_id)
-        )).first()
-        if existing is None:
-            return candidate
-    return f"{base}-{own_id[:8]}"
+async def _upsert_subitem(session, customer_id: str, parent: AssetORM,
+                          rule: SubitemsRule, item: Any, run_id: str,
+                          stats: Dict[str, Any]) -> Optional[str]:
+    """Upsert one discovered sub-entity; returns its external_id, or None
+    when the item carries no resolvable identity (skipped with a warning).
 
-
-async def _upsert_child(session, customer_id: str, parent: AssetORM,
-                        pack: EnrichmentPackDefinition, rule, item: Any,
-                        run_id: str, stats: Dict[str, Any]) -> None:
+    Direct assignment on purpose — no merge policy, no provenance: subitems
+    are wholly source-owned. Human-curated data belongs on real assets.
+    """
     external_id = mp.extract_path(item, rule.identity.external_id)
     if external_id in (None, ""):
         if rule.identity.fallback:
             external_id = mp.extract_path(item, rule.identity.fallback)
     if external_id in (None, ""):
-        stats["warnings"].append(f"produces[{rule.step}]: item without identity skipped")
-        return
+        stats["warnings"].append(f"subitems[{rule.step}]: item without identity skipped")
+        return None
     external_id = str(external_id)
 
-    child = (await session.execute(
-        select(AssetORM).where(
-            AssetORM.customer_id == customer_id,
-            AssetORM.external_source == rule.identity.external_source,
-            AssetORM.external_id == external_id,
+    name = str(mp.extract_path(item, rule.name) or external_id)
+    state = None
+    if rule.state:
+        raw_state = mp.extract_path(item, rule.state)
+        if raw_state is not None:
+            state = str(mp.apply_transform(raw_state, None, rule.state_map))
+    attrs: Dict[str, Any] = {}
+    for m in rule.attributes:
+        value = mp.apply_transform(
+            mp.extract_path(item, m.source), m.transform, m.value_map
+        )
+        if value is not None:
+            attrs[m.target[len("attributes."):]] = value
+
+    row = (await session.execute(
+        select(AssetSubitemORM).where(
+            AssetSubitemORM.customer_id == customer_id,
+            AssetSubitemORM.parent_asset_id == parent.id,
+            AssetSubitemORM.source == rule.identity.source,
+            AssetSubitemORM.kind == rule.kind,
+            AssetSubitemORM.external_id == external_id,
         )
     )).scalars().first()
 
-    if child is not None and child.deleted_at is not None:
-        # Soft-deleted children are never resurrected by discovery.
-        return
-
-    if child is None:
-        name = mp.extract_path(item, "name") or external_id
-        child = AssetORM(
-            id=uuid.uuid4().hex,
-            customer_id=customer_id,
-            name=str(name),
-            ref="",  # set below
-            asset_type=rule.asset_type,
-            type_schema_version=1,
-            external_source=rule.identity.external_source,
-            external_id=external_id,
-            attributes={},
-            provenance={},
-            created_by=_ACTOR,
-            updated_by=_ACTOR,
-        )
-        child.ref = await _unique_ref(session, customer_id, str(name), child.id)
-        session.add(child)
-        changed, fields = mp.apply_mappings(
-            child, rule.mappings, item, pack_id=pack.pack_id, run_id=run_id
-        )
-        stats["assets_created"] += 1
-        # Flush the child before its audit row: the audit-log mapper can enter
-        # the unit of work first (the parent's 'enriched' row is added before
-        # any child exists), and its batched INSERT would then hit the
-        # asset_audit_log.asset_id FK before the child row is inserted.
-        await session.flush([child])
-        session.add(AssetAuditLogORM(
-            customer_id=customer_id, asset_id=child.id, actor=_ACTOR,
-            action="created", changes={"fields": fields, "discovered_by": parent.id},
-            sync_run_id=run_id,
+    now = _now()
+    if row is None:
+        session.add(AssetSubitemORM(
+            id=uuid.uuid4().hex, customer_id=customer_id,
+            parent_asset_id=parent.id, source=rule.identity.source,
+            kind=rule.kind, external_id=external_id, name=name, state=state,
+            attributes=attrs, absent=False,
+            first_seen_at=now, last_seen_at=now, last_sync_run_id=run_id,
         ))
+        stats["subitems_created"] += 1
     else:
-        changed, fields = mp.apply_mappings(
-            child, rule.mappings, item, pack_id=pack.pack_id, run_id=run_id
-        )
-        if changed:
-            child.updated_by = _ACTOR
-            stats["assets_updated"] += 1
-            session.add(AssetAuditLogORM(
-                customer_id=customer_id, asset_id=child.id, actor=_ACTOR,
-                action="enriched", changes={"fields": fields},
-                sync_run_id=run_id,
-            ))
+        if (row.name, row.state, row.attributes, row.absent) != (name, state, attrs, False):
+            stats["subitems_updated"] += 1
+        row.name = name
+        row.state = state
+        row.attributes = attrs
+        row.absent = False
+        row.last_seen_at = now
+        row.last_sync_run_id = run_id
+    return external_id
 
-    if rule.relation is not None:
-        await _ensure_relation(session, customer_id,
-                               source_id=child.id, target_id=parent.id,
-                               relation_type=rule.relation.type, stats=stats)
+
+async def _mark_absent_subitems(session, customer_id: str, parent_id: str,
+                                rule: SubitemsRule, seen: set,
+                                stats: Dict[str, Any]) -> None:
+    """Flag rows a complete scan no longer returned. Never deletes:
+    retirement visibility is the point of the flag. An empty complete scan
+    marking everything absent is the intended semantics."""
+    result = await session.execute(
+        update(AssetSubitemORM)
+        .where(
+            AssetSubitemORM.customer_id == customer_id,
+            AssetSubitemORM.parent_asset_id == parent_id,
+            AssetSubitemORM.source == rule.identity.source,
+            AssetSubitemORM.kind == rule.kind,
+            AssetSubitemORM.absent.is_(False),
+            AssetSubitemORM.external_id.not_in(seen),
+        )
+        .values(absent=True)
+    )
+    stats["subitems_absent"] += result.rowcount or 0
 
 
 async def _ensure_relation(session, customer_id: str, *, source_id: str,

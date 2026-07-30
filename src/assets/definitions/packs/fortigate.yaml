@@ -4,8 +4,12 @@
 # (name-freeze). The device routing key is the asset ref, injected by the
 # engine as args["device"] — never part of the tool name.
 # Versioned and immutable once synced; bump version to change.
+# v2: no semantic change — the schema dropped the `produces` field (replaced
+# by `subitems`), and content_hash covers the canonical dump, so the v1
+# file (which carried `produces: []`) would no longer hash-match its
+# stored snapshot. Bumping keeps the immutability contract intact.
 pack_id: fortigate
-version: 1
+version: 2
 label: FortiGate (FortiOS)
 compatible:
   device_types: [fortios]
@@ -55,12 +59,10 @@ mappings:
   - { source: ha.results,                       target: attributes.ha_config, policy: discovered_wins }
   - { source: vdoms.results,                    target: attributes.vdoms, policy: discovered_wins }
 
-# Match-only in v1: relations link to EXISTING assets (by MAC), no asset
+# Match-only: relations link to EXISTING assets (by MAC), no asset
 # creation from LLDP neighbors.
 relations:
   - step: lldp
     items: "results[*]"
     type: connected_to
     match: { path: chassis_id, by: attributes.mac }
-
-produces: []

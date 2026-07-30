@@ -32,7 +32,13 @@ from src.assets.validation import (
     sensitive_keys,
     validate_attributes,
 )
-from src.core.orm import AssetAuditLogORM, AssetORM, AssetRelationORM, AssetSyncRunORM
+from src.core.orm import (
+    AssetAuditLogORM,
+    AssetORM,
+    AssetRelationORM,
+    AssetSubitemORM,
+    AssetSyncRunORM,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +68,41 @@ _SEARCH_COLUMNS = (
 )
 
 REDACTED = "***"
+
+
+async def compute_subitems_summary(
+    session: AsyncSession,
+    asset_ids: List[str],
+    customer_id: Optional[str] = None,
+) -> Dict[str, Dict[str, Any]]:
+    """One grouped query -> {asset_id: {kind: {total, by_state, absent}}}.
+
+    Shared by the API (per-page batches) and the context adapter (all live
+    tenant assets). Plain GROUP BY on purpose — must run identically on
+    Postgres and the sqlite test engine. customer_id=None is the /global
+    path (uuid PKs make cross-tenant id collision impossible).
+    """
+    if not asset_ids:
+        return {}
+    stmt = (
+        select(AssetSubitemORM.parent_asset_id, AssetSubitemORM.kind,
+               AssetSubitemORM.state, AssetSubitemORM.absent, func.count())
+        .where(AssetSubitemORM.parent_asset_id.in_(asset_ids))
+        .group_by(AssetSubitemORM.parent_asset_id, AssetSubitemORM.kind,
+                  AssetSubitemORM.state, AssetSubitemORM.absent)
+    )
+    if customer_id is not None:
+        stmt = stmt.where(AssetSubitemORM.customer_id == customer_id)
+    out: Dict[str, Dict[str, Any]] = {}
+    for parent_id, kind, state, absent, n in (await session.execute(stmt)).all():
+        entry = out.setdefault(parent_id, {}).setdefault(
+            kind, {"total": 0, "by_state": {}, "absent": 0})
+        entry["total"] += n
+        state_key = state or "unknown"
+        entry["by_state"][state_key] = entry["by_state"].get(state_key, 0) + n
+        if absent:
+            entry["absent"] += n
+    return out
 
 
 def _now() -> datetime:
@@ -500,6 +541,45 @@ class AssetService:
                 if key in masked:
                     masked[key] = REDACTED
             asset.attributes = masked
+
+    # --- subitems (discovered sub-inventory, read-only) ---
+
+    async def list_subitems(
+        self, customer_id: str, asset_id: str, *,
+        kind: Optional[str] = None,
+        state: Optional[str] = None,
+        q: Optional[str] = None,
+        absent: Optional[bool] = None,
+        page: int,
+        page_size: int,
+    ) -> Tuple[List[AssetSubitemORM], int]:
+        await self._get(customer_id, asset_id)  # tenant check -> 404
+        stmt = select(AssetSubitemORM).where(
+            AssetSubitemORM.customer_id == customer_id,
+            AssetSubitemORM.parent_asset_id == asset_id,
+        )
+        if kind:
+            stmt = stmt.where(AssetSubitemORM.kind == kind)
+        if state:
+            stmt = stmt.where(AssetSubitemORM.state == state)
+        if absent is not None:
+            stmt = stmt.where(AssetSubitemORM.absent.is_(absent))
+        if q:
+            like = f"%{q}%"
+            stmt = stmt.where(or_(AssetSubitemORM.name.ilike(like),
+                                  AssetSubitemORM.external_id.ilike(like)))
+        total = (await self.session.execute(
+            select(func.count()).select_from(stmt.subquery())
+        )).scalar() or 0
+        stmt = (stmt.order_by(AssetSubitemORM.name, AssetSubitemORM.id)
+                .offset((page - 1) * page_size).limit(page_size))
+        rows = (await self.session.execute(stmt)).scalars().all()
+        return list(rows), total
+
+    async def subitems_summary(
+        self, asset_ids: List[str], customer_id: Optional[str] = None,
+    ) -> Dict[str, Dict[str, Any]]:
+        return await compute_subitems_summary(self.session, asset_ids, customer_id)
 
     # --- relations ---
 

@@ -21,6 +21,7 @@ from src.api.schemas.assets import (
     AssetAuditEntry,
     AssetCreate,
     AssetResponse,
+    AssetSubitemResponse,
     AssetUpdate,
     ImportResponse,
     RelationCreate,
@@ -99,8 +100,14 @@ async def _paginated_assets(
     )
     if not can_manage:
         await svc.redact_sensitive(rows)
+    summaries = await svc.subitems_summary([a.id for a in rows], customer_id)
+    items = []
+    for a in rows:
+        out = _asset_out(a)
+        out.subitems_summary = summaries.get(a.id)
+        items.append(out)
     return PaginatedResponse(
-        items=[_asset_out(a) for a in rows],
+        items=items,
         total=total,
         page=pagination.page,
         page_size=pagination.page_size,
@@ -284,7 +291,11 @@ async def get_asset(
     asset = await svc.get_asset(auth.customer_id, asset_id, include_deleted=include_deleted)
     if not can_manage:
         await svc.redact_sensitive([asset])
-    return _asset_out(asset)
+    out = _asset_out(asset)
+    out.subitems_summary = (
+        await svc.subitems_summary([asset.id], auth.customer_id)
+    ).get(asset.id)
+    return out
 
 
 @router.patch("/{asset_id}", response_model=AssetResponse)
@@ -391,6 +402,30 @@ async def list_sync_runs(
     )
     return PaginatedResponse(
         items=[SyncRunResponse.model_validate(r, from_attributes=True) for r in rows],
+        total=total, page=pagination.page, page_size=pagination.page_size,
+        total_pages=math.ceil(total / pagination.page_size) if total else 0,
+    )
+
+
+@router.get("/{asset_id}/subitems", response_model=PaginatedResponse[AssetSubitemResponse])
+async def list_subitems(
+    asset_id: str,
+    kind: Optional[str] = Query(default=None),
+    state: Optional[str] = Query(default=None),
+    q: Optional[str] = Query(default=None),
+    absent: Optional[bool] = Query(default=None),
+    pagination: PaginationParams = Depends(get_pagination),
+    auth: AuthContext = Depends(require_tenant_permission("assets:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Discovered sub-inventory of one asset (read-only)."""
+    rows, total = await _svc(db).list_subitems(
+        auth.customer_id, asset_id,
+        kind=kind, state=state, q=q, absent=absent,
+        page=pagination.page, page_size=pagination.page_size,
+    )
+    return PaginatedResponse(
+        items=[AssetSubitemResponse.model_validate(r, from_attributes=True) for r in rows],
         total=total, page=pagination.page, page_size=pagination.page_size,
         total_pages=math.ceil(total / pagination.page_size) if total else 0,
     )

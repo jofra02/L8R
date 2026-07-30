@@ -12,7 +12,7 @@ from src.assets.context_adapter import (
 )
 from src.core.context_store import ContextStore
 from src.core.models import ClientContext, Component
-from src.core.orm import AssetORM, AssetRelationORM, ClientContextORM
+from src.core.orm import AssetORM, AssetRelationORM, AssetSubitemORM, ClientContextORM
 
 
 def make_asset(**kw) -> AssetORM:
@@ -90,6 +90,34 @@ async def test_assemble_excludes_deleted_and_dangling(asset_session_factory):
             "source_id": "fw1", "target_id": "sw1",
             "relation": "connects_to", "metadata": {"note": "uplink"},
         }]
+
+
+async def test_subitems_aggregate_in_component_metadata(asset_session_factory):
+    """Discovered sub-inventory reaches the agent as a compact aggregate on
+    the parent component — never as components of its own."""
+    import uuid as _uuid
+
+    async with asset_session_factory() as s:
+        s.add(make_asset(id="edr1", ref="edr_console", name="EDR",
+                         asset_type="edr_console", attributes={}))
+        for state, absent in (("Running", False), ("Disconnected", True)):
+            s.add(AssetSubitemORM(
+                id=_uuid.uuid4().hex, customer_id="t1", parent_asset_id="edr1",
+                source="fortiedr", kind="endpoint",
+                external_id=_uuid.uuid4().hex, name="EP",
+                state=state, absent=absent, attributes={},
+            ))
+        await s.commit()
+
+        components, _ = await assemble_inventory(s, "t1")
+        assert [c["id"] for c in components] == ["edr1"], \
+            "subitems must not appear as components"
+        agg = components[0]["metadata"]["subitems"]["endpoint"]
+        assert agg["total"] == 2
+        assert agg["by_state"] == {"Running": 1, "Disconnected": 1}
+        assert agg["absent"] == 1
+        # the aggregate survives Component hydration (free-form metadata)
+        Component(**components[0])
 
 
 async def test_context_store_overlay(asset_session_factory):

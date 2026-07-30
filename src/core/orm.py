@@ -679,6 +679,50 @@ class AssetSyncRunORM(Base, TenantMixin):
     )
 
 
+class AssetSubitemORM(Base, TenantMixin):
+    """Discovered sub-entity of an asset (e.g. an EDR collector endpoint).
+
+    Deliberately NOT an asset: assets are curated (human/import created,
+    ref-unique, type-schema validated, lifecycle-managed); subitems are
+    source-owned observations attached to a parent asset for visibility.
+    Enrichment upserts them by (customer_id, parent, source, kind,
+    external_id) and marks rows absent when a complete scan no longer
+    returns them — never deletes. Promotion to a real asset is a future
+    explicit curation action (promoted_asset_id reserves the link).
+    """
+    __tablename__ = "asset_subitems"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    parent_asset_id: Mapped[str] = mapped_column(
+        ForeignKey("assets.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    source: Mapped[str] = mapped_column(String, nullable=False)  # e.g. fortiedr
+    kind: Mapped[str] = mapped_column(String, nullable=False)    # e.g. endpoint
+    external_id: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    # Normalized status as reported by the source (first-class for aggregates)
+    state: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    attributes: Mapped[Dict[str, Any]] = mapped_column(PortableJSONB, default=dict, nullable=False)
+    # True when the last complete scan of the source no longer returned it
+    absent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    first_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_sync_run_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("asset_sync_runs.id", ondelete="SET NULL"), nullable=True
+    )
+    promoted_asset_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("assets.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("customer_id", "parent_asset_id", "source", "kind", "external_id",
+                         name="uq_asset_subitem_identity"),
+        Index("ix_asset_subitems_tenant_parent", "customer_id", "parent_asset_id"),
+    )
+
+
 class AssetAuditLogORM(Base, TenantMixin):
     """Per-asset change audit (who/what/when + field-level diff).
 

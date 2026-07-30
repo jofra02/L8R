@@ -39,8 +39,8 @@ assessments and topology seeding); a parallel module was rejected (two
 sources of truth, duplicated MCP sync). Instead:
 
 - New tables `assets`, `asset_relations`, `asset_definition_versions`,
-  `asset_sync_runs`, `asset_audit_log` are the **source of truth** for
-  components and dependencies.
+  `asset_sync_runs`, `asset_audit_log`, `asset_subitems` are the
+  **source of truth** for components and dependencies.
 - A read adapter (`src/assets/context_adapter.py`) reassembles the exact
   pre-migration `ClientContext` Pydantic shape, so the five consumers
   (`assessment_service.create_run`, `engineer_tools.query_client_db`,
@@ -70,9 +70,42 @@ src/assets/
     engine.py          # deterministic run engine + state machine + sweeper
     scheduler.py       # periodic re-enrichment loop (in-process)
     mappings.py        # pure path extraction / transforms / merge policy
-src/api/routers/assets.py   # 19 endpoints (see below)
+src/api/routers/assets.py   # 20 endpoints (see below)
 src/api/schemas/assets.py
 ```
+
+### Sub-inventory (`asset_subitems`)
+
+The domain distinguishes two entity classes with different invariants:
+
+- **Assets** are *curated* inventory: created by a human or an explicit
+  import, ref-unique per tenant, validated against a type schema, and
+  lifecycle-managed (warranty, EOL, criticality, ownership).
+- **Subitems** are *discovered* observations owned by an external source
+  (e.g. the FortiEDR console's collector list): high-churn, not curated,
+  attached to the parent asset they were discovered through.
+
+Modeling both in `assets` would make the semantics of "asset"
+conditional (`asset WHERE NOT discovered`) and turn a structural
+invariant into a per-consumer filtering obligation — a missed clause
+produces silent semantic corruption (wrong counts, exports, agent
+context), not a loud error. The separate table makes the invariant
+"`assets` contains only curated inventory" hold by construction: counts,
+exports, import matching, ClientContext and gateway sync are correct
+without qualifiers.
+
+Consequences:
+
+- Enrichment `subitems` rules upsert into `asset_subitems` by
+  `(customer_id, parent, source, kind, external_id)`; rows missing from
+  a complete scan are flagged `absent`, never deleted.
+- The parent asset exposes an aggregate (`subitems_summary`:
+  `{kind: {total, by_state, absent}}`) on list and detail responses and
+  as `metadata["subitems"]` in the ClientContext component — the agent
+  sees counts, not thousands of rows.
+- Promoting a subitem to a real asset is a future explicit curation
+  action (`promoted_asset_id` reserves the link); the promote flow must
+  copy the external identity so import matching stays coherent.
 
 Persistence notes:
 
@@ -101,6 +134,7 @@ Persistence notes:
 | GET/POST | `/assets/{id}/relations`, DELETE `/assets/relations/{rid}` | read/write/write |
 | POST | `/assets/{id}/enrich` | `assets:manage` — 202 + run id |
 | GET | `/assets/{id}/sync-runs`, `/assets/sync-runs/{rid}` | `assets:read` |
+| GET | `/assets/{id}/subitems` | `assets:read` — discovered sub-inventory; filters `kind,state,q,absent`, paginated |
 | GET | `/assets/types(/{type_id})` | `assets:read` — drives dynamic forms |
 | GET | `/assets/mcp-packs` | `assets:manage` — passthrough to gateway `/admin/packs` |
 
@@ -171,6 +205,13 @@ enrichment run. Full collection/mapping/provenance semantics:
   warning). Defensive per-item handling; the blob is left untouched, so the
   rollback story is: downgrade drops the tables and the blob still holds
   the pre-migration inventory.
+- `c0d1e2f3a4b5` — `asset_subitems` table + conversion of the discovered
+  child assets the pre-v3 `produces` rules created
+  (`created_by='system:enrichment'` + `external_source` set): parent
+  resolved via their `managed_by` relation, converted rows hard-deleted
+  (relations/audit cascade), unconvertible rows left untouched with a
+  warning. Must deploy together with the new engine code — old code
+  against a migrated DB would recreate endpoint assets on the next run.
 
 ## 7. Risks / known debt
 
@@ -222,8 +263,9 @@ Validation steps:
 3. Manual API pass: create firewall asset with `mcp_connection` → device in
    gateway (token REDACTED) → auto enrichment run → discovered attributes +
    provenance → edit a field → re-enrich → `manual_wins` respected.
-4. FortiEDR: managed `edr_console` → enrich → N child `endpoint` assets
-   with `managed_by` relations; re-run is idempotent.
+4. FortiEDR: managed `edr_console` → enrich → N `endpoint` subitems on
+   the console (Sub-inventory tab + `subitems_summary` aggregate); the
+   assets table stays endpoint-free; re-run is idempotent.
 5. Export CSV/XLSX with filters; import dry-run → confirm.
 6. Frontend: `/t/<id>/assets` list/filters/sort/detail/dynamic form;
    `/global/assets` as platform admin; permission gating.

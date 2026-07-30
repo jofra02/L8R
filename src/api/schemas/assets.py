@@ -92,6 +92,29 @@ class AssetResponse(BaseModel):
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
     gateway_sync: Optional[GatewaySyncStatus] = None  # transient, mutation responses only
+    # Aggregate of discovered sub-inventory ({kind: {total, by_state, absent}});
+    # populated by the router on detail/list responses, never stored.
+    subitems_summary: Optional[Dict[str, Any]] = None
+
+
+# --- Subitems (discovered sub-inventory) ---
+
+class AssetSubitemResponse(BaseModel):
+    id: str
+    parent_asset_id: str
+    source: str
+    kind: str
+    external_id: str
+    name: str
+    state: Optional[str] = None
+    attributes: Dict[str, Any] = Field(default_factory=dict)
+    absent: bool = False
+    first_seen_at: Optional[datetime] = None
+    last_seen_at: Optional[datetime] = None
+    last_sync_run_id: Optional[str] = None
+    promoted_asset_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
 
 
 # --- Relations ---
