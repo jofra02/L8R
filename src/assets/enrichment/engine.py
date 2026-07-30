@@ -436,6 +436,11 @@ async def _upsert_child(session, customer_id: str, parent: AssetORM,
             child, rule.mappings, item, pack_id=pack.pack_id, run_id=run_id
         )
         stats["assets_created"] += 1
+        # Flush the child before its audit row: the audit-log mapper can enter
+        # the unit of work first (the parent's 'enriched' row is added before
+        # any child exists), and its batched INSERT would then hit the
+        # asset_audit_log.asset_id FK before the child row is inserted.
+        await session.flush([child])
         session.add(AssetAuditLogORM(
             customer_id=customer_id, asset_id=child.id, actor=_ACTOR,
             action="created", changes={"fields": fields, "discovered_by": parent.id},

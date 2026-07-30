@@ -96,5 +96,15 @@ def passthrough(raw: Any) -> Dict[str, Any]:
 
 @register_normalizer("fortiedr.results")
 def fortiedr_results(raw: Any) -> Dict[str, Any]:
-    """FortiEDR management REST: bare JSON body -> {results, meta}."""
-    return passthrough(raw)
+    """FortiEDR management REST -> {results, meta}.
+
+    Handles both observed response shapes: a bare JSON array/object and the
+    ``{"result": ...}`` envelope returned by hosted consoles.
+    """
+    payload = _parse_payload(raw)
+    if isinstance(payload, dict) and "result" in payload:
+        payload = payload["result"]
+    if isinstance(payload, (dict, list)):
+        return {"results": payload, "meta": {}}
+    return {"error": f"unparseable payload ({type(payload).__name__})",
+            "raw_excerpt": str(payload)[:500]}

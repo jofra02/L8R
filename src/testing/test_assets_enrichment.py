@@ -186,6 +186,25 @@ async def test_full_run_children_and_mappings(env, monkeypatch):
                    for r in relations)
 
 
+async def test_enveloped_responses_unwrapped(env, monkeypatch):
+    """Hosted consoles wrap bodies in {"result": ...} — items must still resolve."""
+    factory, _ = env
+    asset_id = await make_console(factory)
+    stub_tools(monkeypatch, {
+        SUMMARY_TOOL: {"result": SUMMARY},
+        COLLECTORS_TOOL: {"result": COLLECTORS},
+    })
+    run_id = await run_enrichment(env, asset_id)
+    run = await get_run(factory, run_id)
+    assert run.status in ("completed", "completed_with_errors")
+    assert run.stats["assets_created"] == 2
+
+    async with factory() as s:
+        console = (await s.execute(
+            select(AssetORM).where(AssetORM.id == asset_id))).scalar_one()
+        assert console.serial_number == "FEDR-001"
+
+
 async def test_rerun_is_idempotent(env, monkeypatch):
     factory, _ = env
     asset_id = await make_console(factory)
@@ -233,7 +252,29 @@ async def test_manual_wins_policy(env, monkeypatch):
 
 
 async def test_required_step_failure_fails_run(env, monkeypatch):
+    # The shipped fortiedr pack has no required steps (v2: hosted consoles
+    # 403 on admin/*), so pin a synthetic latest version with summary
+    # required to exercise the engine's required-step semantics.
+    from src.assets.registry import (
+        KIND_ENRICHMENT_PACK, PACKS_DIR, content_hash, load_pack_file,
+    )
+    from src.assets.schema import EnrichmentPackDefinition
+    from src.core.orm import AssetDefinitionVersionORM
+
     factory, _ = env
+    raw = load_pack_file(PACKS_DIR / "fortiedr.yaml").model_dump(mode="json")
+    raw["version"] = 99
+    raw["steps"][0]["required"] = True
+    strict = EnrichmentPackDefinition.model_validate(raw)
+    async with factory() as s:
+        s.add(AssetDefinitionVersionORM(
+            id=uuid.uuid4().hex, kind=KIND_ENRICHMENT_PACK,
+            definition_id=strict.pack_id, version=strict.version,
+            label=strict.label, content=strict.model_dump(mode="json"),
+            content_hash=content_hash(strict),
+        ))
+        await s.commit()
+
     asset_id = await make_console(factory)
     stub_tools(monkeypatch, {
         SUMMARY_TOOL: MCPToolResult(ok=False, error="401 unauthorized",

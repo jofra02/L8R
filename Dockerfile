@@ -36,7 +36,8 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
 # Pre-create volume mount-points so Docker seeds named volumes with correct ownership
-RUN mkdir -p /app/data/evidence
+# (logs/ is dockerignored — created here writable so log rotation works)
+RUN mkdir -p /app/data/evidence /app/logs
 
 RUN chown -R appuser:appuser /app
 USER appuser

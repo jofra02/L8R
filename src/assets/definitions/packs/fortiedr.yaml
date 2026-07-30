@@ -4,16 +4,19 @@
 # upserted by (customer_id, external_source, external_id). Absent children
 # are never deleted — retirement is a human decision.
 pack_id: fortiedr
-version: 1
+version: 2
 label: FortiEDR
 compatible:
   device_types: [fortiedr]
   asset_types: [edr_console]
 
 steps:
+  # Not required: /management-rest/admin/* needs an Admin-role user; on
+  # hosted multi-org consoles (*.console.ensilo.com) org-scoped API users
+  # get 403 here, and the collector inventory must still be applied.
   - id: summary
     tool: fedr62_mgmt_administrator_get_admin_list_system_summary
-    required: true
+    required: false
     normalizer: fortiedr.results
   - id: collectors
     tool: fedr62_mgmt_system_inventory_get_list_collectors
