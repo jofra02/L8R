@@ -19,12 +19,23 @@ from src.api.schemas.tenants import (
 )
 from src.api.services.tenant_service import TenantService
 from src.api.exceptions import APIError
+from src.api.middleware.auth import PLATFORM_SENTINEL
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])
 
 
 def _svc(db: AsyncSession) -> TenantService:
     return TenantService(db)
+
+
+def _reject_sentinel(customer_id: str) -> None:
+    """The platform sentinel anchors global API keys via FK — deleting it would
+    cascade-delete them. It is not a manageable tenant."""
+    if customer_id == PLATFORM_SENTINEL:
+        raise APIError(
+            400, "reserved_tenant",
+            f"'{PLATFORM_SENTINEL}' is a reserved platform scope, not a manageable tenant",
+        )
 
 
 # ---- Tenant CRUD ----
@@ -45,6 +56,7 @@ async def create_tenant(
     auth: AuthContext = Depends(require_permission("tenants:manage")),
     db: AsyncSession = Depends(get_db),
 ):
+    _reject_sentinel(body.customer_id)
     svc = _svc(db)
     tenant, gateway_sync = await svc.create_tenant(
         customer_id=body.customer_id,
@@ -85,6 +97,7 @@ async def update_tenant(
     auth: AuthContext = Depends(require_permission("tenants:manage")),
     db: AsyncSession = Depends(get_db),
 ):
+    _reject_sentinel(customer_id)
     fields = body.model_dump(exclude_unset=True)
     if not fields:
         raise APIError(400, "no_fields", "No fields to update")
@@ -102,6 +115,7 @@ async def delete_tenant(
     auth: AuthContext = Depends(require_permission("tenants:manage")),
     db: AsyncSession = Depends(get_db),
 ):
+    _reject_sentinel(customer_id)
     svc = _svc(db)
     deleted = await svc.delete_tenant(customer_id, force=force)
     if not deleted:
@@ -114,6 +128,7 @@ async def suspend_tenant(
     auth: AuthContext = Depends(require_permission("tenants:manage")),
     db: AsyncSession = Depends(get_db),
 ):
+    _reject_sentinel(customer_id)
     svc = _svc(db)
     tenant = await svc.suspend_tenant(customer_id)
     if not tenant:
@@ -127,6 +142,7 @@ async def activate_tenant(
     auth: AuthContext = Depends(require_permission("tenants:manage")),
     db: AsyncSession = Depends(get_db),
 ):
+    _reject_sentinel(customer_id)
     svc = _svc(db)
     tenant = await svc.activate_tenant(customer_id)
     if not tenant:

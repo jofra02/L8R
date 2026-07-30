@@ -185,8 +185,9 @@ class IngestionService:
         return jobs
 
     async def get_all_tenants(self) -> List[Dict[str, str]]:
-        """Fetch all registered tenants."""
-        stmt = select(PlatformTenant)
+        """Fetch all registered tenants (excluding the platform sentinel row)."""
+        from src.api.middleware.auth import PLATFORM_SENTINEL
+        stmt = select(PlatformTenant).where(PlatformTenant.customer_id != PLATFORM_SENTINEL)
         result = await self.session.execute(stmt)
         tenants = result.scalars().all()
         # Handle the field correctly (PlatformTenant has customer_id as PK)
