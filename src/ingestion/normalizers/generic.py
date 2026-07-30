@@ -1,5 +1,5 @@
 from typing import Dict, Any
-import hashlib
+import uuid
 from datetime import datetime
 from src.core.models import Ticket, TicketMode, Severity
 from src.core.interfaces import IngestorInterface
@@ -25,10 +25,11 @@ class GenericNormalizer:
     """Default normalization logic."""
 
     def normalize(self, raw_data: Dict[str, Any], source_id: str = "generic") -> Ticket:
-        # Generate stable ID if not present
-        raw_id = str(raw_data.get("id") or raw_data.get("ticket_id") or "")
-        if not raw_id:
-            raw_id = hashlib.md5(str(raw_data).encode()).hexdigest()
+        # Internal PK must always be unique: tickets_pkey is global (not
+        # per-tenant), so a content hash or a source-system id as PK collides
+        # on resubmission and across tenants. Source-system identity is
+        # preserved in external_id instead.
+        internal_id = uuid.uuid4().hex
 
         # Extract mode
         mode_str = raw_data.get("type", raw_data.get("mode", "incident"))
@@ -49,9 +50,13 @@ class GenericNormalizer:
         if not final_text:
              final_text = fallback_text.strip()
             
-        external_id = raw_data.get("external_id")
+        external_id = (
+            raw_data.get("external_id")
+            or raw_data.get("id")
+            or raw_data.get("ticket_id")
+        )
         return Ticket(
-            id=raw_id,
+            id=internal_id,
             external_id=str(external_id) if external_id else None,
             mode=mode,
             text=final_text,

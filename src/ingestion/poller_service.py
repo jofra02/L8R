@@ -59,14 +59,17 @@ class PollerService:
         try:
             # Normalize to get ID
             ticket = ingestor.normalize(raw)
-            
-            # Check for duplication (Dedup)
-            # Efficient query to check existence
-            stmt = select(TicketORM.id).where(TicketORM.id == ticket.id, TicketORM.customer_id == customer_id)
-            result = await service.session.execute(stmt)
-            if result.scalar_one_or_none():
-                logger.debug(f"Ticket {ticket.id} already exists. Skipping.")
-                return
+
+            # Dedup by source-system identity (internal ids are always unique)
+            if ticket.external_id:
+                stmt = select(TicketORM.id).where(
+                    TicketORM.external_id == ticket.external_id,
+                    TicketORM.customer_id == customer_id,
+                )
+                result = await service.session.execute(stmt)
+                if result.scalar_one_or_none():
+                    logger.debug(f"Ticket {ticket.external_id} already ingested. Skipping.")
+                    return
 
             # Ingest
             # Re-normalize inside service? No, service expects payload or ticket.
@@ -79,6 +82,7 @@ class PollerService:
             from src.core.orm import TicketORM
             ticket_orm = TicketORM(
                 id=ticket.id,
+                external_id=ticket.external_id,
                 customer_id=customer_id,
                 mode=ticket.mode,
                 severity=ticket.severity,
