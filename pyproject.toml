@@ -59,4 +59,5 @@ testpaths = [
     "src/testing/test_context_adapter.py",
     "src/testing/test_safety_regression.py",
     "src/testing/test_api_key_scope.py",
+    "src/testing/test_ingestion_normalizer.py",
 ]
