@@ -114,11 +114,17 @@ def test_device_header_routes_and_is_stripped(inventory_root, capture_send):
     assert capture_send["device_header"] is None
 
 
-def test_unknown_device_falls_back_to_primary(inventory_root, capture_send):
+def test_unknown_explicit_device_is_rejected(inventory_root, capture_send):
+    # An explicit-but-unknown device must NOT silently fall back to the
+    # primary (cross-device contamination); the request is rejected without
+    # ever reaching an appliance.
     client = _routed_client(default_tenant=TENANT)
-    _do_request(client, headers={"device": "nope"})
-    assert (capture_send["host"], capture_send["port"]) == ("10.0.0.1", 443)
-    assert capture_send["auth"] == "Bearer token-a"
+    response = _do_request(client, headers={"device": "nope"})
+    assert response.status_code == 404
+    body = response.json()
+    assert body["error"] == "unknown_device"
+    assert "nope" in body["message"]
+    assert capture_send == {}, "request must never be dispatched"
 
 
 def test_tenant_header_selects_inventory_and_is_stripped(inventory_root, capture_send):

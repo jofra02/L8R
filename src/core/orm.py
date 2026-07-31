@@ -404,7 +404,7 @@ class AssessmentTargetORM(Base, TenantMixin):
         ForeignKey("assessment_runs.id", ondelete="CASCADE"), index=True
     )
     component_id: Mapped[str] = mapped_column(String)
-    device_name: Mapped[str] = mapped_column(String)   # gateway routing ref
+    device_name: Mapped[str] = mapped_column(String)   # display label (routing uses component_id)
     device_meta: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     # pending|collecting|collected|partial|failed|skipped
     status: Mapped[str] = mapped_column(String, default="pending")
@@ -560,7 +560,7 @@ class AssetORM(Base, TenantMixin):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    ref: Mapped[str] = mapped_column(String, nullable=False)  # MCP device routing slug
+    ref: Mapped[str] = mapped_column(String, nullable=False)  # human reference slug (search/import; routing uses id)
     asset_type: Mapped[str] = mapped_column(String, nullable=False)
     type_schema_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 

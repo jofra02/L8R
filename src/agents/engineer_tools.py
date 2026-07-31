@@ -505,7 +505,9 @@ def create_engineer_tools(
                        (skill anchors are pre-verified in this catalog).
             tool_params: JSON string with ALL parameters from the tool's schema.
                          Include every required parameter shown in the catalog.
-                         Example: '{"device": "fgt_casa", "vdom": "root"}'
+                         For "device", pass the component "id" from the client
+                         context (the component "ref" is also accepted).
+                         Example: '{"device": "<component id>", "vdom": "root"}'
         """
         from src.core.mcp_executor import execute_mcp_tool
         from src.core.evidence_store import EvidenceStore

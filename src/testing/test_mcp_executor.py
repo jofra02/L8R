@@ -9,6 +9,7 @@ Run: uv run pytest src/testing/test_mcp_executor.py
 
 import asyncio
 
+import src.core.mcp_executor as executor_mod
 import src.core.registry as registry_mod
 import src.core.safety as safety
 from src.core.mcp_executor import (
@@ -43,6 +44,13 @@ async def _patch_collaborators(monkeypatch, fake, *, safe=True, allowed=True):
     monkeypatch.setattr(
         registry_mod.CapabilityRegistry, "get_tool", classmethod(lambda cls, name: fake)
     )
+
+    # Device canonicalization hits the DB — identity here (covered in
+    # test_mcp_executor_device.py against sqlite).
+    async def passthrough(value, customer_id):
+        return value
+
+    monkeypatch.setattr(executor_mod, "_canonicalize_device", passthrough)
 
 
 # ---------------------------------------------------------------------------

@@ -79,7 +79,7 @@ class CollectionEngine:
         run_id: str,
         customer_id: str,
         definition: AssessmentDefinitionModel,
-        targets: List[Any],  # AssessmentTargetORM rows (detached ok: id/device_name)
+        targets: List[Any],  # AssessmentTargetORM rows (detached ok: id/component_id/device_name)
     ):
         self.run_id = run_id
         self.customer_id = customer_id
@@ -186,8 +186,10 @@ class CollectionEngine:
                 self._steps_done += 1
             return True
 
-        args = {**step.params, "device": target.device_name}
-        key = _dedup_key(step.tool, args, target.device_name)
+        # Routing identity is the component/asset id — the gateway registry
+        # is keyed by it; device_name is a human display label only.
+        args = {**step.params, "device": target.component_id}
+        key = _dedup_key(step.tool, args, target.component_id)
         async with self._dedup_lock:
             duplicate_of = self._dedup.get(key)
             if duplicate_of is None:
@@ -288,7 +290,7 @@ class CollectionEngine:
     async def _mark_skipped(self, target, step: CollectionStepDef, reason: str) -> None:
         await self._upsert_execution(
             target.id, step,
-            tool_args={**step.params, "device": target.device_name},
+            tool_args={**step.params, "device": target.component_id},
             status="skipped", error=reason, finished_at=_now(),
         )
         await self._bump_progress(failed=False)

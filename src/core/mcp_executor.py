@@ -74,6 +74,41 @@ def is_read_only_tool_name(tool_name: str) -> bool:
     return not any(marker in name for marker in READ_ONLY_BLOCKED_MARKERS)
 
 
+async def _canonicalize_device(value: Any, customer_id: str) -> Any:
+    """Resolve a caller-supplied ``device`` selector to the asset id.
+
+    Gateway devices are registered with ``id = asset.id``; ``ref`` is a human
+    slug that must never route. Callers (the Engineer LLM in particular) may
+    pass either — a tenant-scoped lookup maps ref -> id. Values matching no
+    asset pass through untouched: they may address hand-maintained gateway
+    inventory entries the app has no record of.
+    """
+    if not isinstance(value, str) or not value:
+        return value
+    try:
+        from sqlalchemy import or_, select
+
+        from src.core.database import async_session_factory
+        from src.core.orm import AssetORM
+
+        async with async_session_factory() as session:
+            row = (await session.execute(
+                select(AssetORM.id).where(
+                    AssetORM.customer_id == customer_id,
+                    or_(AssetORM.id == value, AssetORM.ref == value),
+                    AssetORM.deleted_at.is_(None),
+                    AssetORM.managed.is_(True),
+                ).limit(1)
+            )).scalar_one_or_none()
+    except Exception as e:  # noqa: BLE001 — resolution is best-effort
+        logger.warning(f"device selector resolution failed for '{value}': {e}")
+        return value
+    if row is not None and row != value:
+        logger.info(f"device selector '{value}' resolved to asset id '{row}'")
+        return row
+    return value
+
+
 def _classify_exception(exc: BaseException) -> str:
     if isinstance(exc, asyncio.TimeoutError):
         return "timeout"
@@ -136,7 +171,12 @@ async def execute_mcp_tool(
 
     # Tenant routing: framework-injected selector so the gateway routes against
     # this tenant's inventory. Never caller/LLM-supplied — always overwritten.
+    # Device routing: canonicalized to the asset id (ref accepted as alias).
     final_args = dict(args)
+    if "device" in final_args:
+        final_args["device"] = await _canonicalize_device(
+            final_args["device"], customer_id
+        )
     final_args["tenant"] = customer_id
 
     started = time.monotonic()

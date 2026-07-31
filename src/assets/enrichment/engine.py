@@ -2,8 +2,10 @@
 
 Executes an enrichment pack (pinned snapshot version) against one managed
 asset: sequential collection steps over execute_mcp_tool
-(enforce_read_only=True, framework-injected tenant, device = asset.ref),
-then declarative mappings/subitems/relations. No LLM anywhere.
+(enforce_read_only=True, framework-injected tenant, device = asset.id — the
+gateway registry is keyed by the asset id; ref/name are human reference
+fields, never routing), then declarative mappings/subitems/relations. No LLM
+anywhere.
 
 State machine (assessments pattern): pending -> running -> completed |
 completed_with_errors | failed, transitions validated and committed in
@@ -219,10 +221,10 @@ def _normalize(step: PackStep, content: Any) -> Dict[str, Any]:
     return normalizer(content)
 
 
-async def _collect_step(step: PackStep, asset_ref: str, customer_id: str
+async def _collect_step(step: PackStep, device_id: str, customer_id: str
                         ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """Run one step (with optional pagination). Returns (evidence, error)."""
-    base_args = {**step.params, "device": asset_ref}
+    base_args = {**step.params, "device": device_id}
 
     if step.paginate is None:
         result = await _call_tool(step, base_args, customer_id)
@@ -281,8 +283,11 @@ async def _execute(run_id: str, customer_id: str) -> None:
                     select(AssetORM).where(AssetORM.id == run.asset_id)
                 )).scalar_one()
                 pack = await _load_pack_snapshot(session, run.pack_id, run.pack_version)
-                asset_ref = asset.ref
                 asset_id = asset.id
+                # Gateway devices are registered with id = asset.id
+                # (service._gateway_payload); ref is a human slug and must
+                # never be used for routing.
+                device_id = asset_id
                 if pack.compatible.asset_types and \
                         asset.asset_type not in pack.compatible.asset_types:
                     stats["warnings"].append(
@@ -299,7 +304,7 @@ async def _execute(run_id: str, customer_id: str) -> None:
                     failures.append((step.id, "skipped: dependency failed", step.required))
                     stats["steps_failed"] += 1
                     continue
-                data, error = await _collect_step(step, asset_ref, customer_id)
+                data, error = await _collect_step(step, device_id, customer_id)
                 if error is not None:
                     failures.append((step.id, error, step.required))
                     stats["steps_failed"] += 1
