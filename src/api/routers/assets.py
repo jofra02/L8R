@@ -14,18 +14,25 @@ from src.api.dependencies import (
     get_db,
     get_pagination,
     require_global_permission,
+    require_permission,
     require_tenant_permission,
 )
 from src.api.exceptions import APIError
 from src.api.schemas.assets import (
     AssetAuditEntry,
     AssetCreate,
+    AssetProductCreate,
+    AssetProductRenameResponse,
+    AssetProductResponse,
+    AssetProductUpdate,
     AssetResponse,
+    AssetSubitemDetailResponse,
     AssetSubitemResponse,
     AssetUpdate,
     ImportResponse,
     RelationCreate,
     RelationResponse,
+    SubitemAncestor,
     SyncRunResponse,
 )
 from src.api.schemas.auth import AuthContext
@@ -34,6 +41,7 @@ from src.api.schemas.inventory import GatewaySyncStatus
 from src.api.services.gateway_admin_client import GatewayAdminClient
 from src.assets import io as assets_io
 from src.assets import registry
+from src.assets.products import AssetProductService
 from src.assets.service import AssetService
 from src.assets.validation import sensitive_keys
 from src.config import settings
@@ -63,19 +71,44 @@ def _asset_out(asset) -> AssetResponse:
     return out
 
 
+# Column filters accepting comma-separated multi-values (OR within a column).
+_MULTI_FILTER_KEYS = (
+    "asset_type", "status", "criticality", "sync_status", "owner",
+    "name", "product_name", "model", "manufacturer", "ip_address",
+    "serial_number",
+)
+
+
+def _csv(qp, key: str) -> List[str]:
+    raw = qp.get(key)
+    if not raw:
+        return []
+    return [t.strip() for t in raw.split(",") if t.strip()]
+
+
+_SUBITEM_MULTI_FILTER_KEYS = ("kind", "state", "source", "name", "external_id")
+
+
+def _collect_subitem_filters(request: Request) -> dict:
+    qp = request.query_params
+    filters: dict = {k: _csv(qp, k) for k in _SUBITEM_MULTI_FILTER_KEYS}
+    filters["q"] = qp.get("q")
+    filters["parent_subitem_id"] = qp.get("parent_subitem_id")
+    absent = qp.get("absent")
+    filters["absent"] = None if absent is None else absent.lower() in ("true", "1", "yes")
+    return filters
+
+
 def _collect_filters(request: Request, customer_id: Optional[str] = None) -> dict:
     qp = request.query_params
     filters: dict = {
         "q": qp.get("q"),
-        "asset_type": qp.get("asset_type"),
-        "status": qp.get("status"),
-        "criticality": qp.get("criticality"),
-        "sync_status": qp.get("sync_status"),
-        "owner": qp.get("owner"),
         "tags": qp.getlist("tag"),
         "attrs": {k[5:]: v for k, v in qp.items() if k.startswith("attr.")},
         "customer_id": customer_id,
     }
+    for key in _MULTI_FILTER_KEYS:
+        filters[key] = _csv(qp, key)
     managed = qp.get("managed")
     if managed is not None:
         filters["managed"] = managed.lower() in ("true", "1", "yes")
@@ -230,6 +263,61 @@ async def get_asset_type(
     if type_def is None:
         raise APIError(404, "not_found", f"Asset type '{type_id}' not found")
     return type_def.model_dump(mode="json")
+
+
+# --- Product catalog (global reference data; not tenant-scoped) ---
+
+@router.get("/products", response_model=List[AssetProductResponse])
+async def list_products(
+    include_usage: bool = Query(default=False),
+    auth: AuthContext = Depends(require_permission("assets:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Global product catalog. include_usage=true adds cross-tenant asset
+    counts (MSP aggregate) and therefore requires asset_products:manage."""
+    if include_usage and not auth.has_permission("asset_products:manage"):
+        raise APIError(403, "insufficient_permissions",
+                       "include_usage requires asset_products:manage")
+    products = await AssetProductService(db).list_products(include_usage=include_usage)
+    return [AssetProductResponse(**p) for p in products]
+
+
+@router.post("/products", response_model=AssetProductResponse, status_code=201)
+async def create_product(
+    body: AssetProductCreate,
+    auth: AuthContext = Depends(require_permission("asset_products:manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    product = await AssetProductService(db).create_product(body.name, _actor(auth))
+    return AssetProductResponse.model_validate(product, from_attributes=True)
+
+
+@router.patch("/products/{product_id}", response_model=AssetProductRenameResponse)
+async def rename_product(
+    product_id: str,
+    body: AssetProductUpdate,
+    auth: AuthContext = Depends(require_permission("asset_products:manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rename propagates to every referencing asset across ALL tenants."""
+    product, assets_updated = await AssetProductService(db).rename_product(
+        product_id, body.name, _actor(auth)
+    )
+    return AssetProductRenameResponse(
+        product=AssetProductResponse.model_validate(product, from_attributes=True),
+        assets_updated=assets_updated,
+    )
+
+
+@router.delete("/products/{product_id}")
+async def delete_product(
+    product_id: str,
+    auth: AuthContext = Depends(require_permission("asset_products:manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    """409 while any non-deleted asset references the product name."""
+    await AssetProductService(db).delete_product(product_id)
+    return {"status": "deleted", "id": product_id}
 
 
 @router.get("/mcp-packs")
@@ -409,26 +497,55 @@ async def list_sync_runs(
 
 @router.get("/{asset_id}/subitems", response_model=PaginatedResponse[AssetSubitemResponse])
 async def list_subitems(
+    request: Request,
     asset_id: str,
-    kind: Optional[str] = Query(default=None),
-    state: Optional[str] = Query(default=None),
-    q: Optional[str] = Query(default=None),
-    absent: Optional[bool] = Query(default=None),
+    sort: Optional[str] = Query(default=None),
     pagination: PaginationParams = Depends(get_pagination),
     auth: AuthContext = Depends(require_tenant_permission("assets:read")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Discovered sub-inventory of one asset (read-only)."""
-    rows, total = await _svc(db).list_subitems(
+    """Discovered sub-inventory of one asset (read-only).
+
+    CSV multi-value column filters (kind/state/source exact, name/external_id
+    partial), q, absent, sort, and parent_subitem_id scoping ("root" = only
+    top-level rows, omitted = all levels).
+    """
+    svc = _svc(db)
+    rows, total = await svc.list_subitems(
         auth.customer_id, asset_id,
-        kind=kind, state=state, q=q, absent=absent,
+        filters=_collect_subitem_filters(request),
+        sort=sort,
         page=pagination.page, page_size=pagination.page_size,
     )
+    counts = await svc.subitem_children_counts([r.id for r in rows])
+    items = []
+    for r in rows:
+        out = AssetSubitemResponse.model_validate(r, from_attributes=True)
+        out.children_count = counts.get(r.id, 0)
+        items.append(out)
     return PaginatedResponse(
-        items=[AssetSubitemResponse.model_validate(r, from_attributes=True) for r in rows],
+        items=items,
         total=total, page=pagination.page, page_size=pagination.page_size,
         total_pages=math.ceil(total / pagination.page_size) if total else 0,
     )
+
+
+@router.get("/{asset_id}/subitems/{subitem_id}", response_model=AssetSubitemDetailResponse)
+async def get_subitem(
+    asset_id: str,
+    subitem_id: str,
+    auth: AuthContext = Depends(require_tenant_permission("assets:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """One discovered subitem with its root-first ancestor chain — lets a
+    deep link rebuild the hierarchy breadcrumb in a single request."""
+    svc = _svc(db)
+    row = await svc.get_subitem(auth.customer_id, asset_id, subitem_id)
+    out = AssetSubitemDetailResponse.model_validate(row, from_attributes=True)
+    counts = await svc.subitem_children_counts([row.id])
+    out.children_count = counts.get(row.id, 0)
+    out.ancestors = [SubitemAncestor(**a) for a in await svc.subitem_ancestors(row)]
+    return out
 
 
 async def _check_sensitive_write(db, asset_type: Optional[str], attributes: dict,

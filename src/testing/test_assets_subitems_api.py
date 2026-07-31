@@ -58,19 +58,19 @@ async def test_list_subitems_filters(session):
     rows, total = await svc.list_subitems("t1", parent, page=1, page_size=10)
     assert total == 3 and [r.name for r in rows] == ["PC-ALPHA", "PC-BETA", "SRV-GAMMA"]
 
-    rows, total = await svc.list_subitems("t1", parent, kind="endpoint",
+    rows, total = await svc.list_subitems("t1", parent, filters={"kind": "endpoint"},
                                           page=1, page_size=10)
     assert total == 2
 
-    rows, total = await svc.list_subitems("t1", parent, state="Running",
+    rows, total = await svc.list_subitems("t1", parent, filters={"state": "Running"},
                                           page=1, page_size=10)
     assert total == 2
 
-    rows, total = await svc.list_subitems("t1", parent, absent=True,
+    rows, total = await svc.list_subitems("t1", parent, filters={"absent": True},
                                           page=1, page_size=10)
     assert total == 1 and rows[0].name == "PC-BETA"
 
-    rows, total = await svc.list_subitems("t1", parent, q="alpha",
+    rows, total = await svc.list_subitems("t1", parent, filters={"q": "alpha"},
                                           page=1, page_size=10)
     assert total == 1 and rows[0].name == "PC-ALPHA"
 

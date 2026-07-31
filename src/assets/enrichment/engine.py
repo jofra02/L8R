@@ -367,19 +367,51 @@ async def _apply(run_id: str, customer_id: str, asset_id: str,
         ))
 
         # Discovered sub-entities: land in asset_subitems, never in assets.
-        for rule in pack.subitems:
+        # Rules run parents-before-children so nested rules can resolve
+        # their parent row from this run's upserts.
+        resolved: Dict[tuple, str] = {}  # (source, kind, external_id) -> row id
+        for rule in _ordered_subitem_rules(pack.subitems):
             step_evidence = evidence.get(rule.step)
             if step_evidence is None:
                 continue
-            seen: set = set()
+            seen_by_parent: Dict[Optional[str], set] = {}
             for item in mp.extract_items(step_evidence, rule.items):
-                ext = await _upsert_subitem(session, customer_id, asset, rule,
-                                            item, run_id, stats)
-                if ext is not None:
-                    seen.add(ext)
+                parent_subitem_id: Optional[str] = None
+                if rule.parent is not None:
+                    parent_ext = mp.extract_path(item, rule.parent.external_id)
+                    if parent_ext in (None, ""):
+                        stats["warnings"].append(
+                            f"subitems[{rule.step}]: item without parent identity skipped")
+                        continue
+                    parent_subitem_id = resolved.get(
+                        (rule.identity.source, rule.parent.kind, str(parent_ext)))
+                    if parent_subitem_id is None:
+                        stats["warnings"].append(
+                            f"subitems[{rule.step}]: parent "
+                            f"{rule.parent.kind}/{parent_ext} not found in this "
+                            "run; item skipped")
+                        continue
+                result = await _upsert_subitem(session, customer_id, asset, rule,
+                                               item, run_id, stats, parent_subitem_id)
+                if result is not None:
+                    ext, row_id = result
+                    seen_by_parent.setdefault(parent_subitem_id, set()).add(ext)
+                    resolved[(rule.identity.source, rule.kind, ext)] = row_id
             if not (step_evidence.get("meta") or {}).get("truncated"):
+                if rule.parent is None:
+                    scope = {None: seen_by_parent.get(None, set())}
+                else:
+                    # Sweep only children of parents upserted this run: a
+                    # parent the scan did not return keeps its children
+                    # untouched; a returned parent with no children gets
+                    # them all marked absent.
+                    scope = {
+                        rid: seen_by_parent.get(rid, set())
+                        for (src, k, _e), rid in resolved.items()
+                        if src == rule.identity.source and k == rule.parent.kind
+                    }
                 await _mark_absent_subitems(session, customer_id, asset.id,
-                                            rule, seen, stats)
+                                            rule, scope, stats)
 
         # Discovered relations (match-only against existing assets).
         for rule in pack.relations:
@@ -392,11 +424,36 @@ async def _apply(run_id: str, customer_id: str, asset_id: str,
         await session.commit()
 
 
+def _ordered_subitem_rules(rules: List[SubitemsRule]) -> List[SubitemsRule]:
+    """Stable parents-before-children order. Pack validation guarantees the
+    parent graph over kinds is a DAG, so the DFS terminates."""
+    by_kind: Dict[tuple, List[SubitemsRule]] = {}
+    for r in rules:
+        by_kind.setdefault((r.identity.source, r.kind), []).append(r)
+    ordered: List[SubitemsRule] = []
+    done: set = set()
+
+    def visit(rule: SubitemsRule) -> None:
+        if id(rule) in done:
+            return
+        done.add(id(rule))
+        if rule.parent is not None:
+            for parent_rule in by_kind.get((rule.identity.source, rule.parent.kind), []):
+                visit(parent_rule)
+        ordered.append(rule)
+
+    for r in rules:
+        visit(r)
+    return ordered
+
+
 async def _upsert_subitem(session, customer_id: str, parent: AssetORM,
                           rule: SubitemsRule, item: Any, run_id: str,
-                          stats: Dict[str, Any]) -> Optional[str]:
-    """Upsert one discovered sub-entity; returns its external_id, or None
-    when the item carries no resolvable identity (skipped with a warning).
+                          stats: Dict[str, Any],
+                          parent_subitem_id: Optional[str] = None,
+                          ) -> Optional[tuple]:
+    """Upsert one discovered sub-entity; returns (external_id, row_id), or
+    None when the item carries no resolvable identity (skipped, warning).
 
     Direct assignment on purpose — no merge policy, no provenance: subitems
     are wholly source-owned. Human-curated data belongs on real assets.
@@ -424,10 +481,16 @@ async def _upsert_subitem(session, customer_id: str, parent: AssetORM,
         if value is not None:
             attrs[m.target[len("attributes."):]] = value
 
+    identity_scope = (
+        AssetSubitemORM.parent_subitem_id.is_(None)
+        if parent_subitem_id is None
+        else AssetSubitemORM.parent_subitem_id == parent_subitem_id
+    )
     row = (await session.execute(
         select(AssetSubitemORM).where(
             AssetSubitemORM.customer_id == customer_id,
             AssetSubitemORM.parent_asset_id == parent.id,
+            identity_scope,
             AssetSubitemORM.source == rule.identity.source,
             AssetSubitemORM.kind == rule.kind,
             AssetSubitemORM.external_id == external_id,
@@ -436,45 +499,59 @@ async def _upsert_subitem(session, customer_id: str, parent: AssetORM,
 
     now = _now()
     if row is None:
+        row_id = uuid.uuid4().hex
         session.add(AssetSubitemORM(
-            id=uuid.uuid4().hex, customer_id=customer_id,
-            parent_asset_id=parent.id, source=rule.identity.source,
+            id=row_id, customer_id=customer_id,
+            parent_asset_id=parent.id, parent_subitem_id=parent_subitem_id,
+            source=rule.identity.source,
             kind=rule.kind, external_id=external_id, name=name, state=state,
             attributes=attrs, absent=False,
             first_seen_at=now, last_seen_at=now, last_sync_run_id=run_id,
         ))
         stats["subitems_created"] += 1
-    else:
-        if (row.name, row.state, row.attributes, row.absent) != (name, state, attrs, False):
-            stats["subitems_updated"] += 1
-        row.name = name
-        row.state = state
-        row.attributes = attrs
-        row.absent = False
-        row.last_seen_at = now
-        row.last_sync_run_id = run_id
-    return external_id
+        return external_id, row_id
+    if (row.name, row.state, row.attributes, row.absent) != (name, state, attrs, False):
+        stats["subitems_updated"] += 1
+    row.name = name
+    row.state = state
+    row.attributes = attrs
+    row.absent = False
+    row.last_seen_at = now
+    row.last_sync_run_id = run_id
+    return external_id, row.id
 
 
 async def _mark_absent_subitems(session, customer_id: str, parent_id: str,
-                                rule: SubitemsRule, seen: set,
+                                rule: SubitemsRule,
+                                seen_by_parent: Dict[Optional[str], set],
                                 stats: Dict[str, Any]) -> None:
     """Flag rows a complete scan no longer returned. Never deletes:
     retirement visibility is the point of the flag. An empty complete scan
-    marking everything absent is the intended semantics."""
-    result = await session.execute(
-        update(AssetSubitemORM)
-        .where(
-            AssetSubitemORM.customer_id == customer_id,
-            AssetSubitemORM.parent_asset_id == parent_id,
-            AssetSubitemORM.source == rule.identity.source,
-            AssetSubitemORM.kind == rule.kind,
-            AssetSubitemORM.absent.is_(False),
-            AssetSubitemORM.external_id.not_in(seen),
+    marking everything absent is the intended semantics.
+
+    The sweep is scoped per hierarchy level: each key of `seen_by_parent`
+    is one parent scope (None = root rows) and its value the external_ids
+    seen there this run. Children of parents outside the map are never
+    touched — external_ids are only unique within one parent."""
+    for parent_subitem_id, seen in seen_by_parent.items():
+        stmt = (
+            update(AssetSubitemORM)
+            .where(
+                AssetSubitemORM.customer_id == customer_id,
+                AssetSubitemORM.parent_asset_id == parent_id,
+                AssetSubitemORM.parent_subitem_id.is_(None)
+                if parent_subitem_id is None
+                else AssetSubitemORM.parent_subitem_id == parent_subitem_id,
+                AssetSubitemORM.source == rule.identity.source,
+                AssetSubitemORM.kind == rule.kind,
+                AssetSubitemORM.absent.is_(False),
+            )
+            .values(absent=True)
         )
-        .values(absent=True)
-    )
-    stats["subitems_absent"] += result.rowcount or 0
+        if seen:
+            stmt = stmt.where(AssetSubitemORM.external_id.not_in(seen))
+        result = await session.execute(stmt)
+        stats["subitems_absent"] += result.rowcount or 0
 
 
 async def _ensure_relation(session, customer_id: str, *, source_id: str,

@@ -21,7 +21,7 @@ FieldType = Literal[
 # Asset columns that dynamic attribute keys must not shadow.
 RESERVED_FIELD_KEYS = frozenset({
     "id", "name", "ref", "type", "asset_type", "type_schema_version",
-    "manufacturer", "model", "serial_number", "location", "owner",
+    "manufacturer", "model", "product_name", "serial_number", "location", "owner",
     "ip_address", "fqdn", "status", "criticality", "tags",
     "purchase_date", "warranty_expires", "eol_date", "attributes",
     "provenance", "managed", "mcp_config", "sync_status", "sync_error",
@@ -210,6 +210,18 @@ class SubitemMapping(BaseModel):
         return self
 
 
+class SubitemParent(BaseModel):
+    """Attach the rule's rows under a subitem produced by another rule.
+
+    `kind` names the parent rule's kind (same pack, same identity.source);
+    `external_id` is a path inside THIS rule's item resolving to the
+    parent's external_id. Items whose parent is not found in the current
+    run are skipped with a warning — never attached at root.
+    """
+    kind: str
+    external_id: str
+
+
 class SubitemsRule(BaseModel):
     """Upsert discovered sub-entities from a list step into asset_subitems.
 
@@ -224,6 +236,7 @@ class SubitemsRule(BaseModel):
     state: Optional[str] = None  # path inside the item
     state_map: Optional[Dict[str, str]] = None
     attributes: List[SubitemMapping] = Field(default_factory=list)
+    parent: Optional[SubitemParent] = None
 
     @model_validator(mode="after")
     def _check(self) -> "SubitemsRule":
@@ -273,6 +286,34 @@ class EnrichmentPackDefinition(BaseModel):
         for s in self.subitems:
             if s.step not in known:
                 problems.append(f"subitems rule: unknown step '{s.step}'")
+        # Nested subitem rules must form a DAG over kinds within one source:
+        # the engine resolves parents from rows upserted earlier in the same
+        # run, so a cycle (or a dangling parent kind) could never resolve.
+        rules_by_kind: Dict[tuple, SubitemsRule] = {
+            (s.identity.source, s.kind): s for s in self.subitems
+        }
+        for s in self.subitems:
+            if s.parent is None:
+                continue
+            if s.parent.kind == s.kind:
+                problems.append(f"subitems rule '{s.kind}': parent references itself")
+                continue
+            if (s.identity.source, s.parent.kind) not in rules_by_kind:
+                problems.append(
+                    f"subitems rule '{s.kind}': parent kind '{s.parent.kind}' "
+                    f"has no rule with source '{s.identity.source}'"
+                )
+        for s in self.subitems:
+            seen = {s.kind}
+            current = s
+            while current.parent is not None:
+                current = rules_by_kind.get((current.identity.source, current.parent.kind))
+                if current is None:
+                    break
+                if current.kind in seen:
+                    problems.append(f"subitems rules: parent cycle involving kind '{current.kind}'")
+                    break
+                seen.add(current.kind)
         if problems:
             raise ValueError(f"pack '{self.pack_id}': " + "; ".join(problems))
         return self

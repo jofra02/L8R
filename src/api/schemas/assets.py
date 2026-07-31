@@ -20,6 +20,8 @@ class AssetCreate(BaseModel):
     asset_type: str = Field(..., min_length=1)
     manufacturer: Optional[str] = None
     model: Optional[str] = None
+    product_name: Optional[str] = Field(
+        default=None, description="Commercial product name; must exist in the global product catalog")
     serial_number: Optional[str] = None
     location: Optional[str] = None
     owner: Optional[str] = None
@@ -41,6 +43,7 @@ class AssetUpdate(BaseModel):
     asset_type: Optional[str] = None
     manufacturer: Optional[str] = None
     model: Optional[str] = None
+    product_name: Optional[str] = None
     serial_number: Optional[str] = None
     location: Optional[str] = None
     owner: Optional[str] = None
@@ -66,6 +69,7 @@ class AssetResponse(BaseModel):
     type_schema_version: int
     manufacturer: Optional[str] = None
     model: Optional[str] = None
+    product_name: Optional[str] = None
     serial_number: Optional[str] = None
     location: Optional[str] = None
     owner: Optional[str] = None
@@ -102,6 +106,7 @@ class AssetResponse(BaseModel):
 class AssetSubitemResponse(BaseModel):
     id: str
     parent_asset_id: str
+    parent_subitem_id: Optional[str] = None
     source: str
     kind: str
     external_id: str
@@ -115,6 +120,20 @@ class AssetSubitemResponse(BaseModel):
     promoted_asset_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    # Count of direct children; populated by the router per page, never stored.
+    children_count: int = 0
+
+
+class SubitemAncestor(BaseModel):
+    id: str
+    name: str
+    kind: str
+
+
+class AssetSubitemDetailResponse(AssetSubitemResponse):
+    # Root-first parent chain (excludes the subitem itself); lets the
+    # frontend rebuild a breadcrumb from a deep link with one request.
+    ancestors: List[SubitemAncestor] = Field(default_factory=list)
 
 
 # --- Relations ---
@@ -185,3 +204,29 @@ class ImportResponse(BaseModel):
 
 class AssetImportPayload(BaseModel):
     assets: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+# --- Product catalog (global) ---
+
+class AssetProductCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=256)
+
+
+class AssetProductUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=256)
+
+
+class AssetProductResponse(BaseModel):
+    id: str
+    name: str
+    created_at: datetime
+    updated_at: datetime
+    created_by: Optional[str] = None
+    # Non-deleted assets referencing the name across ALL tenants; only
+    # populated for include_usage=true (asset_products:manage).
+    usage_count: Optional[int] = None
+
+
+class AssetProductRenameResponse(BaseModel):
+    product: AssetProductResponse
+    assets_updated: int

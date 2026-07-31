@@ -26,13 +26,13 @@ from src.assets import registry
 from src.assets.service import AssetService
 from src.assets.validation import validate_attributes
 from src.config import settings
-from src.core.orm import AssetORM
+from src.core.orm import AssetORM, AssetProductORM
 
 logger = logging.getLogger(__name__)
 
 EXPORT_COMMON_COLUMNS = [
     "id", "name", "ref", "asset_type", "status", "criticality",
-    "manufacturer", "model", "serial_number", "location", "owner",
+    "manufacturer", "model", "product_name", "serial_number", "location", "owner",
     "ip_address", "fqdn", "tags", "purchase_date", "warranty_expires",
     "eol_date", "managed", "sync_status", "last_synced_at",
     "external_source", "external_id", "created_at", "updated_at",
@@ -42,7 +42,7 @@ IMPORT_MATCH_KEYS = ("id", "ref", "serial_number", "external_id")
 
 # Columns accepted on import that map straight onto AssetCreate fields.
 _IMPORT_SCALAR_FIELDS = (
-    "id", "name", "ref", "asset_type", "manufacturer", "model",
+    "id", "name", "ref", "asset_type", "manufacturer", "model", "product_name",
     "serial_number", "location", "owner", "ip_address", "fqdn",
     "status", "criticality", "purchase_date", "warranty_expires", "eol_date",
 )
@@ -208,6 +208,12 @@ async def import_assets(
 
     service = AssetService(session)
     types = await registry.get_latest_types(session)
+    # product_name is constrained to the global catalog; preload once so
+    # dry-run reports unknown products as row errors without touching it.
+    products = {
+        n.lower(): n
+        for n in (await session.execute(select(AssetProductORM.name))).scalars()
+    }
     results: List[ImportRowResult] = []
     created = updated = skipped = failed = 0
 
@@ -231,6 +237,14 @@ async def import_assets(
                     types[asset_type], row["attributes"], allowed_extra_keys=base_keys
                 )
                 errors.extend(attr_errors)
+
+            if row.get("product_name"):
+                canonical = products.get(str(row["product_name"]).strip().lower())
+                if canonical is None:
+                    errors.append(f"unknown product_name '{row['product_name']}':"
+                                  " not in the product catalog")
+                else:
+                    row["product_name"] = canonical
 
             if not existing and not row.get("name"):
                 errors.append("name is required for new assets")

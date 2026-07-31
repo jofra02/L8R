@@ -25,6 +25,7 @@ from src.api.schemas.assets import AssetCreate, AssetUpdate, RelationCreate
 from src.api.schemas.inventory import McpConnection
 from src.api.services.gateway_admin_client import GatewayAdminClient, GatewaySyncResult
 from src.assets import registry
+from src.assets.products import ensure_product
 from src.assets.schema import AssetTypeDefinition
 from src.assets.validation import (
     coerce_filter_value,
@@ -43,9 +44,9 @@ from src.core.orm import (
 logger = logging.getLogger(__name__)
 
 COMMON_FIELDS = (
-    "name", "ref", "asset_type", "manufacturer", "model", "serial_number",
-    "location", "owner", "ip_address", "fqdn", "status", "criticality",
-    "tags", "purchase_date", "warranty_expires", "eol_date",
+    "name", "ref", "asset_type", "manufacturer", "model", "product_name",
+    "serial_number", "location", "owner", "ip_address", "fqdn", "status",
+    "criticality", "tags", "purchase_date", "warranty_expires", "eol_date",
 )
 
 SORTABLE_COLUMNS = {
@@ -55,6 +56,8 @@ SORTABLE_COLUMNS = {
     "status": AssetORM.status,
     "criticality": AssetORM.criticality,
     "manufacturer": AssetORM.manufacturer,
+    "model": AssetORM.model,
+    "product_name": AssetORM.product_name,
     "serial_number": AssetORM.serial_number,
     "ip_address": AssetORM.ip_address,
     "last_synced_at": AssetORM.last_synced_at,
@@ -64,8 +67,63 @@ SORTABLE_COLUMNS = {
 
 _SEARCH_COLUMNS = (
     AssetORM.name, AssetORM.ref, AssetORM.serial_number, AssetORM.ip_address,
-    AssetORM.fqdn, AssetORM.manufacturer, AssetORM.model,
+    AssetORM.fqdn, AssetORM.manufacturer, AssetORM.model, AssetORM.product_name,
 )
+
+# Multi-value column filters. Values arrive as lists (or comma-separated
+# strings from internal callers); OR within a column, AND across columns.
+_EXACT_FILTER_COLUMNS = {
+    "asset_type": AssetORM.asset_type,
+    "status": AssetORM.status,
+    "criticality": AssetORM.criticality,
+    "sync_status": AssetORM.sync_status,
+}
+
+_ILIKE_FILTER_COLUMNS = {
+    "name": AssetORM.name,
+    "product_name": AssetORM.product_name,
+    "model": AssetORM.model,
+    "manufacturer": AssetORM.manufacturer,
+    "ip_address": AssetORM.ip_address,
+    "serial_number": AssetORM.serial_number,
+    "owner": AssetORM.owner,
+}
+
+
+def _filter_values(raw: Any) -> List[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        raw = raw.split(",")
+    return [v.strip() for v in raw if isinstance(v, str) and v.strip()]
+
+
+# Subitem listings share the assets filtering model (CSV multi-value,
+# exact IN for enums, OR-of-ILIKE for free text).
+SUBITEM_SORTABLE_COLUMNS = {
+    "name": AssetSubitemORM.name,
+    "kind": AssetSubitemORM.kind,
+    "state": AssetSubitemORM.state,
+    "source": AssetSubitemORM.source,
+    "external_id": AssetSubitemORM.external_id,
+    "first_seen_at": AssetSubitemORM.first_seen_at,
+    "last_seen_at": AssetSubitemORM.last_seen_at,
+    "created_at": AssetSubitemORM.created_at,
+}
+
+_SUB_EXACT_FILTER_COLUMNS = {
+    "kind": AssetSubitemORM.kind,
+    "state": AssetSubitemORM.state,
+    "source": AssetSubitemORM.source,
+}
+
+_SUB_ILIKE_FILTER_COLUMNS = {
+    "name": AssetSubitemORM.name,
+    "external_id": AssetSubitemORM.external_id,
+}
+
+# parent_subitem_id filter sentinel: only top-level rows.
+SUBITEM_ROOT_SENTINEL = "root"
 
 REDACTED = "***"
 
@@ -159,15 +217,15 @@ def build_asset_query(
     if not include_deleted:
         stmt = stmt.where(AssetORM.deleted_at.is_(None))
 
-    for column, key in (
-        (AssetORM.asset_type, "asset_type"),
-        (AssetORM.status, "status"),
-        (AssetORM.criticality, "criticality"),
-        (AssetORM.sync_status, "sync_status"),
-        (AssetORM.owner, "owner"),
-    ):
-        if filters.get(key):
-            stmt = stmt.where(column == filters[key])
+    for key, column in _EXACT_FILTER_COLUMNS.items():
+        vals = _filter_values(filters.get(key))
+        if vals:
+            stmt = stmt.where(column == vals[0] if len(vals) == 1
+                              else column.in_(vals))
+    for key, column in _ILIKE_FILTER_COLUMNS.items():
+        vals = _filter_values(filters.get(key))
+        if vals:
+            stmt = stmt.where(or_(*[column.ilike(f"%{v}%") for v in vals]))
     if filters.get("managed") is not None:
         stmt = stmt.where(AssetORM.managed == filters["managed"])
     for tag in filters.get("tags") or []:
@@ -197,6 +255,18 @@ def apply_sort(stmt, sort: Optional[str]):
         raise APIError(422, "validation_error",
                        f"sort must be one of {sorted(SORTABLE_COLUMNS)}")
     return stmt.order_by(column.desc() if desc else column.asc(), AssetORM.id)
+
+
+def apply_subitem_sort(stmt, sort: Optional[str]):
+    if not sort:
+        return stmt.order_by(AssetSubitemORM.name, AssetSubitemORM.id)
+    desc = sort.startswith("-")
+    key = sort.lstrip("+-")
+    column = SUBITEM_SORTABLE_COLUMNS.get(key)
+    if column is None:
+        raise APIError(422, "validation_error",
+                       f"sort must be one of {sorted(SUBITEM_SORTABLE_COLUMNS)}")
+    return stmt.order_by(column.desc() if desc else column.asc(), AssetSubitemORM.id)
 
 
 class AssetService:
@@ -327,6 +397,10 @@ class AssetService:
         ref = data.ref or data.name
         await self._check_ref_free(customer_id, ref)
 
+        product_name = None
+        if data.product_name:
+            product_name = await ensure_product(self.session, data.product_name)
+
         asset = AssetORM(
             id=asset_id,
             customer_id=customer_id,
@@ -336,6 +410,7 @@ class AssetService:
             type_schema_version=type_def.version,
             manufacturer=data.manufacturer,
             model=data.model,
+            product_name=product_name,
             serial_number=data.serial_number,
             location=data.location,
             owner=data.owner,
@@ -385,6 +460,9 @@ class AssetService:
 
         updates = data.model_dump(exclude_none=True,
                                   exclude={"mcp_connection", "mcp_managed", "attributes"})
+        if updates.get("product_name"):
+            updates["product_name"] = await ensure_product(
+                self.session, updates["product_name"])
         if "asset_type" in updates and updates["asset_type"] != asset.asset_type:
             type_def = await self._type_def(updates["asset_type"])
         else:
@@ -546,24 +624,34 @@ class AssetService:
 
     async def list_subitems(
         self, customer_id: str, asset_id: str, *,
-        kind: Optional[str] = None,
-        state: Optional[str] = None,
-        q: Optional[str] = None,
-        absent: Optional[bool] = None,
+        filters: Optional[Dict[str, Any]] = None,
+        sort: Optional[str] = None,
         page: int,
         page_size: int,
     ) -> Tuple[List[AssetSubitemORM], int]:
         await self._get(customer_id, asset_id)  # tenant check -> 404
+        filters = filters or {}
         stmt = select(AssetSubitemORM).where(
             AssetSubitemORM.customer_id == customer_id,
             AssetSubitemORM.parent_asset_id == asset_id,
         )
-        if kind:
-            stmt = stmt.where(AssetSubitemORM.kind == kind)
-        if state:
-            stmt = stmt.where(AssetSubitemORM.state == state)
+        parent = filters.get("parent_subitem_id")
+        if parent == SUBITEM_ROOT_SENTINEL:
+            stmt = stmt.where(AssetSubitemORM.parent_subitem_id.is_(None))
+        elif parent:
+            stmt = stmt.where(AssetSubitemORM.parent_subitem_id == parent)
+        for key, column in _SUB_EXACT_FILTER_COLUMNS.items():
+            vals = _filter_values(filters.get(key))
+            if vals:
+                stmt = stmt.where(column == vals[0] if len(vals) == 1 else column.in_(vals))
+        for key, column in _SUB_ILIKE_FILTER_COLUMNS.items():
+            vals = _filter_values(filters.get(key))
+            if vals:
+                stmt = stmt.where(or_(*[column.ilike(f"%{v}%") for v in vals]))
+        absent = filters.get("absent")
         if absent is not None:
             stmt = stmt.where(AssetSubitemORM.absent.is_(absent))
+        q = filters.get("q")
         if q:
             like = f"%{q}%"
             stmt = stmt.where(or_(AssetSubitemORM.name.ilike(like),
@@ -571,10 +659,57 @@ class AssetService:
         total = (await self.session.execute(
             select(func.count()).select_from(stmt.subquery())
         )).scalar() or 0
-        stmt = (stmt.order_by(AssetSubitemORM.name, AssetSubitemORM.id)
+        stmt = (apply_subitem_sort(stmt, sort)
                 .offset((page - 1) * page_size).limit(page_size))
         rows = (await self.session.execute(stmt)).scalars().all()
         return list(rows), total
+
+    async def get_subitem(self, customer_id: str, asset_id: str,
+                          subitem_id: str) -> AssetSubitemORM:
+        await self._get(customer_id, asset_id)  # tenant check -> 404
+        row = (await self.session.execute(
+            select(AssetSubitemORM).where(
+                AssetSubitemORM.customer_id == customer_id,
+                AssetSubitemORM.parent_asset_id == asset_id,
+                AssetSubitemORM.id == subitem_id,
+            )
+        )).scalar_one_or_none()
+        if row is None:
+            raise APIError(404, "not_found", f"Subitem '{subitem_id}' not found")
+        return row
+
+    _ANCESTOR_DEPTH_CAP = 16
+
+    async def subitem_ancestors(self, row: AssetSubitemORM) -> List[Dict[str, str]]:
+        """Root-first parent chain, excluding the row itself. Iterative walk
+        on purpose (portable across Postgres/sqlite, depth is bounded)."""
+        chain: List[Dict[str, str]] = []
+        current = row
+        for _ in range(self._ANCESTOR_DEPTH_CAP):
+            if current.parent_subitem_id is None:
+                break
+            parent = (await self.session.execute(
+                select(AssetSubitemORM).where(
+                    AssetSubitemORM.customer_id == row.customer_id,
+                    AssetSubitemORM.id == current.parent_subitem_id,
+                )
+            )).scalar_one_or_none()
+            if parent is None:
+                break
+            chain.insert(0, {"id": parent.id, "name": parent.name, "kind": parent.kind})
+            current = parent
+        return chain
+
+    async def subitem_children_counts(self, subitem_ids: List[str]) -> Dict[str, int]:
+        """One GROUP BY for the current page (compute_subitems_summary pattern)."""
+        if not subitem_ids:
+            return {}
+        rows = (await self.session.execute(
+            select(AssetSubitemORM.parent_subitem_id, func.count())
+            .where(AssetSubitemORM.parent_subitem_id.in_(subitem_ids))
+            .group_by(AssetSubitemORM.parent_subitem_id)
+        )).all()
+        return {pid: n for pid, n in rows}
 
     async def subitems_summary(
         self, asset_ids: List[str], customer_id: Optional[str] = None,

@@ -566,6 +566,10 @@ class AssetORM(Base, TenantMixin):
 
     manufacturer: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     model: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Commercial product name ("FortiGate", "ESXi"), complementary to model.
+    # Values are constrained to the global asset_products catalog; manual-only
+    # (deliberately absent from MAPPABLE_COMMON_TARGETS).
+    product_name: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     serial_number: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     location: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     owner: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -661,6 +665,28 @@ class AssetDefinitionVersionORM(Base):
     )
 
 
+class AssetProductORM(Base):
+    """Global product catalog entry ("FortiGate", "ESXi", ...).
+
+    Reference data, not tenant data — no TenantMixin (same stance as
+    AssetDefinitionVersionORM). Assets store the product name denormalized
+    (assets.product_name, no FK); this table is the source of truth for
+    allowed values. Renames propagate via bulk UPDATE; deletes are blocked
+    while any non-deleted asset references the name.
+    """
+    __tablename__ = "asset_products"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    __table_args__ = (
+        Index("uq_asset_products_name_lower", text("lower(name)"), unique=True),
+    )
+
+
 class AssetSyncRunORM(Base, TenantMixin):
     """One enrichment/discovery execution against one managed asset."""
     __tablename__ = "asset_sync_runs"
@@ -702,6 +728,11 @@ class AssetSubitemORM(Base, TenantMixin):
     parent_asset_id: Mapped[str] = mapped_column(
         ForeignKey("assets.id", ondelete="CASCADE"), index=True, nullable=False
     )
+    # Self-reference for discovered hierarchies (endpoint -> interface, ...).
+    # NULL = root-level subitem directly under the asset.
+    parent_subitem_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("asset_subitems.id", ondelete="CASCADE"), nullable=True
+    )
     source: Mapped[str] = mapped_column(String, nullable=False)  # e.g. fortiedr
     kind: Mapped[str] = mapped_column(String, nullable=False)    # e.g. endpoint
     external_id: Mapped[str] = mapped_column(String, nullable=False)
@@ -723,9 +754,28 @@ class AssetSubitemORM(Base, TenantMixin):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
-        UniqueConstraint("customer_id", "parent_asset_id", "source", "kind", "external_id",
-                         name="uq_asset_subitem_identity"),
+        # Identity is scoped to the hierarchy level: roots dedupe under the
+        # asset, children under their parent subitem — two children of
+        # different parents may legitimately share (source, kind,
+        # external_id) (e.g. interface port1 on two vdoms). A single unique
+        # constraint including the nullable column would stop deduping
+        # roots on Postgres (NULLs compare distinct).
+        Index(
+            "uq_asset_subitem_identity_root",
+            "customer_id", "parent_asset_id", "source", "kind", "external_id",
+            unique=True,
+            postgresql_where=text("parent_subitem_id IS NULL"),
+            sqlite_where=text("parent_subitem_id IS NULL"),
+        ),
+        Index(
+            "uq_asset_subitem_identity_child",
+            "customer_id", "parent_subitem_id", "source", "kind", "external_id",
+            unique=True,
+            postgresql_where=text("parent_subitem_id IS NOT NULL"),
+            sqlite_where=text("parent_subitem_id IS NOT NULL"),
+        ),
         Index("ix_asset_subitems_tenant_parent", "customer_id", "parent_asset_id"),
+        Index("ix_asset_subitems_parent_subitem", "customer_id", "parent_subitem_id"),
     )
 
 
