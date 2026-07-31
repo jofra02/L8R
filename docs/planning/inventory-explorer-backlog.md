@@ -61,7 +61,18 @@ component-local state (survives tab switches via keep-mounted panels,
 not refresh). Mirroring it to an `atab` query param would make deep
 links land on a specific dataset.
 
-## 8. Scroll position restoration
+## 8. License inventory follow-ups
+
+The License tab (2026-07-31) normalizes FortiGate `/license/status` and
+FortiEDR summary/organizations into `attributes.licenses`. Deferred:
+license column in the assets list (worst-state chip + next expiry),
+Overview license block, server-side expiry range filters, the
+`fgt74_monitor_sys_get_vm_information` step (richer VM license detail),
+expiry alerting/notifications, and a license assessment control
+(support-contract/subscription expiry as an assessment rule — the
+normalizer registry is shared, so the parser is already available there).
+
+## 9. Scroll position restoration
 
 Per-tab scroll restoration was scoped out ("when reasonable"). The
 workspace store is the natural place (in-memory map keyed by

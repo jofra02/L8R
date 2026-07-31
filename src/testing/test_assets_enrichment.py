@@ -87,7 +87,9 @@ def stub_tools(monkeypatch, responses):
     async def execute(tool_name, args, customer_id, *, enforce_read_only=False, timeout_s=None):
         calls.append({"tool": tool_name, "args": dict(args), "customer_id": customer_id,
                       "enforce_read_only": enforce_read_only})
-        result = responses[tool_name]
+        # Tools a test doesn't stub (e.g. the v4 organizations step) return
+        # an empty result instead of blowing up the stub.
+        result = responses.get(tool_name, [])
         if callable(result):
             result = result(args)
         if isinstance(result, MCPToolResult):
@@ -366,7 +368,8 @@ async def test_absent_skipped_on_pagination_cap(env, monkeypatch):
     factory, _ = env
     raw = load_pack_file(PACKS_DIR / "fortiedr.yaml").model_dump(mode="json")
     raw["version"] = 99
-    raw["steps"][1]["paginate"]["max_pages"] = 1
+    collectors_step = next(s for s in raw["steps"] if s["id"] == "collectors")
+    collectors_step["paginate"]["max_pages"] = 1
     capped = EnrichmentPackDefinition.model_validate(raw)
     async with factory() as s:
         s.add(AssetDefinitionVersionORM(
@@ -386,7 +389,7 @@ async def test_absent_skipped_on_pagination_cap(env, monkeypatch):
         ))
         await s.commit()
 
-    page_size = raw["steps"][1]["paginate"]["size"]
+    page_size = next(s for s in raw["steps"] if s["id"] == "collectors")["paginate"]["size"]
 
     def full_page(args):
         return [{"id": i, "name": f"PC-{i}", "macAddresses": [f"m{i}"]}

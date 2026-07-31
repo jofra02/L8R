@@ -1,7 +1,8 @@
 # Asset type: firewall — versioned and immutable once synced (bump version
 # to change; see src/assets/registry.py).
+# v2: + licenses (normalized cross-vendor license inventory).
 type_id: firewall
-version: 1
+version: 2
 label: Firewall
 category: network_security
 roles: [firewall]
@@ -24,6 +25,9 @@ fields:
     type: json
   - key: license_status
     label: License status
+    type: json
+  - key: licenses
+    label: Licenses (normalized)
     type: json
   - key: performance
     label: Performance snapshot

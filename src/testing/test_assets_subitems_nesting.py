@@ -109,7 +109,7 @@ async def make_console(factory, customer_id="t1") -> str:
 
 def stub_tools(monkeypatch, responses):
     async def execute(tool_name, args, customer_id, *, enforce_read_only=False, timeout_s=None):
-        result = responses[tool_name]
+        result = responses.get(tool_name, [])
         if callable(result):
             result = result(args)
         if isinstance(result, MCPToolResult):

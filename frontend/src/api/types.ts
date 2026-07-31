@@ -734,6 +734,24 @@ export interface Asset {
   subitems_summary?: SubitemsSummary | null;
 }
 
+/** Normalized license entry (attributes.licenses), produced deterministically
+ * by the enrichment normalizers — uniform across vendors. */
+export interface LicenseEntry {
+  key: string;
+  label: string;
+  category: "signature" | "cloud_service" | "support_contract" | "registration" | "capacity" | "platform" | string;
+  status: string | null;
+  /** Pure map from the source status; time-relative display state (expiring
+   * soon / past expiry) is derived in the UI from `expires`. */
+  state: "ok" | "expired" | "none" | "unknown" | string;
+  expires: string | null;
+  entitlement: string | null;
+  seats: { used: number | null; max: number | null } | null;
+  version: string | null;
+  last_update: string | null;
+  details: Record<string, unknown>;
+}
+
 export interface SubitemKindSummary {
   total: number;
   by_state: Record<string, number>;

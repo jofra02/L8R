@@ -53,11 +53,20 @@ A pack declares:
   child assets); old snapshots containing `produces` still parse (ignored
   by the schema) and simply create nothing.
 
-Shipped packs: `fortigate@2` (fgt74: status, license, firmware,
-performance, interfaces, HA, VDOMs, LLDP; v2 is a no-op bump — the schema
+Shipped packs: `fortigate@3` (fgt74: status, license, firmware,
+performance, interfaces, HA, VDOMs, LLDP; v2 was a no-op bump — the schema
 dropped `produces` and `content_hash` covers the canonical dump, so the
-v1 file no longer hash-matched its snapshot) and `fortiedr@3` (fedr62:
-system summary + paginated collectors → endpoint subitems).
+v1 file no longer hash-matched its snapshot; v3 normalizes the license
+step through `fortigate.license_status` → `attributes.licenses`) and
+`fortiedr@5` (fedr62: system summary + org-scoped `organizations` +
+dashboard license pair + paginated collectors → endpoint subitems; v4
+added the license normalization, v5 added the
+`/api/dashboard/license-*-per-organization` steps after live verification
+showed hosted org-scoped credentials 403 on BOTH admin/* and
+list-organizations — the dashboard family auto-scopes from the basic-auth
+org and is their only reachable license source. Mapping precedence:
+dashboard baseline → summary → organizations). See "License inventory"
+in `docs/assets.md` for the normalized model.
 
 ## Execution model
 

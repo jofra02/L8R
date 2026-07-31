@@ -8,8 +8,11 @@
 # by `subitems`), and content_hash covers the canonical dump, so the v1
 # file (which carried `produces: []`) would no longer hash-match its
 # stored snapshot. Bumping keeps the immutability contract intact.
+# v3: license step normalizer -> fortigate.license_status (same envelope +
+# `normalized` license entries); new attributes.licenses mapping. The raw
+# blob mapping (attributes.license_status) is unchanged.
 pack_id: fortigate
-version: 2
+version: 3
 label: FortiGate (FortiOS)
 compatible:
   device_types: [fortios]
@@ -23,7 +26,7 @@ steps:
     timeout_s: 30
   - id: license
     tool: fgt74_monitor_lic_get_license_status
-    normalizer: fortigate.monitor_results
+    normalizer: fortigate.license_status
   - id: firmware
     tool: fgt74_monitor_sys_get_firmware
     normalizer: fortigate.monitor_results
@@ -53,6 +56,7 @@ mappings:
   - { source: system_status.results.model,      target: model }
   - { source: system_status.meta.version,       target: attributes.os_version, policy: discovered_wins }
   - { source: license.results,                  target: attributes.license_status, policy: discovered_wins }
+  - { source: license.normalized,               target: attributes.licenses, policy: discovered_wins }
   - { source: firmware.results,                 target: attributes.firmware, policy: discovered_wins }
   - { source: perf.results,                     target: attributes.performance, policy: discovered_wins }
   - { source: interfaces.results,               target: attributes.interfaces, policy: discovered_wins }

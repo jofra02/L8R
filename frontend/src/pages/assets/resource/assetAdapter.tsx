@@ -14,6 +14,7 @@ import { AssetFormModal } from "../AssetFormModal";
 import { SmartAttributes } from "../attributes/SmartAttributes";
 import { SyncStatusBadge } from "../SyncStatusBadge";
 import { OverviewSection } from "../detail/OverviewSection";
+import { LicenseSection } from "../detail/LicenseSection";
 import { RelationsSection } from "../detail/RelationsSection";
 import { SubInventorySection } from "../detail/SubInventorySection";
 import { IntegrationSection } from "../detail/IntegrationSection";
@@ -29,11 +30,23 @@ export interface AssetResource {
 const VIEWS = [
   { id: "overview", label: "Overview" },
   { id: "attributes", label: "Attributes" },
+  { id: "license", label: "License" },
   { id: "relations", label: "Relations" },
   { id: "sub-inventory", label: "Sub-inventory" },
   { id: "integration", label: "Integration" },
   { id: "history", label: "History" },
 ];
+
+function hasLicenseData(asset: Asset): boolean {
+  const a = asset.attributes;
+  return (
+    (Array.isArray(a["licenses"]) && a["licenses"].length > 0) ||
+    a["license_status"] != null ||
+    a["license_type"] != null ||
+    a["license_expiration"] != null ||
+    a["license_capacity"] != null
+  );
+}
 
 function AssetActions({ model, onDeleted }: { model: ResourceModel<AssetResource>; onDeleted?: () => void }) {
   const { asset } = model.raw;
@@ -171,8 +184,10 @@ export const assetAdapter: ResourceAdapter<AssetResource> = {
     return view && view !== "overview" ? `${ref.assetId}/${view}` : ref.assetId;
   },
 
-  views() {
-    return VIEWS;
+  views(model) {
+    // Capability-driven: License only appears when the asset carries
+    // license data (normalized or raw).
+    return VIEWS.filter((v) => v.id !== "license" || hasLicenseData(model.raw.asset));
   },
 
   renderView(view, model, ctx) {
@@ -180,6 +195,8 @@ export const assetAdapter: ResourceAdapter<AssetResource> = {
     switch (view) {
       case "attributes":
         return <SmartAttributes asset={asset} typeDef={typeDef} ctx={ctx} />;
+      case "license":
+        return <LicenseSection asset={asset} ctx={ctx} />;
       case "relations":
         return <RelationsView asset={asset} ctx={ctx} />;
       case "sub-inventory":

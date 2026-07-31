@@ -97,8 +97,9 @@ def _to_iso(value: Any, *, date_only: bool) -> Optional[str]:
         try:
             dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
         except ValueError:
-            # FortiEDR style "2026-07-29 10:22:33"
-            for fmt in ("%Y-%m-%d %H:%M:%S", "%d-%b-%Y, %H:%M:%S"):
+            # FortiEDR styles: "2026-07-29 10:22:33", "29-Jul-2026, 10:22:33",
+            # and the dashboard's bare "31-Dec-2026".
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%d-%b-%Y, %H:%M:%S", "%d-%b-%Y"):
                 try:
                     dt = datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
                     break

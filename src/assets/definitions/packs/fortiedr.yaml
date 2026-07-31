@@ -4,8 +4,20 @@
 # to the console asset — never in the assets table: assets are curated,
 # discovery only provides visibility. Items missing from a complete scan
 # are marked absent, never deleted — retirement is a human decision.
+# v4: license inventory — summary normalizer -> fortiedr.system_summary
+# (same envelope + normalized/capacity); new org-scoped `organizations`
+# step (hosted multi-org consoles 403 on admin/* but serve
+# list-organizations). Mapping ORDER matters with discovered_wins:
+# organizations mappings come LAST so per-org data wins when both steps
+# work; when summary 403s its mappings simply skip.
+# v5: dashboard license steps — the hosted Druidics console 403s on BOTH
+# admin/list-system-summary AND organizations/list-organizations for its
+# org-scoped API user, but the /api/dashboard/license-* endpoints
+# auto-scope from the basic-auth org and work. Dashboard mappings come
+# FIRST (baseline available everywhere); summary/organizations overwrite
+# with richer data when the credential can reach them.
 pack_id: fortiedr
-version: 3
+version: 5
 label: FortiEDR
 compatible:
   device_types: [fortiedr]
@@ -18,7 +30,23 @@ steps:
   - id: summary
     tool: fedr62_mgmt_administrator_get_admin_list_system_summary
     required: false
-    normalizer: fortiedr.results
+    normalizer: fortiedr.system_summary
+  # Org-scoped license source. No `organization` param on purpose:
+  # org-scoped credentials auto-scope and wrong values return 400.
+  - id: organizations
+    tool: fedr62_mgmt_organizations_get_list
+    required: false
+    normalizer: fortiedr.organizations
+  # Dashboard license family: auto-scopes from the basic-auth org; the
+  # only license source hosted org-scoped credentials can reach.
+  - id: license_dash
+    tool: fedr62_mgmt_dashboard_get_license_status_per_organization
+    required: false
+    normalizer: fortiedr.license_status_dashboard
+  - id: capacity_dash
+    tool: fedr62_mgmt_dashboard_get_license_capacity_per_organization
+    required: false
+    normalizer: fortiedr.license_capacity_dashboard
   - id: collectors
     tool: fedr62_mgmt_system_inventory_get_list_collectors
     normalizer: fortiedr.results
@@ -29,13 +57,25 @@ steps:
       max_pages: 50
       start_page: 0
 
-# Console self-enrichment.
+# Console self-enrichment. License precedence (discovered_wins, later
+# wins): dashboard baseline -> summary -> organizations.
 mappings:
+  - { source: license_dash.normalized,                target: attributes.licenses, policy: discovered_wins }
+  - { source: license_dash.results.licenseType,       target: attributes.license_type, policy: discovered_wins }
+  - { source: license_dash.results.expirationDate,    target: attributes.license_expiration, policy: discovered_wins, transform: to_datetime }
+  - { source: capacity_dash.capacity,                 target: attributes.license_capacity, policy: discovered_wins }
   - { source: summary.results.serialNumber,           target: serial_number, policy: discovered_wins }
   - { source: summary.results.managementHostname,     target: fqdn }
   - { source: summary.results.managementVersion,      target: attributes.management_version, policy: discovered_wins }
   - { source: summary.results.licenseType,            target: attributes.license_type, policy: discovered_wins }
   - { source: summary.results.licenseExpirationDate,  target: attributes.license_expiration, policy: discovered_wins, transform: to_datetime }
+  - { source: summary.results.licenseFeatures,        target: attributes.license_features, policy: discovered_wins }
+  - { source: summary.normalized,                     target: attributes.licenses, policy: discovered_wins }
+  - { source: summary.capacity,                       target: attributes.license_capacity, policy: discovered_wins }
+  # organizations LAST: per-org licenses/capacity win when both work.
+  - { source: organizations.normalized,               target: attributes.licenses, policy: discovered_wins }
+  - { source: organizations.capacity,                 target: attributes.license_capacity, policy: discovered_wins }
+  - { source: organizations.expiration,               target: attributes.license_expiration, policy: discovered_wins }
 
 relations: []
 

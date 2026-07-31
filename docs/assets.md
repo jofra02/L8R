@@ -156,6 +156,56 @@ Persistence notes:
 | GET | `/assets/products?include_usage` | `assets:read` — global product catalog; `include_usage=true` (cross-tenant counts) requires `asset_products:manage` |
 | POST/PATCH/DELETE | `/assets/products(/{id})` | `asset_products:manage` — create / rename (propagates to all referencing assets, all tenants) / delete (409 while in use) |
 
+### License inventory
+
+`attributes.licenses` is a normalized, cross-vendor license list produced
+deterministically at collection time (normalizer registry — shared with
+assessments; no LLM). Model per entry:
+`{key, label, category (signature|cloud_service|support_contract|
+registration|capacity|platform), status (raw source value), state
+(ok|expired|none|unknown — pure map from status, nothing time-relative is
+baked in), expires (ISO), entitlement, seats {used,max}, version,
+last_update, details}`. Unknown source shapes are preserved as
+`state: unknown`, never dropped. "Expiring soon"/past-expiry emphasis is
+derived in the UI from `expires` at render time.
+
+Sources:
+
+- **FortiGate** (pack `fortigate@3`): the `license` step keeps
+  `fgt74_monitor_lic_get_license_status` but normalizes through
+  `fortigate.license_status` — same envelope (the raw blob still lands in
+  `attributes.license_status`) plus `normalized` → `attributes.licenses`.
+  Parses the ~46 feature entries, FortiCare registration + one
+  `support_contract` entry per non-empty `support.*` level, FortiGuard
+  connectivity, quotas (vdom/sms/vm), and flattens nested definition
+  containers (`ot_detection.*`, `iot_detection.definitions`).
+- **FortiEDR** (pack `fortiedr@5`): three license sources with graded
+  reach. `summary` normalizes through `fortiedr.system_summary` (console
+  license + seat capacity entries + `capacity` dict →
+  `attributes.license_capacity`, features → `attributes.license_features`);
+  org-scoped `organizations` (`fedr62_mgmt_organizations_get_list`)
+  normalizes per-org licenses/seats; and the **dashboard pair**
+  (`fedr62_mgmt_dashboard_get_license_status_per_organization` +
+  `..._license_capacity_per_organization`) auto-scopes from the basic-auth
+  org (`Org\user` credential) — verified live as the ONLY license source
+  hosted org-scoped API users can reach (admin/* AND
+  organizations/list-organizations both 403 there). None take an
+  `organization` param: credentials auto-scope, wrong values 400.
+  **Mapping order is load-bearing**: dashboard mappings come first
+  (baseline available everywhere), then summary, then organizations —
+  richer sources overwrite when reachable, missing-step sources skip.
+  The frontend License tab synthesizes seat rows from
+  `license_capacity` classes not already present as entries (the
+  dashboard-only case).
+
+Frontend: capability-driven **License** view tab on the asset shell
+(`detail/LicenseSection.tsx`) — summary PropertyGrid (state counts, next
+expiry, registration/account, license type + features, seats) + a
+client-mode `InventoryDataGrid` over the normalized entries (status badge
+colored by display state with expiry escalation, filterable/sortable,
+CSV export). When only raw license attributes exist the tab shows a
+"run Enrich now" hint instead of re-parsing vendor blobs client-side.
+
 ### Product catalog
 
 `assets.product_name` holds the commercial product name ("FortiGate",
