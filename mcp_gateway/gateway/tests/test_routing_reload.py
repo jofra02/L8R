@@ -145,6 +145,25 @@ def test_same_device_id_routes_per_tenant(inventory_root, capture_send):
     assert capture_send["host"] == "172.16.0.1"
 
 
+def test_non_utf8_json_body_is_repaired_end_to_end(inventory_root, monkeypatch):
+    # The appliance answers JSON containing a raw Latin-1 byte (0xED = 'í');
+    # send() must hand FastMCP a valid-UTF-8 body so response.json() works.
+    async def fake_send(self, request, *args, **kwargs):
+        return httpx.Response(
+            200,
+            content=b'{"company": "Compa\xf1\xeda S.A.", "check": "\xe2\x9c\x93"}',
+            headers={"content-type": "application/json"},
+            request=request,
+        )
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", fake_send)
+    client = _routed_client(default_tenant=TENANT)
+    response = _do_request(client)
+    body = response.json()
+    assert body["company"] == "Compañía S.A."
+    assert body["check"] == "✓"
+
+
 def test_no_tenant_and_no_default_is_unrouted(inventory_root, capture_send):
     client = _routed_client()  # no default_tenant
     _do_request(client)

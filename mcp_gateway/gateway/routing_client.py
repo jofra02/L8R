@@ -9,6 +9,11 @@ a ``tenant`` header the optional ``default_tenant`` applies; without a
 ``device`` header the tenant's primary device applies. An explicit ``device``
 that does not resolve is rejected with a synthetic 404 (``unknown_device``) —
 it never falls back to the primary.
+
+JSON response bodies are repaired to valid UTF-8 before they reach the MCP
+layer: appliances serialize stored text fields verbatim, so a Latin-1 byte
+(e.g. an accented character in a FortiCare company name) yields a body that
+is not valid UTF-8 and would crash ``httpx.Response.json()`` inside FastMCP.
 """
 
 from __future__ import annotations
@@ -49,6 +54,50 @@ def _strip_blank_query_params(request: httpx.Request) -> None:
     dropped = [k for k, v in params.multi_items() if v == ""]
     request.url = request.url.copy_with(query=str(httpx.QueryParams(kept)).encode("ascii") or None)
     log.debug("Stripped blank query params: %s", ", ".join(sorted(set(dropped))))
+
+
+def _repair_mixed_utf8(data: bytes) -> bytes | None:
+    """Return ``data`` re-encoded as valid UTF-8, or ``None`` if already valid.
+
+    Appliance bodies are mostly valid UTF-8 with occasional stray Latin-1
+    bytes (FortiOS emits stored text fields verbatim, without transcoding).
+    Only the invalid bytes are mapped through Latin-1 — re-decoding the whole
+    body as Latin-1 would mojibake every legitimate multi-byte UTF-8 sequence,
+    and ``errors="replace"`` would destroy the character instead of keeping it.
+    """
+    try:
+        data.decode("utf-8")
+        return None
+    except UnicodeDecodeError:
+        pass
+    parts = []
+    i = 0
+    while i < len(data):
+        try:
+            parts.append(data[i:].decode("utf-8"))
+            break
+        except UnicodeDecodeError as e:
+            bad = i + e.start
+            parts.append(data[i:bad].decode("utf-8"))
+            parts.append(data[bad : bad + 1].decode("latin-1"))
+            i = bad + 1
+    return "".join(parts).encode("utf-8")
+
+
+def _repair_response_encoding(response: httpx.Response) -> None:
+    """Rewrite a JSON response body in place if it is not valid UTF-8."""
+    if "json" not in response.headers.get("content-type", ""):
+        return
+    try:
+        repaired = _repair_mixed_utf8(response.content)
+    except httpx.ResponseNotRead:  # streaming caller — body not loaded
+        return
+    if repaired is not None:
+        response._content = repaired
+        log.warning(
+            "Response body from %s contained non-UTF-8 bytes; repaired via latin-1 byte fallback.",
+            response.request.url.host,
+        )
 
 
 async def _log_request(req: httpx.Request):
@@ -174,4 +223,7 @@ class RoutingClient(httpx.AsyncClient):
                     host,
                 )
 
-        return await super().send(request, *args, **kwargs)
+        response = await super().send(request, *args, **kwargs)
+        if not kwargs.get("stream"):
+            _repair_response_encoding(response)
+        return response
