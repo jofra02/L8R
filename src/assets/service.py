@@ -438,6 +438,11 @@ class AssetService:
             asset.mcp_config = _mcp_config_from_connection(data.mcp_connection)
             asset.sync_status = "pending"
         self.session.add(asset)
+        # No relationship() links AssetAuditLogORM to AssetORM, so the unit
+        # of work has no ordering edge between the two INSERTs — the asset
+        # must be flushed before its audit row or the audit FK can fire
+        # first (mapper batch order shifts whenever the mapper set changes).
+        await self.session.flush([asset])
         self._audit(asset, actor, "created", {"asset": {"old": None, "new": asset.name}})
         await self.session.commit()
 

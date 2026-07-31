@@ -141,3 +141,24 @@ def test_collect_filters_empty_and_managed():
         "serial_number"))
     assert f["managed"] is None
     assert _collect_filters(_request("managed=true"))["managed"] is True
+
+
+async def test_create_asset_flushes_before_audit_row(asset_session_factory):
+    """Regression: the 'created' audit row must never flush before its asset.
+
+    No relationship() links the audit mapper to AssetORM, so INSERT order
+    across the two mappers is an unstable property of the flush sort —
+    with FK enforcement on (as in Postgres) an audit-first order violates
+    asset_audit_log_asset_id_fkey. sqlite only enforces FKs with the
+    pragma, hence the explicit enable here.
+    """
+    from sqlalchemy import text
+
+    async with asset_session_factory() as s:
+        await s.execute(text("PRAGMA foreign_keys=ON"))
+        await sync_definitions(s)
+        svc = AssetService(s)
+        asset = await svc.create_asset(
+            "t1", AssetCreate(name="fk-order", asset_type="generic"), "user:t1",
+        )
+        assert asset.id
