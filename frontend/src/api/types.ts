@@ -704,6 +704,7 @@ export interface Asset {
   type_schema_version: number;
   manufacturer: string | null;
   model: string | null;
+  product_name: string | null;
   serial_number: string | null;
   location: string | null;
   owner: string | null;
@@ -744,6 +745,8 @@ export type SubitemsSummary = Record<string, SubitemKindSummary>;
 export interface AssetSubitem {
   id: string;
   parent_asset_id: string;
+  /** null = root-level subitem directly under the asset. */
+  parent_subitem_id: string | null;
   source: string;
   kind: string;
   external_id: string;
@@ -757,6 +760,19 @@ export interface AssetSubitem {
   promoted_asset_id: string | null;
   created_at: string;
   updated_at: string;
+  /** Direct children count (computed per page by the API). */
+  children_count: number;
+}
+
+export interface SubitemAncestor {
+  id: string;
+  name: string;
+  kind: string;
+}
+
+export interface AssetSubitemDetail extends AssetSubitem {
+  /** Root-first parent chain, excluding the subitem itself. */
+  ancestors: SubitemAncestor[];
 }
 
 export interface AssetCreatePayload {
@@ -766,6 +782,7 @@ export interface AssetCreatePayload {
   asset_type: string;
   manufacturer?: string | null;
   model?: string | null;
+  product_name?: string | null;
   serial_number?: string | null;
   location?: string | null;
   owner?: string | null;
@@ -783,6 +800,15 @@ export interface AssetCreatePayload {
 
 export interface AssetUpdatePayload extends Partial<Omit<AssetCreatePayload, "id">> {
   mcp_managed?: boolean;
+}
+
+export interface AssetProduct {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  usage_count?: number | null;
 }
 
 export interface AssetRelation {

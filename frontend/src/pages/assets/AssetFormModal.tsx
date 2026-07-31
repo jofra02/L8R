@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useAssetTypes, useCreateAsset, useMcpPacks, useUpdateAsset } from "@/hooks/useAssets";
+import {
+  useAssetProducts,
+  useAssetTypes,
+  useCreateAsset,
+  useCreateAssetProduct,
+  useMcpPacks,
+  useUpdateAsset,
+} from "@/hooks/useAssets";
+import { useAuth } from "@/hooks/useAuth";
 import type { Asset, AssetCreatePayload, AssetTypeField, McpConnection } from "@/api/types";
 
 const inputClass =
@@ -112,6 +120,7 @@ export function AssetFormModal({ onClose, editing }: Props) {
   const [assetType, setAssetType] = useState(editing?.asset_type ?? "");
   const [manufacturer, setManufacturer] = useState(editing?.manufacturer ?? "");
   const [model, setModel] = useState(editing?.model ?? "");
+  const [productName, setProductName] = useState(editing?.product_name ?? "");
   const [serial, setSerial] = useState(editing?.serial_number ?? "");
   const [location, setLocation] = useState(editing?.location ?? "");
   const [owner, setOwner] = useState(editing?.owner ?? "");
@@ -142,6 +151,30 @@ export function AssetFormModal({ onClose, editing }: Props) {
   const [primary, setPrimary] = useState(Boolean(editing?.mcp_config?.["primary"]));
 
   const typeDef = useMemo(() => types?.find((t) => t.type_id === assetType), [types, assetType]);
+
+  // Product catalog (global, select-only; quick-add for catalog managers)
+  const { hasPermission } = useAuth();
+  const canManageProducts = hasPermission("asset_products:manage");
+  const { data: products } = useAssetProducts();
+  const createProductMutation = useCreateAssetProduct();
+  const [addingProduct, setAddingProduct] = useState(false);
+  const [newProduct, setNewProduct] = useState("");
+  // An edited asset can hold a name no longer in the catalog (deleted after
+  // assignment); keep it selectable so the value round-trips.
+  const staleProduct =
+    productName && !products?.some((p) => p.name === productName) ? productName : null;
+
+  const handleQuickAddProduct = () => {
+    const name = newProduct.trim();
+    if (!name) return;
+    createProductMutation.mutate(name, {
+      onSuccess: (product) => {
+        setProductName(product.name);
+        setNewProduct("");
+        setAddingProduct(false);
+      },
+    });
+  };
 
   const buildMcpConnection = (): McpConnection | undefined => {
     if (!mcpEnabled) return undefined;
@@ -197,6 +230,7 @@ export function AssetFormModal({ onClose, editing }: Props) {
       asset_type: assetType,
       manufacturer: manufacturer.trim() || null,
       model: model.trim() || null,
+      product_name: productName || null,
       serial_number: serial.trim() || null,
       location: location.trim() || null,
       owner: owner.trim() || null,
@@ -259,6 +293,65 @@ export function AssetFormModal({ onClose, editing }: Props) {
             <div>
               <label className="block text-xs text-text-secondary mb-1">Model</label>
               <input value={model} onChange={(e) => setModel(e.target.value)} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-text-secondary mb-1">Product</label>
+              {addingProduct ? (
+                <div className="flex gap-2">
+                  <input
+                    value={newProduct}
+                    onChange={(e) => setNewProduct(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); handleQuickAddProduct(); }
+                      if (e.key === "Escape") { setAddingProduct(false); setNewProduct(""); }
+                    }}
+                    placeholder="New product name"
+                    autoFocus
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleQuickAddProduct}
+                    disabled={createProductMutation.isPending || !newProduct.trim()}
+                    className="px-3 py-2 bg-accent hover:bg-accent-hover text-white text-sm rounded-md disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAddingProduct(false); setNewProduct(""); }}
+                    className="px-2 py-2 text-sm text-text-secondary hover:text-text-primary"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <select
+                    value={productName}
+                    onChange={(e) => setProductName(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">—</option>
+                    {staleProduct && (
+                      <option value={staleProduct}>{staleProduct} (not in catalog)</option>
+                    )}
+                    {products?.map((p) => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                  {canManageProducts && (
+                    <button
+                      type="button"
+                      onClick={() => setAddingProduct(true)}
+                      title="Add product to the global catalog"
+                      className="px-3 py-2 bg-elevated border border-border rounded-md text-sm text-text-secondary hover:text-text-primary"
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs text-text-secondary mb-1">Serial number</label>

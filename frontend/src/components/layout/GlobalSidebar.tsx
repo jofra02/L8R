@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Ticket, Users, ShieldCheck, Boxes } from "lucide-react";
+import { LayoutDashboard, Building2, Ticket, Users, ShieldCheck, Boxes, Package } from "lucide-react";
 import { SidebarBase, type NavGroup } from "./SidebarBase";
 
 const GLOBAL_NAV_GROUPS: NavGroup[] = [
@@ -16,6 +16,7 @@ const GLOBAL_NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Users", path: "/global/users", icon: <Users size={20} />, permission: "users:read" },
       { label: "Profiles", path: "/global/profiles", icon: <ShieldCheck size={20} />, permission: "profiles:read" },
+      { label: "Products", path: "/global/products", icon: <Package size={20} />, permission: "asset_products:manage" },
     ],
   },
 ];

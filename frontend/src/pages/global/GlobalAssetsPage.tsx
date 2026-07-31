@@ -72,6 +72,15 @@ export function GlobalAssetsPage() {
       className: "w-32",
     },
     {
+      key: "product_name",
+      header: "Product",
+      sortable: true,
+      render: (r) => (
+        <span className="text-xs text-text-secondary">{r.product_name ?? "—"}</span>
+      ),
+      className: "w-32",
+    },
+    {
       key: "status",
       header: "Status",
       sortable: true,

@@ -15,3 +15,8 @@ export function useTenantId(): string {
   if (!ctx) throw new Error("useTenantId must be used within a TenantProvider");
   return ctx.tenantId;
 }
+
+/** Tenant id when inside a tenant shell, null on global pages. */
+export function useOptionalTenantId(): string | null {
+  return useContext(TenantContext)?.tenantId ?? null;
+}

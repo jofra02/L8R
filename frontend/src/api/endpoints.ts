@@ -60,10 +60,12 @@ import type {
   Asset,
   AssetCreatePayload,
   AssetUpdatePayload,
+  AssetProduct,
   AssetTypeDef,
   AssetRelation,
   AssetAuditEntry,
   AssetSubitem,
+  AssetSubitemDetail,
   AssetSyncRun,
   AssetImportResponse,
   McpPack,
@@ -479,6 +481,33 @@ export async function listAssetTypes(): Promise<AssetTypeDef[]> {
   return data;
 }
 
+export async function listAssetProducts(includeUsage = false): Promise<AssetProduct[]> {
+  const { data } = await client.get<AssetProduct[]>("/assets/products", {
+    params: includeUsage ? { include_usage: true } : undefined,
+  });
+  return data;
+}
+
+export async function createAssetProduct(name: string): Promise<AssetProduct> {
+  const { data } = await client.post<AssetProduct>("/assets/products", { name });
+  return data;
+}
+
+export async function renameAssetProduct(
+  id: string,
+  name: string,
+): Promise<{ product: AssetProduct; assets_updated: number }> {
+  const { data } = await client.patch<{ product: AssetProduct; assets_updated: number }>(
+    `/assets/products/${id}`,
+    { name },
+  );
+  return data;
+}
+
+export async function deleteAssetProduct(id: string): Promise<void> {
+  await client.delete(`/assets/products/${id}`);
+}
+
 export async function listAssetRelations(id: string): Promise<AssetRelation[]> {
   const { data } = await client.get<AssetRelation[]>(`/assets/${id}/relations`);
   return data;
@@ -514,8 +543,24 @@ export async function listAssetSyncRuns(id: string, filters: Record<string, numb
 export async function listAssetSubitems(
   id: string,
   filters: Record<string, string | number | boolean | undefined>,
+  signal?: AbortSignal,
 ): Promise<PaginatedResponse<AssetSubitem>> {
-  const { data } = await client.get<PaginatedResponse<AssetSubitem>>(`/assets/${id}/subitems`, { params: filters });
+  const { data } = await client.get<PaginatedResponse<AssetSubitem>>(`/assets/${id}/subitems`, {
+    params: filters,
+    signal,
+  });
+  return data;
+}
+
+export async function getAssetSubitem(
+  assetId: string,
+  subitemId: string,
+  signal?: AbortSignal,
+): Promise<AssetSubitemDetail> {
+  const { data } = await client.get<AssetSubitemDetail>(
+    `/assets/${assetId}/subitems/${subitemId}`,
+    { signal },
+  );
   return data;
 }
 

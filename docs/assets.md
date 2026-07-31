@@ -96,9 +96,24 @@ without qualifiers.
 
 Consequences:
 
-- Enrichment `subitems` rules upsert into `asset_subitems` by
-  `(customer_id, parent, source, kind, external_id)`; rows missing from
-  a complete scan are flagged `absent`, never deleted.
+- Enrichment `subitems` rules upsert into `asset_subitems`; rows missing
+  from a complete scan are flagged `absent`, never deleted.
+- **Nested hierarchies** (migration `e3f4a5b6c7d8`): `parent_subitem_id`
+  is a nullable self-FK (CASCADE). Identity dedup is level-scoped via two
+  partial unique indexes — roots on
+  `(customer_id, parent_asset_id, source, kind, external_id)`, children on
+  `(customer_id, parent_subitem_id, source, kind, external_id)` — because
+  children of different parents may legitimately share an external id
+  (e.g. `port1` on two vdoms). A pack rule declares its parent with
+  `parent: {kind, external_id}` (a path in the item resolving to the
+  parent's external id); pack validation enforces a DAG over kinds, the
+  engine topo-sorts rules and resolves parents from the same run's
+  upserts — an unresolvable parent skips the item with a warning, never
+  attaching orphans at root. Absence sweeps are scoped per hierarchy
+  level: a nested rule only sweeps children of parents seen in the
+  current run. No shipped pack produces nested subitems yet (fortiedr
+  stays root-only); the contract is exercised by
+  `src/testing/test_assets_subitems_nesting.py`.
 - The parent asset exposes an aggregate (`subitems_summary`:
   `{kind: {total, by_state, absent}}`) on list and detail responses and
   as `metadata["subitems"]` in the ClientContext component — the agent
@@ -124,7 +139,7 @@ Persistence notes:
 
 | Method | Path | Permission |
 |---|---|---|
-| GET | `/assets` | `assets:read` — pagination, `q` ILIKE (name/ref/serial/ip/fqdn/manufacturer/model), filters `asset_type,status,criticality,managed,sync_status,owner,tag` (repeatable), `attr.<key>=` (declared-filterable only, GIN containment), `sort` whitelist, `include_deleted` (manage) |
+| GET | `/assets` | `assets:read` — pagination, `q` ILIKE (name/ref/serial/ip/fqdn/manufacturer/model/product_name), column filters accept comma-separated multi-values (OR within a column, AND across): exact-IN `asset_type,status,criticality,sync_status`, partial ILIKE `name,product_name,model,manufacturer,ip_address,serial_number,owner`, plus `managed`, `tag` (repeatable), `attr.<key>=` (declared-filterable only, GIN containment), `sort` whitelist (incl. `model`), `include_deleted` (manage) |
 | GET | `/assets/global` | `assets:read_global` — cross-tenant; platform sentinel allowed without `?customer_id=`; extra `tenant` filter |
 | GET | `/assets/export?format=csv\|xlsx` | `assets:read` — honors the same filters |
 | POST | `/assets/import?dry_run&match_key=id\|ref\|serial_number\|external_id` | `assets:manage` — CSV or JSON, per-row results, non-destructive upsert |
@@ -134,9 +149,27 @@ Persistence notes:
 | GET/POST | `/assets/{id}/relations`, DELETE `/assets/relations/{rid}` | read/write/write |
 | POST | `/assets/{id}/enrich` | `assets:manage` — 202 + run id |
 | GET | `/assets/{id}/sync-runs`, `/assets/sync-runs/{rid}` | `assets:read` |
-| GET | `/assets/{id}/subitems` | `assets:read` — discovered sub-inventory; filters `kind,state,q,absent`, paginated |
+| GET | `/assets/{id}/subitems` | `assets:read` — discovered sub-inventory; CSV multi-value column filters (exact-IN `kind,state,source`, ILIKE `name,external_id`), `q`, `absent`, `sort` whitelist, `parent_subitem_id` scoping (`root` = top level, omitted = all levels), `children_count` per row, paginated |
+| GET | `/assets/{id}/subitems/{sid}` | `assets:read` — one subitem + root-first `ancestors` chain (deep-link breadcrumb reconstruction) |
 | GET | `/assets/types(/{type_id})` | `assets:read` — drives dynamic forms |
 | GET | `/assets/mcp-packs` | `assets:manage` — passthrough to gateway `/admin/packs` |
+| GET | `/assets/products?include_usage` | `assets:read` — global product catalog; `include_usage=true` (cross-tenant counts) requires `asset_products:manage` |
+| POST/PATCH/DELETE | `/assets/products(/{id})` | `asset_products:manage` — create / rename (propagates to all referencing assets, all tenants) / delete (409 while in use) |
+
+### Product catalog
+
+`assets.product_name` holds the commercial product name ("FortiGate",
+"ESXi"), complementary to the free-form `model`. Values are constrained to
+the global `asset_products` table (reference data, no tenant scoping):
+create/update/import resolve the value case-insensitively against the
+catalog and store the canonical casing, or fail with 422 / an import row
+error. The column is denormalized (no FK): renames propagate via bulk
+UPDATE (one `asset_audit_log` row per affected asset; provenance is not
+restamped), deletes are blocked with 409 while any non-deleted asset
+references the name. Manual-only by design — `product_name` is not a
+`MAPPABLE_COMMON_TARGETS` member, so enrichment packs can never write it.
+Catalog CRUD requires `asset_products:manage`, seeded to
+`profile_super_admin` only (migration `d2e3f4a5b6c7`).
 
 Feature flag: `ASSETS_ENABLED` gates the router, the startup definition
 sync, the stale-run sweeper and the scheduler (never the adapter).
@@ -212,6 +245,10 @@ enrichment run. Full collection/mapping/provenance semantics:
   (relations/audit cascade), unconvertible rows left untouched with a
   warning. Must deploy together with the new engine code — old code
   against a migrated DB would recreate endpoint assets on the next run.
+- `e3f4a5b6c7d8` — nested subitems: `parent_subitem_id` self-FK, the
+  single identity unique constraint replaced by the two level-scoped
+  partial unique indexes. No backfill (existing rows are roots).
+  Downgrade deletes nested rows before restoring the old constraint.
 
 ## 7. Risks / known debt
 
@@ -247,11 +284,70 @@ Backend (modified): `src/core/orm.py`, `src/core/context_store.py`,
 new `require_global_permission`), `src/api/app.py`,
 `src/assessments/normalizers.py` (`passthrough`, `fortiedr.results`),
 `src/utils/seed_context.py`, `pyproject.toml` (openpyxl; dev aiosqlite).
-Frontend: `src/pages/assets/**`, `src/pages/global/GlobalAssetsPage.tsx`,
-`src/hooks/useAssets.ts`, `src/api/{endpoints,types}.ts`,
-`src/components/common/DataTable.tsx` (additive sorting),
-`src/lib/utils.ts` (`downloadBlob`), `App.tsx`, sidebars, `Header.tsx`,
-`src/pages/inventory/InventoryPage.tsx` (reduced to baselines/known changes).
+Frontend — **hierarchical resource explorer** (`src/pages/assets/**`):
+
+- **Routing**: one splat route `/t/:tid/assets/*` owned by
+  `AssetsWorkspace`. Path grammar: `""` (list) · `:assetId[/:view]` ·
+  `:assetId/sub/:subitemId[/:view]` — only the leaf id travels in the
+  URL; a deep link rebuilds the parent chain from the subitem detail's
+  `ancestors`. Query grammar: `?tabs=<tok>,…&active=<tok>` (open
+  workspace tabs; token = `assetId` or `assetId.subitemId`) plus the
+  active grid's state (`f.<col>=v1,v2`, `sort`, `page`). Drill-down /
+  view switches / breadcrumb = push navigation (browser back restores
+  the previous table state); grid-state changes = replace.
+- **Workspace tabs vs hierarchy**: navigation reuses the current tab —
+  a tab is created only by opening an asset from the list or the
+  context-menu "Open in new tab" (subitems get token
+  `assetId.subitemId`). Tab/nav state lives in a zustand store
+  (`workspace/store.ts`, sessionStorage per tenant, wiped on tenant
+  switch); the URL mirrors the active tab.
+- **Resource adapters** (`resource/`): `ResourceAdapter` interface
+  (`useResource`, `buildPath`, `views`, `renderView`, optional
+  `Actions`) + registry. `assetAdapter` (6 views, edit/delete/enrich
+  actions) and `subitemAdapter` (read-only; views are capability-driven:
+  Attributes only when attributes exist, Sub-inventory only when
+  `children_count > 0`). Every navigable resource renders through the
+  same `ResourceDetailShell` (breadcrumb → compact header → view tabs →
+  content), any depth.
+- **InventoryDataGrid** (`src/components/grid/`): TanStack Table v8 +
+  react-virtual. Metadata-driven columns (`GridColumnSchema` + cell
+  renderer registry by field type, `complex` values render a readable
+  summary that opens a JSON drawer — never raw JSON in cells),
+  server/client modes with identical comma-token filter semantics
+  (reuses `lib/columnFilters.ts` + `ColumnFilterPopover`), sticky
+  header, column resize/reorder/visibility persisted per `gridId` in
+  localStorage, keyboard navigation (arrows + Enter), context menus,
+  active-filter chips, skeleton/error/empty states, client CSV export,
+  virtualization above 100 client rows. Used by: assets list,
+  sub-inventory (generic children view, presence column + "Absent only"
+  quick filter, discovered attribute columns appended per page),
+  relations, integration runs, history, attribute datasets
+  (`AttributeExplorer`). `DataTable` remains for non-inventory pages.
+- Shared components: `PropertyGrid` (dense key/value overview),
+  `Drawer`, `ContextMenu`, `Breadcrumb`, upgraded `JsonViewer`
+  (copy / expand-collapse all / search).
+- Tests: vitest + testing-library + msw (`src/test/`) — grid unit
+  suite, workspace navigation (push/replace history, deep links, tab
+  lifecycle, tenant wipe) and recursive drill-down
+  (asset → child → grandchild, breadcrumb chain, state restoration).
+
+**Registering a new resource type** (no core changes needed): create
+`pages/assets/resource/<type>Adapter.tsx` implementing `ResourceAdapter`
+(`useResource` maps your API object to `ResourceModel` with `ancestors`;
+`views` returns the capability-driven tab list; `renderView` returns the
+view components — use `InventoryDataGrid` with a `GridColumnSchema[]`
+built from your metadata and `useSyncedGridState` for state), call
+`registerAdapter(...)` at module scope, import the module for side
+effects in `AssetsWorkspace.tsx`, and extend the path grammar if the
+type needs its own segment. Cell rendering for new field types goes in
+`components/grid/cellRenderers.tsx`.
+
+Also touched: `src/pages/global/GlobalAssetsPage.tsx` (navigates into
+the workspace deep link), `src/hooks/useAssets.ts` (tenant-scoped query
+keys, `keepPreviousData`, subitem detail/children hooks),
+`src/api/{endpoints,types}.ts`, `App.tsx`,
+`src/pages/inventory/InventoryPage.tsx` (reduced to baselines/known
+changes). `DataTable`/`ColumnFilterPopover`/`TabStrip` stay shared.
 
 Validation steps:
 
