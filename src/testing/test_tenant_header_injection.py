@@ -7,6 +7,7 @@ LLM — even if the model omits it or supplies a wrong value, our injection wins
 Run: uv run pytest src/testing/test_tenant_header_injection.py
 """
 
+import src.core.mcp_executor as executor_mod
 import src.core.registry as registry_mod
 import src.core.safety as safety
 from src.agents.engineer_tools import create_engineer_tools
@@ -38,6 +39,13 @@ async def _patch_collaborators(monkeypatch, fake):
     monkeypatch.setattr(
         registry_mod.CapabilityRegistry, "get_tool", classmethod(lambda cls, name: fake)
     )
+
+    # Device canonicalization hits the DB — identity here (covered in
+    # test_mcp_executor_device.py against sqlite).
+    async def passthrough(value, customer_id):
+        return value
+
+    monkeypatch.setattr(executor_mod, "_canonicalize_device", passthrough)
 
 
 async def test_injects_tenant_when_llm_omits_it(monkeypatch):

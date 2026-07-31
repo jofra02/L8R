@@ -270,7 +270,7 @@ export function AssetFormModal({ onClose, editing }: Props) {
               <input value={name} onChange={(e) => setName(e.target.value)} required className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs text-text-secondary mb-1">Ref (device slug)</label>
+              <label className="block text-xs text-text-secondary mb-1" title="Human reference slug for search and imports. Device routing always uses the asset's internal id.">Ref (reference slug)</label>
               <input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="defaults to name" className={inputClass} />
             </div>
             <div>

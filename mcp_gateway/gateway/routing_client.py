@@ -6,7 +6,9 @@ parameters; ``send()`` resolves the tenant's registry, then the device within
 it, rewrites the request URL (host/port) and swaps the auth headers, then
 strips both routing headers before the request reaches the appliance. Without
 a ``tenant`` header the optional ``default_tenant`` applies; without a
-``device`` header the tenant's primary device applies.
+``device`` header the tenant's primary device applies. An explicit ``device``
+that does not resolve is rejected with a synthetic 404 (``unknown_device``) —
+it never falls back to the primary.
 """
 
 from __future__ import annotations
@@ -92,7 +94,8 @@ class RoutingClient(httpx.AsyncClient):
         Interception happens here (not in build_request) because FastMCP may
         build requests through different paths. Tenant is resolved first (header,
         else default_tenant), then the device within that tenant's live registry
-        (header device, else the tenant's primary). Because resolution is
+        (header device — unknown values are rejected with a synthetic 404 —
+        else the tenant's primary). Because resolution is
         per-request against the live registry, admin-API hot reloads — including
         primary changes — take effect without rebuilding the client; base_url
         only remains as the no-route fallback (unconfigured.invalid).
@@ -129,10 +132,25 @@ class RoutingClient(httpx.AsyncClient):
         if target_device_id:
             device = registry.get(target_device_id)
             if not device:
+                # An explicit-but-unknown device must NEVER fall back to the
+                # primary: the caller addressed a specific appliance, and a
+                # silent redirect executes the whole call chain against the
+                # wrong one (cross-device data contamination). Fail loudly.
                 log.warning(
-                    "Routing: device '%s' not found for tenant '%s'. Using primary.",
+                    "Routing: device '%s' not found for tenant '%s'. Rejecting request.",
                     target_device_id,
                     registry.customer_id,
+                )
+                return httpx.Response(
+                    status_code=404,
+                    json={
+                        "error": "unknown_device",
+                        "message": (
+                            f"device '{target_device_id}' not found for "
+                            f"tenant '{registry.customer_id}'"
+                        ),
+                    },
+                    request=request,
                 )
         if device is None:
             device = registry.primary

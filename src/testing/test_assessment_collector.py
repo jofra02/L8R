@@ -25,9 +25,10 @@ def _definition(steps):
 
 
 class _Target:
-    def __init__(self, id="t1", device_name="fw1"):
+    def __init__(self, id="t1", device_name="fw1", component_id="asset-1"):
         self.id = id
-        self.device_name = device_name
+        self.device_name = device_name       # display label only
+        self.component_id = component_id     # gateway routing identity
 
 
 class InMemoryEngine(CollectionEngine):
@@ -144,11 +145,13 @@ async def test_device_arg_and_read_only_enforced(monkeypatch):
     fake = _executor([MCPToolResult(ok=True, content={})])
     monkeypatch.setattr(collector_mod, "execute_mcp_tool", fake)
 
-    engine = InMemoryEngine("run1", "acme", definition, [_Target(device_name="fgt_lab")])
+    engine = InMemoryEngine("run1", "acme", definition,
+                            [_Target(device_name="fgt_lab", component_id="a1b2c3")])
     await engine.collect()
 
     call = fake.calls[0]
-    assert call["args"]["device"] == "fgt_lab"
+    # Routing must use the component/asset id — never the display name.
+    assert call["args"]["device"] == "a1b2c3"
     assert call["read_only"] is True
     assert call["tenant"] == "acme"
 

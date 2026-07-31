@@ -157,9 +157,10 @@ async def test_full_run_subitems_and_mappings(env, monkeypatch):
     assert run.stats["subitems_created"] == 2  # NO-ID item skipped
     assert any("without identity" in w for w in run.stats["warnings"])
 
-    # tenant + device routing injected deterministically
+    # tenant + device routing injected deterministically. Routing identity is
+    # the asset id (gateway registry key) — never the human ref slug.
     assert all(c["enforce_read_only"] for c in calls)
-    assert all(c["args"]["device"] == "edr-console" for c in calls)
+    assert calls and all(c["args"]["device"] == asset_id for c in calls)
 
     async with factory() as s:
         console = (await s.execute(
