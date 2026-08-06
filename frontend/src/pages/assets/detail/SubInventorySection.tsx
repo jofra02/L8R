@@ -129,7 +129,7 @@ export function SubInventorySection({ assetId, parentSubitemId, ctx }: SubInvent
         onRetry={() => refetch()}
         getRowId={(r) => r.id}
         onOpen={open}
-        emptyMessage="No discovered sub-inventory"
+        emptyMessage="No discovered inventory"
         contextMenuItems={(r) => [
           { label: "Open", icon: <ExternalLink size={13} />, onSelect: () => open(r) },
           {

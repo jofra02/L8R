@@ -53,11 +53,17 @@ A pack declares:
   child assets); old snapshots containing `produces` still parse (ignored
   by the schema) and simply create nothing.
 
-Shipped packs: `fortigate@3` (fgt74: status, license, firmware,
-performance, interfaces, HA, VDOMs, LLDP; v2 was a no-op bump — the schema
-dropped `produces` and `content_hash` covers the canonical dump, so the
-v1 file no longer hash-matched its snapshot; v3 normalizes the license
-step through `fortigate.license_status` → `attributes.licenses`) and
+Shipped packs: `fortigate@4` (fgt74: status, license, firmware,
+performance, interfaces, HA, VDOMs, LLDP, plus managed FortiAPs and
+FortiSwitches → `access_point`/`switch` subitems via
+`fgt74_cmdb_wifi_get_managed_ap` and
+`fgt74_cmdb_switch_get_controller_managed_status` — both monitor-API
+endpoints despite the frozen `cmdb_` name prefix, optional so devices
+without WLC/switch-controller config don't fail the run; v2 was a no-op
+bump — the schema dropped `produces` and `content_hash` covers the
+canonical dump, so the v1 file no longer hash-matched its snapshot; v3
+normalizes the license step through `fortigate.license_status` →
+`attributes.licenses`) and
 `fortiedr@5` (fedr62: system summary + org-scoped `organizations` +
 dashboard license pair + paginated collectors → endpoint subitems; v4
 added the license normalization, v5 added the

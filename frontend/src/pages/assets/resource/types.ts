@@ -60,7 +60,7 @@ export interface ResourceAdapter<T = unknown> {
   };
   /** Workspace-relative path (after /assets) for this resource/view. */
   buildPath: (ref: ResourceRef, view?: string) => string;
-  /** Capability-driven view tabs (e.g. hide Sub-inventory without children). */
+  /** Capability-driven view tabs (e.g. hide Discovered inventory without children). */
   views: (model: ResourceModel<T>) => ResourceViewDescriptor[];
   renderView: (view: string, model: ResourceModel<T>, ctx: ViewContext) => ReactNode;
   /** Contextual action buttons (edit/delete/enrich/...); omitted = read-only. */

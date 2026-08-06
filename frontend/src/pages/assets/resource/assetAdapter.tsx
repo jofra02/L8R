@@ -32,7 +32,7 @@ const VIEWS = [
   { id: "attributes", label: "Attributes" },
   { id: "license", label: "License" },
   { id: "relations", label: "Relations" },
-  { id: "sub-inventory", label: "Sub-inventory" },
+  { id: "sub-inventory", label: "Discovered inventory" },
   { id: "integration", label: "Integration" },
   { id: "history", label: "History" },
 ];

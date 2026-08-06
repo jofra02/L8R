@@ -11,8 +11,14 @@
 # v3: license step normalizer -> fortigate.license_status (same envelope +
 # `normalized` license entries); new attributes.licenses mapping. The raw
 # blob mapping (attributes.license_status) is unchanged.
+# v4: managed FortiAPs (WLC) and FortiSwitches (Switch Controller) as
+# subitems (kinds access_point/switch). Purely additive: two new optional
+# steps + two root-level subitems rules; no existing mapping changed.
+# Both tools hit /api/v2/monitor despite the cmdb_ name prefix (spec
+# directory artifact — names are frozen, copied literally). Endpoints are
+# unpaginated, so the absence sweep always runs.
 pack_id: fortigate
-version: 3
+version: 4
 label: FortiGate (FortiOS)
 compatible:
   device_types: [fortios]
@@ -46,6 +52,14 @@ steps:
   - id: lldp
     tool: fgt74_monitor_net_get_network_lldp_neighbors
     normalizer: fortigate.monitor_results
+  # Optional: a FortiGate without WiFi/switch-controller config returns an
+  # error here; required:false keeps the run alive for those devices.
+  - id: managed_aps
+    tool: fgt74_cmdb_wifi_get_managed_ap
+    normalizer: fortigate.monitor_results
+  - id: managed_switches
+    tool: fgt74_cmdb_switch_get_controller_managed_status
+    normalizer: fortigate.monitor_results
 
 # Self-enrichment: dotted paths into the normalized step output
 # ({results, meta}). Default policy manual_wins: a manually-set field is
@@ -62,6 +76,40 @@ mappings:
   - { source: interfaces.results,               target: attributes.interfaces, policy: discovered_wins }
   - { source: ha.results,                       target: attributes.ha_config, policy: discovered_wins }
   - { source: vdoms.results,                    target: attributes.vdoms, policy: discovered_wins }
+
+# Discovery: managed FortiAPs and FortiSwitches land in asset_subitems,
+# never in assets (curated-vs-discovered invariant). State is stored raw
+# (no state_map), matching the fortiedr pack.
+subitems:
+  # Field paths verified live against FortiOS 7.2.12 (druidics, 2 FAPs):
+  # `status` is the connection state (connected/disconnected); `state` is
+  # the authorization state. os_version/board_mac/join_time only populate
+  # for connected APs — misses are silently omitted by design.
+  - step: managed_aps
+    items: "results[*]"
+    kind: access_point
+    identity: { source: fortigate, external_id: serial, fallback: name }
+    name: name
+    state: status
+    attributes:
+      - { source: os_version,      target: attributes.os_version }
+      - { source: board_mac,       target: attributes.mac }
+      - { source: local_ipv4_addr, target: attributes.ip }
+      - { source: ap_profile,      target: attributes.ap_profile }
+      - { source: clients,         target: attributes.client_count }
+      - { source: eos,             target: attributes.eos }
+      - { source: join_time_raw,   target: attributes.joined_at, transform: to_datetime }
+  - step: managed_switches
+    items: "results[*]"
+    kind: switch
+    identity: { source: fortigate, external_id: serial, fallback: name }
+    name: name
+    state: status
+    attributes:
+      - { source: os_version,         target: attributes.os_version }
+      - { source: connecting_from,    target: attributes.ip }
+      - { source: fgt_peer_intf_name, target: attributes.uplink_interface }
+      - { source: model,              target: attributes.model }
 
 # Match-only: relations link to EXISTING assets (by MAC), no asset
 # creation from LLDP neighbors.
