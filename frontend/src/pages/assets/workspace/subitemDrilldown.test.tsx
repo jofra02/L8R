@@ -51,13 +51,13 @@ describe("subitem drill-down", () => {
     await drillIntoDc1(user);
 
     expect(path()).toBe("/t/acme/assets/a-console/sub/ep-dc1");
-    // breadcrumb: Assets / FortiEDR Console / Sub-inventory / DC1
+    // breadcrumb: Assets / FortiEDR Console / Discovered inventory / DC1
     expect(screen.getByRole("link", { name: "Assets" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "FortiEDR Console" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sub-inventory" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Discovered inventory" })).toBeInTheDocument();
 
-    // capability-driven views: DC1 has children → Sub-inventory tab exists
-    await user.click(screen.getByRole("button", { name: "Sub-inventory" }));
+    // capability-driven views: DC1 has children → Discovered inventory tab exists
+    await user.click(screen.getByRole("button", { name: "Discovered inventory" }));
     expect(path()).toBe("/t/acme/assets/a-console/sub/ep-dc1/sub-inventory");
     await screen.findByText("eth0");
     expect(screen.getByText("eth1")).toBeInTheDocument();
@@ -66,8 +66,8 @@ describe("subitem drill-down", () => {
     await user.click(screen.getByText("eth0"));
     await screen.findByRole("heading", { name: "eth0" });
     expect(path()).toBe("/t/acme/assets/a-console/sub/if-dc1-1");
-    // eth0 has no children → no Sub-inventory view tab
-    expect(screen.queryByRole("button", { name: "Sub-inventory" })).not.toBeInTheDocument();
+    // eth0 has no children → no Discovered inventory view tab
+    expect(screen.queryByRole("button", { name: "Discovered inventory" })).not.toBeInTheDocument();
     // but it has attributes → Attributes tab present
     expect(screen.getByRole("button", { name: "Attributes" })).toBeInTheDocument();
     // still ONE workspace tab (drill-down reuses it)
@@ -78,7 +78,7 @@ describe("subitem drill-down", () => {
   it("navigates back through the breadcrumb parent chain", async () => {
     const user = userEvent.setup();
     await drillIntoDc1(user);
-    await user.click(screen.getByRole("button", { name: "Sub-inventory" }));
+    await user.click(screen.getByRole("button", { name: "Discovered inventory" }));
     await screen.findByText("eth0");
     await user.click(screen.getByText("eth0"));
     await screen.findByRole("heading", { name: "eth0" });
@@ -92,7 +92,7 @@ describe("subitem drill-down", () => {
   it("deep links to a grandchild and rebuilds the ancestor breadcrumb", async () => {
     renderWorkspace("/t/acme/assets/a-console/sub/if-dc1-1");
     await screen.findByRole("heading", { name: "eth0" });
-    // ancestors from the API: Assets / FortiEDR Console / Sub-inventory / DC1 / Sub-inventory
+    // ancestors from the API: Assets / FortiEDR Console / Discovered inventory / DC1 / Discovered inventory
     expect(await screen.findByRole("link", { name: "DC1" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "FortiEDR Console" })).toBeInTheDocument();
     await waitFor(() => expect(search()).toContain("tabs=a-console"));
@@ -102,7 +102,7 @@ describe("subitem drill-down", () => {
     const user = userEvent.setup();
     await drillIntoDc1(user);
     // back to the asset's sub-inventory to use the row context menu
-    await user.click(screen.getByRole("link", { name: "Sub-inventory" }));
+    await user.click(screen.getByRole("link", { name: "Discovered inventory" }));
     const row = (await screen.findByText("WS2")).closest("tr")!;
     fireEvent.contextMenu(row);
     await user.click(await screen.findByText("Open in new tab"));
@@ -118,7 +118,7 @@ describe("subitem drill-down", () => {
   it("keeps children grid filters when returning through the breadcrumb", async () => {
     const user = userEvent.setup();
     await drillIntoDc1(user);
-    await user.click(screen.getByRole("button", { name: "Sub-inventory" }));
+    await user.click(screen.getByRole("button", { name: "Discovered inventory" }));
     await screen.findByText("eth0");
 
     // filter the children grid by name (kept-mounted hidden panels also
@@ -135,7 +135,7 @@ describe("subitem drill-down", () => {
     const rowCell = screen.getAllByText("eth0").find((el) => el.closest("td"))!;
     await user.click(rowCell);
     await screen.findByRole("heading", { name: "eth0" });
-    await user.click(screen.getAllByRole("link", { name: "Sub-inventory" }).pop() as HTMLElement);
+    await user.click(screen.getAllByRole("link", { name: "Discovered inventory" }).pop() as HTMLElement);
     await waitFor(() =>
       expect(screen.getAllByText("eth0").some((el) => el.closest("td"))).toBe(true),
     );

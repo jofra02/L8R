@@ -57,8 +57,9 @@ function SubitemOverview({ subitem }: { subitem: AssetSubitemDetail }) {
   );
 }
 
-/** Ancestor chain → breadcrumb: Assets / <asset> / Sub-inventory / <node> /
- * Sub-inventory / ... — every segment navigable, any depth. */
+/** Ancestor chain → breadcrumb: Assets / <asset> / Discovered inventory /
+ * <node> / Discovered inventory / ... — every segment navigable, any depth.
+ * Route slugs keep the historical `sub-inventory` token. */
 function buildAncestors(
   ref: ResourceRef,
   subitem: AssetSubitemDetail,
@@ -67,12 +68,12 @@ function buildAncestors(
   const segments: ResourceBreadcrumbSegment[] = [
     { label: "Assets", afterPath: "" },
     { label: assetName, afterPath: ref.assetId },
-    { label: "Sub-inventory", afterPath: `${ref.assetId}/sub-inventory` },
+    { label: "Discovered inventory", afterPath: `${ref.assetId}/sub-inventory` },
   ];
   for (const anc of subitem.ancestors) {
     segments.push({ label: anc.name, afterPath: `${ref.assetId}/sub/${anc.id}` });
     segments.push({
-      label: "Sub-inventory",
+      label: "Discovered inventory",
       afterPath: `${ref.assetId}/sub/${anc.id}/sub-inventory`,
     });
   }
@@ -124,7 +125,9 @@ export const subitemAdapter: ResourceAdapter<SubitemResource> = {
     return [
       { id: "overview", label: "Overview" },
       ...(Object.keys(subitem.attributes).length ? [{ id: "attributes", label: "Attributes" }] : []),
-      ...(subitem.children_count > 0 ? [{ id: "sub-inventory", label: "Sub-inventory" }] : []),
+      ...(subitem.children_count > 0
+        ? [{ id: "sub-inventory", label: "Discovered inventory" }]
+        : []),
     ];
   },
 

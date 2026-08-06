@@ -9,7 +9,7 @@ export interface BreadcrumbSegment {
   path?: string;
 }
 
-/** Hierarchy breadcrumb (Assets / FortiEDR / Sub-inventory / DC1). Every
+/** Hierarchy breadcrumb (Assets / FortiEDR / Discovered inventory / DC1). Every
  * segment with a path is navigable; the last one is the current resource. */
 export function Breadcrumb({ segments, className }: { segments: BreadcrumbSegment[]; className?: string }) {
   return (

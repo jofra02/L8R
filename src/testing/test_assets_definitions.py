@@ -34,6 +34,26 @@ def test_shipped_definitions_load():
     assert {"fortigate", "fortiedr"} <= pack_ids
 
 
+def test_fortigate_pack_declares_managed_ap_and_switch_subitems():
+    # v4 contract: managed FortiAPs/FortiSwitches are discovered as
+    # root-level subitems through the frozen monitor-API tool names.
+    pack = registry.load_pack_file(registry.PACKS_DIR / "fortigate.yaml")
+    assert pack.version >= 4
+    tools = {s.id: s.tool for s in pack.steps}
+    assert tools["managed_aps"] == "fgt74_cmdb_wifi_get_managed_ap"
+    assert tools["managed_switches"] == "fgt74_cmdb_switch_get_controller_managed_status"
+    required = {s.id for s in pack.steps if s.required}
+    assert {"managed_aps", "managed_switches"}.isdisjoint(required)
+    rules = {r.kind: r for r in pack.subitems}
+    assert set(rules) == {"access_point", "switch"}
+    assert rules["access_point"].step == "managed_aps"
+    assert rules["switch"].step == "managed_switches"
+    for rule in rules.values():
+        assert rule.identity.source == "fortigate"
+        assert rule.identity.external_id == "serial"
+        assert rule.parent is None  # root-only (nested conversion is backlog #4)
+
+
 def test_type_field_validation_rules():
     base = {"type_id": "x", "version": 1, "label": "X"}
     with pytest.raises(Exception, match="shadows"):

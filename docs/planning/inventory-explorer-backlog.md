@@ -30,13 +30,19 @@ strategy for free-form keys (subitems have no declared schema),
 
 ## 4. FortiGate nested-pack conversion
 
-`fortigate@2` maps interfaces/vdoms/ha/license as parent-asset attribute
+`fortigate@4` maps interfaces/vdoms/ha/license as parent-asset attribute
 blobs. Converting them to nested subitems (`vdom` → `interface` rules
 with `parent:`) gives them presence tracking, per-level filtering and
 drill-down — but changes live data semantics (attribute blobs disappear
 from `attributes`, ClientContext consumers see subitems metadata
 instead) and needs its own migration/comms. The engine/pack contract is
 ready (`SubitemParent`, topo-sorted rules, scoped absence).
+
+Note (2026-08-06): managed FortiAPs/FortiSwitches were added in
+`fortigate@4` as **root-level** `access_point`/`switch` subitems — purely
+additive, no existing mapping touched, so it carries none of this item's
+migration risk. Candidate nested follow-ups when this item lands: AP →
+radio and switch → port rules.
 
 ## 5. Full server-side export
 

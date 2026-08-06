@@ -76,6 +76,10 @@ src/api/schemas/assets.py
 
 ### Sub-inventory (`asset_subitems`)
 
+Shown in the UI as **"Discovered inventory"** (the route slug and internal
+ids keep the historical `sub-inventory` token so bookmarks and saved grid
+state survive; the table name is unchanged).
+
 The domain distinguishes two entity classes with different invariants:
 
 - **Assets** are *curated* inventory: created by a human or an explicit
@@ -111,8 +115,9 @@ Consequences:
   upserts — an unresolvable parent skips the item with a warning, never
   attaching orphans at root. Absence sweeps are scoped per hierarchy
   level: a nested rule only sweeps children of parents seen in the
-  current run. No shipped pack produces nested subitems yet (fortiedr
-  stays root-only); the contract is exercised by
+  current run. No shipped pack produces nested subitems yet (fortiedr's
+  endpoints and fortigate's access points/switches are all root-only);
+  the contract is exercised by
   `src/testing/test_assets_subitems_nesting.py`.
 - The parent asset exposes an aggregate (`subitems_summary`:
   `{kind: {total, by_state, absent}}`) on list and detail responses and
