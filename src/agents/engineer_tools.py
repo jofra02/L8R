@@ -65,6 +65,49 @@ def _render_param_lines(schema: Dict[str, Any]) -> List[str]:
     return lines
 
 
+def _coerce_item_list(items: list, label: str, wrap, errors: List[str]) -> list:
+    """Coerce findings list items to dicts: keep dicts, wrap strings, drop the rest.
+
+    The downstream converters (engineer._to_hypotheses/_to_facts/_to_plan) call
+    .get() on every item — a string item crashes the run after the investigation
+    already completed. Wrapping preserves the LLM's content; the warning gives it
+    the chance to resubmit in the documented shape.
+    """
+    coerced = []
+    for i, item in enumerate(items):
+        if isinstance(item, dict):
+            coerced.append(item)
+        elif isinstance(item, str):
+            coerced.append(wrap(item, i))
+            errors.append(f"{label}[{i}] was a string; coerced to object")
+        else:
+            errors.append(f"{label}[{i}] dropped: not an object")
+    return coerced
+
+
+def _coerce_plan(plan: dict, errors: List[str]) -> dict:
+    """Coerce the four plan step lists to lists of dicts.
+
+    A string value under a step key would be iterated character-by-character by
+    the plan converter — wrap it as a single step instead of letting it through.
+    """
+    for key in ("diagnosis_steps", "proposed_changes", "validation", "rollback"):
+        if key not in plan:
+            continue
+        value = plan[key]
+        if isinstance(value, list):
+            plan[key] = _coerce_item_list(
+                value, f"plan.{key}", lambda s, i: {"description": s}, errors
+            )
+        elif isinstance(value, str):
+            plan[key] = [{"description": value}]
+            errors.append(f"plan.{key} was a string; coerced to a one-step list")
+        else:
+            plan[key] = []
+            errors.append(f"plan.{key} dropped: not a list of steps")
+    return plan
+
+
 async def _audit_tool_call(
     run_id: str, customer_id: str, tool_name: str, args: Dict[str, Any],
     status: str, error: Optional[str], started_at: datetime,
@@ -644,6 +687,9 @@ def create_engineer_tools(
         except (json.JSONDecodeError, TypeError):
             parsed_hypotheses = []
             errors.append("hypotheses JSON parse failed")
+        parsed_hypotheses = _coerce_item_list(
+            parsed_hypotheses, "hypotheses", lambda s, i: {"summary": s}, errors
+        )
 
         # Parse facts
         try:
@@ -654,6 +700,9 @@ def create_engineer_tools(
         except (json.JSONDecodeError, TypeError):
             parsed_facts = []
             errors.append("facts JSON parse failed")
+        parsed_facts = _coerce_item_list(
+            parsed_facts, "facts", lambda s, i: {"key": f"fact_{i}", "value": s}, errors
+        )
 
         # Parse plan
         try:
@@ -664,6 +713,7 @@ def create_engineer_tools(
         except (json.JSONDecodeError, TypeError):
             parsed_plan = {}
             errors.append("plan JSON parse failed")
+        parsed_plan = _coerce_plan(parsed_plan, errors)
 
         # Validate case_status
         valid_statuses = {"resolved", "needs_human", "blocked"}

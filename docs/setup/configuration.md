@@ -291,7 +291,7 @@ These variables only affect `docker-compose.yml` port mappings, not the applicat
 | `LANGFUSE_PORT` | `3000` | Langfuse |
 | `UVICORN_WORKERS` | `1` (dev) / `2` (prod) | Backend workers |
 
-The `mcp-gateway` service additionally reads `INVENTORY_MASTER_KEY`, `GATEWAY_ADMIN_TOKEN`, and optional `DEFAULT_TENANT` from `.env` (see [Deployment — MCP Servers](deployment.md#mcp-servers) and [Gateway Secrets](../operations/gateway_secrets.md)); the `cloudflared` service (profile `tunnel`) needs `CLOUDFLARE_TUNNEL_TOKEN`.
+The `mcp-gateway` service additionally reads `INVENTORY_MASTER_KEY`, `GATEWAY_ADMIN_TOKEN`, optional `DEFAULT_TENANT`, and the upstream HTTP timeouts `GATEWAY_HTTP_TIMEOUT` (read, default `30`s) / `GATEWAY_HTTP_CONNECT_TIMEOUT` (default `5`s) from `.env` (see [Deployment — MCP Servers](deployment.md#mcp-servers) and [Gateway Secrets](../operations/gateway_secrets.md)); appliance packs may override the timeouts per pack via `http_timeout`/`http_connect_timeout` in their `manifest.yaml`. The `cloudflared` service (profile `tunnel`) needs `CLOUDFLARE_TUNNEL_TOKEN`.
 
 ## See Also
 

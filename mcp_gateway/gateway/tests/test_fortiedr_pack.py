@@ -40,6 +40,19 @@ def test_expected_spec_count():
     assert len(SPEC_PATHS) == 26
 
 
+def test_manifest_uses_global_http_timeout():
+    # No per-pack override: the pack rides the global GATEWAY_HTTP_TIMEOUT
+    # default (30s, raised from 10s for the cloud console's org-wide queries).
+    import yaml
+
+    from gateway.vendor_pack import ApplianceManifest
+
+    manifest_path = GATEWAY_ROOT / "vendors" / "fortinet" / "fortiedr" / "6.2" / "manifest.yaml"
+    manifest = ApplianceManifest(**yaml.safe_load(manifest_path.read_text(encoding="utf-8")))
+    assert manifest.http_timeout is None
+    assert manifest.http_connect_timeout is None
+
+
 @pytest.mark.parametrize("spec_path", SPEC_PATHS, ids=lambda p: p.stem)
 def test_spec_is_openapi3(spec_path):
     spec = json.loads(spec_path.read_text(encoding="utf-8"))

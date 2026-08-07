@@ -94,6 +94,29 @@ def _to_plan(raw: Optional[dict]) -> Optional[Plan]:
     )
 
 
+def _convert_findings(
+    findings: dict,
+) -> tuple[List[Hypothesis], List[Fact], Optional[Plan]]:
+    """Convert submitted findings to models, degrading instead of failing.
+
+    A malformed findings payload must never fail the run: at this point the
+    investigation is already complete and the summary is the deliverable —
+    losing it to a shape error in the structured extras is the worst outcome.
+    """
+    try:
+        return (
+            _to_hypotheses(findings.get("hypotheses", [])),
+            _to_facts(findings.get("facts", [])),
+            _to_plan(findings.get("plan")),
+        )
+    except Exception:
+        logger.error(
+            "Engineer: findings conversion failed — degrading to summary-only findings",
+            exc_info=True,
+        )
+        return [], [], None
+
+
 # ---------------------------------------------------------------------------
 # Fallback: extract minimal findings from last AI message (no LLM call)
 # ---------------------------------------------------------------------------
@@ -219,12 +242,12 @@ async def engineer_agent_node(state: GlobalState) -> Dict[str, Any]:
         findings = _fallback_findings(messages, tool_state.evidence_refs)
 
     # 7. Convert to GlobalState models
-    hypotheses = _to_hypotheses(findings.get("hypotheses", []))
-    structured_facts = _to_facts(findings.get("facts", []))
+    hypotheses, structured_facts, plan = _convert_findings(findings)
     facts_dict = {f.key: f.value for f in structured_facts}
-    plan = _to_plan(findings.get("plan"))
     case_status = findings.get("case_status", "resolved")
     final_answer = findings.get("summary", "")
+    if not isinstance(final_answer, str):
+        final_answer = str(final_answer)
 
     # Build scoring result (synthetic, for frontend compatibility)
     scoring = ScoringResult(

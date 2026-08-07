@@ -52,6 +52,10 @@ services:
       SERVER_PORT: 8000
       SERVER_TRANSPORT: sse
       LOG_LEVEL: ${MCP_GATEWAY_LOG_LEVEL:-info}
+      # The gateway has no env_file: only these entries reach the container.
+      # Per-pack manifests may override via http_timeout/http_connect_timeout.
+      GATEWAY_HTTP_TIMEOUT: ${GATEWAY_HTTP_TIMEOUT:-30}
+      GATEWAY_HTTP_CONNECT_TIMEOUT: ${GATEWAY_HTTP_CONNECT_TIMEOUT:-5}
     ports:
       - "${MCP_GATEWAY_PORT:-8001}:8000"
     volumes:

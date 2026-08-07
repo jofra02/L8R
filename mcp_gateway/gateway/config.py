@@ -43,7 +43,7 @@ class GatewaySettings:
             or os.getenv("ACTIVE_TENANT")
             or None
         )
-        self.http_timeout: float = float(os.getenv("GATEWAY_HTTP_TIMEOUT", "10"))
+        self.http_timeout: float = float(os.getenv("GATEWAY_HTTP_TIMEOUT", "30"))
         self.http_connect_timeout: float = float(os.getenv("GATEWAY_HTTP_CONNECT_TIMEOUT", "5"))
 
 

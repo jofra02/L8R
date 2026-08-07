@@ -117,6 +117,8 @@ class RoutingClient(httpx.AsyncClient):
         registries: TenantRegistries,
         auth: AuthStrategy,
         settings: GatewaySettings,
+        http_timeout: float | None = None,
+        http_connect_timeout: float | None = None,
     ) -> None:
         # Note: httpx.AsyncClient owns `_auth`; use distinct names to avoid
         # having __init__ overwrite them.
@@ -130,12 +132,46 @@ class RoutingClient(httpx.AsyncClient):
             base_url=f"https://{_UNCONFIGURED_HOST}:443",
             headers={"Content-Type": "application/json"},
             verify=False,
-            timeout=httpx.Timeout(settings.http_timeout, connect=settings.http_connect_timeout),
+            timeout=httpx.Timeout(
+                http_timeout if http_timeout is not None else settings.http_timeout,
+                connect=(
+                    http_connect_timeout
+                    if http_connect_timeout is not None
+                    else settings.http_connect_timeout
+                ),
+            ),
             event_hooks={
                 "request": [_log_request],
                 "response": [_log_response],
             },
         )
+
+    async def _send_upstream(self, request: httpx.Request, *args, **kwargs) -> httpx.Response:
+        """Dispatch upstream, converting timeouts into a synthetic 504.
+
+        A raw httpx.ReadTimeout reaches the caller as fastmcp's
+        ``ValueError("Request error: ")`` — str() of the timeout is empty, so
+        the agent gets no clue what happened. The synthetic body names the host
+        and the effective limit instead. It must be a non-2xx status: a 2xx
+        would be snapshotted as evidence by the app's execute_tool and
+        contaminate investigations.
+        """
+        try:
+            return await super().send(request, *args, **kwargs)
+        except httpx.TimeoutException:
+            read_s = self.timeout.read
+            log.warning("Upstream timeout after %ss (host %s)", read_s, request.url.host)
+            return httpx.Response(
+                status_code=504,
+                json={
+                    "error": "upstream_timeout",
+                    "message": (
+                        f"upstream device did not respond within {read_s}s "
+                        f"(host {request.url.host})"
+                    ),
+                },
+                request=request,
+            )
 
     async def send(self, request: httpx.Request, *args, **kwargs) -> httpx.Response:
         """Intercept the final request to apply per-request (tenant, device) routing.
@@ -175,7 +211,7 @@ class RoutingClient(httpx.AsyncClient):
                 "Routing: no tenant resolved (header '%s', no default). Request unrouted.",
                 target_tenant,
             )
-            return await super().send(request, *args, **kwargs)
+            return await self._send_upstream(request, *args, **kwargs)
 
         device = None
         if target_device_id:
@@ -223,7 +259,7 @@ class RoutingClient(httpx.AsyncClient):
                     host,
                 )
 
-        response = await super().send(request, *args, **kwargs)
+        response = await self._send_upstream(request, *args, **kwargs)
         if not kwargs.get("stream"):
             _repair_response_encoding(response)
         return response

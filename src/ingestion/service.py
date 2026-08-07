@@ -118,7 +118,7 @@ class IngestionService:
             try:
                 serializable_state = self.audit._sanitize(final_state)
             except Exception as e:
-                logger.error(f"Failed to sanitize final state: {e}")
+                logger.error(f"Failed to sanitize final state: {e}", exc_info=True)
                 serializable_state = {"error": "Failed to serialize state", "final_answer": str(final_state.get('final_answer', ''))}
 
             await self.audit.update_run_context(run_id, customer_id, serializable_state)
@@ -143,7 +143,7 @@ class IngestionService:
             await self.audit.complete_run(run_id, "cancelled")
 
         except Exception as e:
-            logger.error(f"Background execution failed for Run {run_id}: {e}")
+            logger.error(f"Background execution failed for Run {run_id}: {e}", exc_info=True)
             await self.audit.complete_run(run_id, "failed")
         finally:
             task_registry.unregister(run_id)

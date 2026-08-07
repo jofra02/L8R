@@ -188,6 +188,52 @@ def test_primary_change_applies_after_reload_without_rebuild(inventory_root, cap
     assert capture_send["auth"] == "Bearer token-b"
 
 
+def test_upstream_timeout_returns_synthetic_504(inventory_root, monkeypatch):
+    # A raw ReadTimeout would surface as fastmcp's ValueError("Request error: ")
+    # with an empty message; send() must convert it into a descriptive 504.
+    async def fake_send(self, request, *args, **kwargs):
+        raise httpx.ReadTimeout("", request=request)
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", fake_send)
+    client = _routed_client(default_tenant=TENANT)
+    response = _do_request(client)
+    assert response.status_code == 504
+    body = response.json()
+    assert body["error"] == "upstream_timeout"
+    assert "10.0.0.1" in body["message"]
+    assert f"{client.timeout.read}s" in body["message"]
+
+
+def test_upstream_timeout_on_unrouted_path(inventory_root, monkeypatch):
+    # The no-tenant exit path must also convert timeouts, not propagate them.
+    async def fake_send(self, request, *args, **kwargs):
+        raise httpx.ConnectTimeout("", request=request)
+
+    monkeypatch.setattr(httpx.AsyncClient, "send", fake_send)
+    client = _routed_client()  # no default_tenant -> unrouted exit path
+    response = _do_request(client)
+    assert response.status_code == 504
+    assert response.json()["error"] == "upstream_timeout"
+
+
+def test_manifest_http_timeout_overrides_client_timeout(inventory_root):
+    registries = TenantRegistries("fortios", default_tenant=TENANT)
+    client = RoutingClient(
+        registries,
+        get_auth_strategy("bearer_header"),
+        GatewaySettings(),
+        http_timeout=60,
+        http_connect_timeout=7,
+    )
+    assert client.timeout.read == 60
+    assert client.timeout.connect == 7
+
+    settings = GatewaySettings()
+    default_client = _routed_client()
+    assert default_client.timeout.read == settings.http_timeout
+    assert default_client.timeout.connect == settings.http_connect_timeout
+
+
 def test_empty_registry_keeps_unconfigured_fallback(tmp_path, monkeypatch, capture_send):
     monkeypatch.setenv("INVENTORY_ROOT", str(tmp_path))
     get_inventory.cache_clear()
