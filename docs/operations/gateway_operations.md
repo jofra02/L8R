@@ -12,7 +12,9 @@ The gateway is its own uv project at `mcp_gateway/`. Architecture: [mcp_gateway.
 | Host dev | `cd mcp_gateway && uv sync && uv run python main.py` | port from `mcp_gateway/.env` (`SERVER_PORT`) |
 | stdio (Claude Desktop etc.) | `SERVER_TRANSPORT=stdio uv run python main.py` | stdio |
 
-All configuration is env-driven (no CLI flags): `DEFAULT_TENANT` (optional fallback tenant for header-less calls; `ACTIVE_CUSTOMER_ID`/`ACTIVE_TENANT` legacy aliases), `INVENTORY_MASTER_KEY`, `INVENTORY_ROOT`, `GATEWAY_ADMIN_TOKEN`, `SERVER_HOST/PORT/TRANSPORT`, `LOG_LEVEL`, `GATEWAY_HTTP_TIMEOUT`.
+All configuration is env-driven (no CLI flags): `DEFAULT_TENANT` (optional fallback tenant for header-less calls; `ACTIVE_CUSTOMER_ID`/`ACTIVE_TENANT` legacy aliases), `INVENTORY_MASTER_KEY`, `INVENTORY_ROOT`, `GATEWAY_ADMIN_TOKEN`, `SERVER_HOST/PORT/TRANSPORT`, `LOG_LEVEL`, `GATEWAY_HTTP_TIMEOUT` (read timeout, default 30s), `GATEWAY_HTTP_CONNECT_TIMEOUT` (default 5s).
+
+HTTP timeouts can also be overridden per appliance pack via `http_timeout` / `http_connect_timeout` in the pack `manifest.yaml` (precedence: manifest > env > defaults 30/5) for appliances whose APIs need more or less than the global value. When an upstream device does not answer in time, the gateway returns a synthetic `504` with body `{"error": "upstream_timeout", "message": "upstream device did not respond within <N>s (host <host>)"}` instead of an opaque transport error.
 
 > The SSE endpoint has **no authentication** (planned future work) — expose it only on trusted networks / the compose network. The `/admin/*` inventory API is authenticated via `X-Admin-Token` (`GATEWAY_ADMIN_TOKEN`); when the env var is unset it answers 503.
 

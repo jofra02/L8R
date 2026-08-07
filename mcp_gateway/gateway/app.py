@@ -63,7 +63,13 @@ def build_gateway(vendors_root: Path = VENDORS_ROOT) -> FastMCP:
                 pack.manifest.device_type, default_tenant=settings.default_tenant
             )
             registries[pack.manifest.device_type] = tenant_registries
-        client = RoutingClient(tenant_registries, get_auth_strategy(pack.manifest.auth), settings)
+        client = RoutingClient(
+            tenant_registries,
+            get_auth_strategy(pack.manifest.auth),
+            settings,
+            http_timeout=pack.manifest.http_timeout,
+            http_connect_timeout=pack.manifest.http_connect_timeout,
+        )
         appliance_server = build_appliance_server(pack, tenant_registries, client)
         gateway.mount(appliance_server, prefix=pack.prefix)
         log.info(f"Mounted appliance pack '{pack.qualified_name}' at prefix '{pack.prefix}'.")

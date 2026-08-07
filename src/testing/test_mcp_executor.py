@@ -9,10 +9,13 @@ Run: uv run pytest src/testing/test_mcp_executor.py
 
 import asyncio
 
+import httpx
+
 import src.core.mcp_executor as executor_mod
 import src.core.registry as registry_mod
 import src.core.safety as safety
 from src.core.mcp_executor import (
+    _classify_exception,
     execute_mcp_tool,
     is_read_only_tool_name,
 )
@@ -170,6 +173,22 @@ async def test_unknown_error_classification(monkeypatch):
     res = await execute_mcp_tool("fgt74_x_get_y", {}, "acme")
     assert not res.ok and res.error_type == "unknown"
     assert "boom" in res.error
+
+
+def test_classify_exception_timeout_wins_over_connect():
+    # httpx timeouts stringify to "" (class name match) and ConnectTimeout
+    # must not be swallowed by the "connect" substring check.
+    assert _classify_exception(httpx.ReadTimeout("")) == "timeout"
+    assert _classify_exception(httpx.ConnectTimeout("")) == "timeout"
+    # The gateway's synthetic 504 as wrapped by fastmcp's raise_for_status.
+    assert (
+        _classify_exception(
+            ValueError("HTTP error 504: Gateway Timeout - {'error': 'upstream_timeout'}")
+        )
+        == "timeout"
+    )
+    assert _classify_exception(ConnectionError("connection refused")) == "connection"
+    assert _classify_exception(ValueError("HTTP error 401: Unauthorized")) == "authorization"
 
 
 # ---------------------------------------------------------------------------

@@ -45,6 +45,7 @@ testpaths = [
     "src/testing/test_notifications.py",
     "src/testing/test_tenant_header_injection.py",
     "src/testing/test_mcp_executor.py",
+    "src/testing/test_engineer_findings.py",
     "src/testing/test_assessment_definitions.py",
     "src/testing/test_assessment_scoring.py",
     "src/testing/test_assessment_state_machine.py",

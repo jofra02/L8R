@@ -112,11 +112,17 @@ async def _canonicalize_device(value: Any, customer_id: str) -> Any:
 def _classify_exception(exc: BaseException) -> str:
     if isinstance(exc, asyncio.TimeoutError):
         return "timeout"
+    # httpx timeout exceptions (ReadTimeout, ConnectTimeout, ...) stringify to
+    # an empty message — match on the class name without importing httpx.
+    if "timeout" in type(exc).__name__.lower():
+        return "timeout"
     msg = str(exc).lower()
+    # Timeout must win over the "connect" substring: httpx.ConnectTimeout and
+    # the gateway's synthetic 504 both mention connecting/timeouts at once.
+    if "timeout" in msg or "timed out" in msg or "504" in msg:
+        return "timeout"
     if isinstance(exc, (ConnectionError, OSError)) or "connect" in msg or "unreachable" in msg:
         return "connection"
-    if "timeout" in msg or "timed out" in msg:
-        return "timeout"
     if "401" in msg or "403" in msg or "unauthorized" in msg or "forbidden" in msg:
         return "authorization"
     return "unknown"

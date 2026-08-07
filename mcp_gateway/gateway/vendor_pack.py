@@ -66,6 +66,14 @@ class ApplianceManifest(BaseModel):
         DEFAULT_DEVICE_PARAM_DESCRIPTION,
         description="Description of the injected 'device' routing header parameter",
     )
+    http_timeout: Optional[float] = Field(
+        None,
+        description="Per-pack read-timeout override in seconds; falls back to GATEWAY_HTTP_TIMEOUT",
+    )
+    http_connect_timeout: Optional[float] = Field(
+        None,
+        description="Per-pack connect-timeout override in seconds; falls back to GATEWAY_HTTP_CONNECT_TIMEOUT",
+    )
 
 
 class AppliancePack:
